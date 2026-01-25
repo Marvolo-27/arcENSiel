@@ -13,7 +13,7 @@ define('APP_ENTRY', true);
 require_once "config/config.php";
 
 $raw_request_url = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH); // extrait le chemin de l'URL d'accès à ce fichier (redirigé vers le routeur) SANS paramètres GET
-$url_parameters = parse_url($_SERVER['REQUEST_URI'], PHP_URL_QUERY); // extrait les paramètres de requêtes GET (post '?')
+parse_str(parse_url($_SERVER['REQUEST_URI'], PHP_URL_QUERY), $url_parameters); // extrait les paramètres de requêtes GET (post '?')
 
 // require peut uniquement appeler une url de fichier sans paramètres.
 // Cependant, require un fichier ne change pas l'URL courante - donc les paramètres sont tjrs accessibles dans le fichier appelé via $_GET
@@ -205,7 +205,7 @@ if (preg_match('#^/articles/#', $request_url)) { // pattern(?!patternbis) is a "
 if (preg_match('#^/engine/#', $request_url)) { // pattern(?!patternbis) is a "negative lookahead": matches 'pattern' NOT followed by 'patternbis'
     $slug = end(explode('/', $request_url));
     
-    if (in_array($slug, ['news'])) {
+    if (in_array($slug, ['news', 'contact', 'search'])) {
         require $root . "/app/pages/backend/$slug-engine.php";
         exit;
     }
@@ -225,10 +225,7 @@ if (preg_match('#^/user/#', $request_url)) { // pattern(?!patternbis) is a "nega
 
 // SEARCH ACTIONS
 if (preg_match('#^/search/#', $request_url)) { // pattern(?!patternbis) is a "negative lookahead": matches 'pattern' NOT followed by 'patternbis'
-    if (preg_match('#/search\.php#', $request_url)) {
-        require $root . "/app/pages/backend/search-engine.php";
-        exit;
-	} elseif (!preg_match('#/search/.+/;+#', $request_url)) {
+    if (!preg_match('#/search/.+/;+#', $request_url)) {
         $query_slug = urldecode(end(explode('/', $request_url)));
         require $root . "/app/pages/search.php";
         exit;
@@ -237,8 +234,25 @@ if (preg_match('#^/search/#', $request_url)) { // pattern(?!patternbis) is a "ne
 
 // CREDENTIAL ACTIONS
 if (preg_match('#^/login/#', $request_url)) { // pattern(?!patternbis) is a "negative lookahead": matches 'pattern' NOT followed by 'patternbis'
+    if (preg_match('#/update-credentials$#', $request_url)) {
+        null;
+    } elseif (preg_match('#/forgotten-password$#', $request_url)) {
+        $action = 'trigger-reset';
+    } elseif (preg_match('#/reset-password$#', $request_url)) {
+        $action = 'reset';
+        $_SESSION['reset-token'] = $url_parameters['token'];
+    }
+    
     require $root . "/app/login/login.php";
     exit;
+}
+
+// PAGES REQUEST
+if (preg_match('#^/([a-zA-Z\-_0-9]+)$#', $request_url, $matches)) { // pattern(?!patternbis) is a "negative lookahead": matches 'pattern' NOT followed by 'patternbis'
+    if (is_file($root . "/app/pages/".$matches[1].".php")) {
+        require $root . "/app/pages/".$matches[1].".php";
+        exit;
+    }
 }
 
 // EXTENSION PRUNER
@@ -265,17 +279,13 @@ switch ($request_url) {
         break;
 	
     // PAGES - Mentions légales
-    case '/pages/legals':
+    case '/legals':
         header("Location: /mentions-legales"); 
-        break;
-    
-    // PAGES - Mentions légales
-    case '/mentions-legales':
-        require $root . '/app/pages/legals.php';
         break;
     
 	// LOGIN - default login
     case '/login':
+        $action = 'login';
         require $root . '/app/login/login.php';
         break;
 	
@@ -335,42 +345,6 @@ switch ($request_url) {
     // USER - dashboard
     case '/user/dashboard':
         require $root . '/app/user/dashboard.php';
-        break;
-    
-    // USER - credentials board
-    case '/update/credentials':
-        require $root . '/app/login/login.php';
-        break;
-    
-    // PAGES -search engine
-    case '/search':
-        require $root . '/app/pages/search.php';
-        break;
-    
-    // PAGES - publications history
-    case '/archives':
-        require $root . '/app/pages/archives.php';
-        break;
-    
-    // PAGES - publications history
-    case '/actualites':
-        require $root . '/app/pages/actualites.php';
-        break;
-    
-    // PAGES - useful resources
-    case '/ressources':
-        require $root . '/app/pages/ressources.php';
-        break;
-    
-    // PAGES - official organisation documents
-    case '/documents':
-        require $root . '/app/pages/documents.php';
-        break;
-
-    // SANDBOX
-    case '/test':
-        // require $root . '/config/test.php';
-        header("Location: /"); 
         break;
     
     default:
