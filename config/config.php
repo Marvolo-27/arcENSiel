@@ -7,6 +7,10 @@ $serverroot = $_SERVER['DOCUMENT_ROOT'];
 // load libraries
 require_once $root . '/libraries/vendor/autoload.php';
 
+use ipinfo\ipinfo\IPinfo;
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
+
 //// CREDENTIALS
 require_once $root . '/.private/credentials.php';
 
@@ -151,6 +155,98 @@ function getTypes() {
 	file_put_contents($root . '/.temp/types.json', json_encode($typeData));
 
 	return $artTypes;
+}
+
+function sendMail($in, $from, $to, $name, $subject, $body, $savedir = null, $reply = null) {
+	/*
+	retuns {status:status, context:context}
+
+	status 0 - success
+	status 1 - failed to send mail
+	status 2 - bad email format
+
+	in : 0 = mail sent from arcensiel ; 1 = mail received by arcensiel
+	*/
+
+	global $mail_id;
+	global $mail_pass;
+
+	$char_list = "a-zA-Z0-9!#$%&'*+\/=?^_{|}~`";
+	
+	// remove invisible characters
+	$from = str_replace(['\r', '\n'], '', $from);
+	$to = str_replace(['\r', '\n'], '', $to);
+
+	// analyse email
+	$email = $in ? $from:$to;
+	$test_glob = preg_match("/^[$char_list][$char_list\-\.]*[$char_list]?@[a-zA-Z0-9][a-zA-Z0-9\-\.]*[a-zA-Z0-9]?\.[a-zA-Z0-9]{2,63}$/", $email, $matches_one);		// general shape	
+	$test_fine = preg_match('/(\.\.|\.@|-@)/', $email, $matches_two);		// refinement
+
+
+	// return to contact form
+	if (!$test_glob || $test_fine) {// invalid mail
+		return ['status' => 2, 'context' => null];
+
+	} else {// valid mail
+		$mail = new PHPMailer(true);
+
+		$body_clean = filter_var($body, FILTER_SANITIZE_SPECIAL_CHARS); // convert special characters to html code for safety
+		// $body_clean = $body;
+		$subject_clean = filter_var($subject, FILTER_SANITIZE_SPECIAL_CHARS);
+
+		try {
+			// Config serveur sortant
+			$mail->isSMTP();
+			$mail->Host = 'smtp.ens-lyon.fr';
+			$mail->SMTPAuth = true;
+			$mail->Username = $mail_id;
+			$mail->Password = $mail_pass;
+			$mail->SMTPSecure = 'STARTTLS';
+			$mail->Port = 587;
+			$mail->CharSet = 'UTF-8';
+
+			// Sender data
+			$mail->addReplyTo($email, $name);
+			$mail->setFrom($email, $name);
+
+			// Receiver data
+			$mail->addAddress($to);
+
+			// Mail content
+			$mail->isHTML(true);
+			$mail->Subject = $subject_clean;
+			$mail->Body = $body;
+			$mail->AltBody = $body_clean;
+
+			// let's go
+			$mail->send();
+
+			if ($savedir !== null) {// copy sent email to folder
+				// copy mail in IMAP folder
+				$imapPath = "{imaps.ens-lyon.fr:993/imap/ssl}INBOX/".$savedir;
+
+				$imapStream = imap_open(
+					$imapPath,
+					$mail_id,
+					$mail_pass
+				);
+
+				if ($imapStream) {
+					imap_append(
+						$imapStream,
+						$imapPath,
+						$mail->getSentMIMEMessage()
+					);
+					imap_close($imapStream);
+				}
+			}
+			
+			return ['status' => 0, 'context' => null];
+		
+		} catch(Exception $e) {
+			return ['status' => 1, 'context' => $e];
+		}
+	}
 }
 
 //// MAIN
