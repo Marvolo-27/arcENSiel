@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Uploaded to: SVG Repo, www.svgrepo.com, Generator: SVG Repo Mixer Tools -->
+
+<svg
+   width="250.00002mm"
+   height="250mm"
+   viewBox="0 0 56.692916 56.692914"
+   version="1.1"
+   id="svg2"
+   sodipodi:docname="discord_icon.svg"
+   inkscape:version="1.4.2 (f4327f4, 2025-05-13)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview2"
+     pagecolor="#ffffff"
+     bordercolor="#111111"
+     borderopacity="1"
+     inkscape:showpageshadow="0"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="1"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="0.60268768"
+     inkscape:cx="379.13501"
+     inkscape:cy="251.37398"
+     inkscape:window-width="2560"
+     inkscape:window-height="1369"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg2"
+     inkscape:document-units="mm" />
+  <defs
+     id="defs1">
+    <style
+       id="style1">.a{fill:none;stroke:#000000;stroke-linecap:round;stroke-linejoin:round;}</style>
+  </defs>
+  <path
+     id="circle2"
+     style="fill:none;stroke:#ffffff;stroke-width:2.94803146;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none"
+     class="a"
+     d="m 41.472935,31.433657 a 4.6273487,4.6273487 0 0 1 -4.627349,4.627347 4.6273487,4.6273487 0 0 1 -4.627348,-4.627347 4.6273487,4.6273487 0 0 1 4.627348,-4.627349 4.6273487,4.6273487 0 0 1 4.627349,4.627349 z m -16.998255,0 a 4.6273487,4.6273487 0 0 1 -4.627349,4.627347 4.6273487,4.6273487 0 0 1 -4.627349,-4.627347 4.6273487,4.6273487 0 0 1 4.627349,-4.627349 4.6273487,4.6273487 0 0 1 4.627349,4.627349 z M 19.492338,42.405722 C 18.262982,44.210941 16.875606,46.018093 15.47276,47.691536 5.2787792,47.401463 1.4111444,40.785045 1.4111444,40.785045 1.5560366,31.41031 3.827836,22.190866 8.0551889,13.822105 11.771132,10.915077 16.298952,9.2352471 21.011766,9.0151871 l 1.381298,3.1907989 c 1.972847,-0.273889 3.961657,-0.416936 5.953395,-0.428202 2.000613,0.0066 3.998616,0.145014 5.981021,0.414389 l 1.381298,-3.1907989 c 4.717433,0.231976 9.245712,1.9264609 12.956577,4.8483569 4.213759,8.362653 6.475975,17.572088 6.616418,26.935314 0,0 -3.867635,6.616418 -14.061615,6.906491 -1.404182,-1.68695 -2.722684,-3.443415 -3.950513,-5.262746 m 8.923186,-4.005765 c -5.304185,2.687178 -10.436398,5.37325 -17.846372,5.37325 -7.409974,0 -12.542188,-2.686072 -17.846373,-5.37325" />
+</svg>

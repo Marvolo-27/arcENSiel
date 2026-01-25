@@ -1,0 +1,33 @@
+<div class='body-overlay' id="overlay-auth">
+	<div class="inner-overlay">
+		<form class='overlay-form'>
+			<h4 class="title">
+				Modifications détectées - authentification requise
+			</h4>
+			
+			<div class='box password'>
+				<div class='input-header'>
+					<label class='label' for='pswd'>Mot de passe</label>
+				</div>
+				<div class='input-container'>
+					<div class='icon lock left medium'><span class='img'></span></div>
+					<input class='lineentry auth-input decorated' type='password' name='password' id='overlay-pswd' autocomplete=off required placeholder="Mot de passe" title="Veuilez entrer votre mot de passe">
+					<div class='icon toggle-pass right medium'><span class='img' title='Montrer le mot de passe'></span></div>
+					<span class="spinner icon right"></span>
+				</div>
+				<div class='error password'>Échec de l'auhtentification</div>
+			</div>
+			
+			<div class='form-action-wrap linear'>
+				<div class='form-action'>
+					<button class='action-btn validate spinnable' type='submit' name='action' value='password' id="submit"><span class='text'>Valider</span><div class='spinner'></div></button>
+				</div>
+                <div class='form-action'>
+				    <div class='action-btn cancel'>Annuler</div>
+			    </div>
+			</div>
+		</form>
+			
+		</div>
+	</div>
+</div>

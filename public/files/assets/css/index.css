@@ -1,0 +1,179 @@
+/*!! News style !!*/
+#grid-wrap {
+	margin: .5em 1em;
+
+        & #grid-container {
+                --preview-size: calc(1/var(--n) * (100vw - 2em - 4em - 2em - 0.5em * (2 * var(--n) - 1)));
+            
+                display: grid;
+                grid-gap: .5em;
+                grid-template-columns: repeat(var(--n), 1fr);
+                padding: 0;
+
+                @media (min-width: 1000px) {--preview-size: calc(1/var(--n) * (1000px - 2em - 4em - 0.5em * (2 * var(--n) - 1)));} /* 2*2em = side margins ; 2n-1 .5em = n-1 gaps + n*2*.25em margin */
+                
+                & .grid-item-wrap {
+                        position: relative;
+			margin-top: 15%;
+
+                        & .overlay-metadata {
+                                position: absolute;
+                                top: -9.5%;
+                                border: 2px solid black;
+                                border-radius: 6px;
+                                left: 4.5%;
+                                width: 71.5%;
+                                height: 4.5em;
+                                z-index: 1;
+                                box-sizing: border-box;
+                                /* box-shadow: -1px 4px 3px 0px black; */
+					            padding: .25em;
+                                
+                                @media (min-width: 700) {
+                                        width: 50%;
+                                        }
+                                
+                                & .article-name {
+                                        color: black;
+                                        border-radius: 6px;
+                                        margin: 0;
+                                        white-space: nowrap;
+                                        overflow: clip;
+                                        text-overflow: ellipsis;
+                                        }
+                                        
+                                & .metadata {
+                                        font-size: .7em;
+                                        /*color: var(--metadata-color);*/
+                                        margin: .5em 0 .75em 0;
+                                        display: flex;
+                                        flex-flow: column;
+                                        gap: .25em;
+
+                                        .tags::before {background-image: var(--icon-tag);}
+	                                    .date::before {background-image: var(--icon-clock);}
+                                        }
+                                }
+                        
+                        & .grid-item {
+                                --h: calc(5/4 * var(--preview-size));
+                                --w: var(--preview-size);
+                                border: 2px solid black;
+                                border-radius: 6px;
+                                /* width: var(--w); */
+                                height: var(--h);
+                                position: relative;
+                                margin: .25em;
+                                transition: all .3s;
+                                cursor: pointer;
+                                display: flex;
+                                align-items: center;
+                                overflow: hidden;
+                                box-sizing: border-box;
+
+                                &:hover {@media (hover:hover) {
+                                        margin: 0;
+                                        --w: calc(var(--preview-size) + .5em);
+                                        --h: calc(5/4 * var(--preview-size) + .5em);
+                                        }}
+                                
+                                & .article-poster {
+                                        height: auto;
+                                        position: relative;
+                                        z-index: 0;
+
+                                        &.poster-bg {
+                                                /* blurred img in bg covering all space */
+                                                position: absolute;
+                                                top: 0;
+                                                z-index: -1;
+                                                overflow: hidden;
+                                                height: 100%;
+                                                filter: blur(3px);
+                                                
+                                                /* center picture */
+                                                & img {
+                                                        height: 100%;
+                                                        width: auto !important;
+                                                        position: relative;
+                                                        left: calc(-0.5 * (100% - var(--w)));
+                                                        }
+                                                }
+                                        
+                                        &.icon-style {
+                                                width: 90%;
+                                                left: 5%;
+                                                }
+                                        
+                                        & img {
+                                                width: 100%;
+                                                transition: all .3s;
+                                                }
+                                        }
+                                
+                                & .grid-item-preview {
+                                        position: absolute;
+                                        bottom: 0;
+                                        background-color: rgba(0,0,0,.8);
+                                        transition: opacity .3s;
+                                        height: calc(5/12 * var(--preview-size));
+                                        width: 100%;
+                                        display: flex;
+                                        flex-flow: column;
+                                        text-align: center;
+                                        font-size: .75em;
+                                        color: white;
+                                        padding: .75em;
+                                        box-sizing: border-box;
+
+                                        @media (hover: hover) {
+                                                opacity: 0;
+                                                
+                                                .grid-item:hover & {opacity: 1;}
+                                                }
+                                
+                                        @media (hover: none) {
+                                                display: flex;
+                                                font-size: .65em;
+
+                                                &.full {
+                                                        display: none;
+                                                        
+                                                        &[active] {display: flex}
+                                                        }
+                                                }
+
+                                        &.full {
+                                                height: calc(5/4 * var(--preview-size));
+                                                align-items: center;
+                                                justify-content: center;
+                                                }
+
+                                        }
+                                }
+                        }
+                }
+        
+        & #news-footer {
+                margin: .75em 0 .5em 0;
+
+                & .news-page-counter {
+                        text-align: center;
+                        margin-top: .5em;
+                        
+                        & .show-more {
+                                cursor: pointer;
+                                transition: all .2s;
+                                
+                                &:hover {@media (hover:hover) {color: var(--link-color);}}
+                                }
+                        }
+                }
+
+                & .news-nav-wrap {
+			display: flex;
+			flex-flow: column;
+			align-items: center;
+			gap: .5em;
+			}
+        }

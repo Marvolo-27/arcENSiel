@@ -1,0 +1,44 @@
+/* Tables special style */
+.table {
+        margin: 1em 0;
+		
+        &:not([active]) {display: none !important}
+
+		@media (min-width: 1000px) {
+			    &.no-bound {
+                        --prop: 10vw;
+			    		width: calc(100vw - 2 * var(--prop));
+			    		position: relative;
+			    		left: calc(-0.5 * (100vw - 1000px) - 2em + var(--prop));
+				    	}
+				}
+		& .tabulator-row {
+                &[invalid] {background-color: #ffd3d3;}
+                &[altered] {background-color: #ffe5d3;}
+		
+                & .tabulator-cell {
+                        &.edited {background: #f5acac;}
+
+                        &[changed] {background: #f8f688a6;}
+                        
+                        &:is([tabulator-field='receipts'],[tabulator-field='ticket'],[tabulator-field='actions']) span {
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                flex-flow: row;
+                                gap: .25em;
+
+                                & a {display: inline-block;}
+                                }
+                        
+                        &[type='checkbox'] input:checked[readonly] {
+                                cursor: pointer;
+                                }
+                        
+                        /* readonly checkboxes */
+                        &:is([tabulator-field='delivered'],[tabulator-field='registered']) input:checked[readonly] {
+                                pointer-events: none !important;
+                                }
+                        }
+                }
+		}
