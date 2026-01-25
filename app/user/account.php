@@ -43,6 +43,7 @@ if (isset($_SESSION['message'])) {
 		<link rel='stylesheet' type='text/css' href='/files/assets/css/main.css'></link>
 		
 		<script src='/files/assets/js/main.js'></script>
+		<script src='/files/assets/js/login.js'></script>
 		
 		<style>			
 			.auth-form-wrap {
@@ -98,7 +99,7 @@ if (isset($_SESSION['message'])) {
 			</div>
 			
 			<div class="auth-form-wrap">
-				<form id='auth-form' class='wrap' method='post' action='/update/credentials'>
+				<form id='auth-form' class='wrap' method='post' action='/login/update-credentials'>
 					<div class='main-info'>
 						<div class='box username'>
 							<div class='input-header'>
@@ -112,11 +113,27 @@ if (isset($_SESSION['message'])) {
 							</div>
 							<div class='error username'>Nom d'utilisateur indisponible.</div>
 						</div>
+
+						<div class='box email'>
+							<div class='input-header'>
+								<label class='label' for='email'>Adresse email</label>
+							</div>
+							<div class='input-container'>
+								<div class='icon mail left medium'><span class='img'></span></div>
+								<input class='lineentry decorated' type='email' name='new-email' id='email' autocomplete=on placeholder='john.doe@example.com' data-id="<?= $_SESSION['email'] ?>" value="<?= $_SESSION['email'] ?>" title="Veuilez entrer votre adresse mail" required readonly>
+								<div class='icon validity right medium'><span class='img'></span></div>
+								<span class="spinner icon right"></span>
+							</div>
+							<div class='error mail'>Cette adresse mail existe déjà.</div>
+						</div>
 						
 						<div class='form-action-wrap optional' <?= $error ? 'hidden':''?>>
 							<?php if ($_SESSION['username'] !== 'admin'): ?>
 							<div class='form-action'>
 								<div class='action-btn reset-user'>Modifier le nom d'utilisateur</div>
+							</div>
+							<div class='form-action'>
+								<div class='action-btn reset-mail'>Modifier l'adresse mail'</div>
 							</div>
 							<?php endif; ?>
 							<div class='form-action'>
@@ -215,6 +232,10 @@ if (isset($_SESSION['message'])) {
 										notify("login non modifiable pour admin", 'red');
 									}
 
+									if (document.querySelector('body').dataset.error === 'locked-email') {
+										notify("email non modifiable pour admin", 'red');
+									}
+
 									if (document.querySelector('body').dataset.message === 'updated') {
 										notify(`Informations mises à jour`, 'green');
 										}
@@ -223,119 +244,24 @@ if (isset($_SESSION['message'])) {
 	
 	// Regsiter section logic //
 		// Password match check
-		document.querySelector('#pswd-bis').addEventListener('input', paswdCheck)
-		function paswdCheck() {
-				pswd = document.querySelector('#pswd').value;
-				pswdConf = document.querySelector('#pswd-bis').value;
-				
-				if (pswd !== pswdConf  && pswdConf !== '') {
-					document.querySelector('.box.password-confirm .error.confirmation').setAttribute('active','');
-				} else {
-					document.querySelector('.box.password-confirm .error.confirmation').removeAttribute('active');
-				}
-				submitAllower()
-		}
+		document.querySelector('#pswd-bis').addEventListener('input', psswdCheck)
 		
 		// Password validity check
 		document.querySelector('#pswd').addEventListener('input', paswdRequirementsCheck)
-		function paswdRequirementsCheck() {
-			// check new psswd validity
-				ptag = document.querySelector('.box.password .error.password');
-				pswd = document.querySelector('#pswd').value;
-				
-				checkList = [
-							{'regex': /.{6,}/, selector: '.length'},
-							{'regex': /[a-z]/, selector: '.minuscule'},
-							{'regex': /[A-Z]/, selector: '.majuscule'},
-							{'regex': /[0-9]/, selector: '.number'},
-							{'regex': /[^\sa-zA-Z0-9]/, selector: '.special'},
-							]
-				
-				// loop through checks
-				checkList.forEach(item => {
-						tag = document.querySelector(`.check-item${item.selector}`);
-						if (pswd.match(item.regex) === null) {
-							tag.setAttribute('invalid','');
-							tag.removeAttribute('valid');
-						} else {
-							tag.removeAttribute('invalid');
-							tag.setAttribute('valid','');
-						}
-				})
-				
-				if (document.querySelector('.check-item[invalid]') !== null) {
-					ptag.setAttribute('active',"")
-				} else {
-					ptag.removeAttribute('active')
-				}
-
-			// check new passwds equality
-				pswd = document.querySelector('#pswd').value;
-				pswdConf = document.querySelector('#pswd-bis').value;
-				
-				if (pswd !== pswdConf && pswdConf !== '') {
-					document.querySelector('.box.password-confirm .error.confirmation').setAttribute('active','');
-				} else {
-					document.querySelector('.box.password-confirm .error.confirmation').removeAttribute('active');
-				}
-			
-				submitAllower()
-		}
-		let btn = document.querySelector('.action-btn.update');
+		
+		
 		// (in)activate button
+		let btn = document.querySelector('.action-btn.update');
 		function submitAllower() {
 				btn.disabled = (document.querySelectorAll('.error[active]').length !== 0)
 		}
 		
-		// username check
-		document.querySelector('#username').oninput = compareWithOldUsername
-		function compareWithOldUsername(e) {
-											errorTag = e.target.findParent('.box').querySelector('.error');
-											if (e.target.value !== e.target.getAttribute('oldvalue')) {
-												e.target.removeAttribute('invalid');
-												errorTag.removeAttribute('active');
-											} else {
-												e.target.setAttribute('invalid','');
-												errorTag.setAttribute('active','');
-											}
-										}
+		// username/email check
+		document.querySelector('#username').oninput = compareWithOldValue
+		document.querySelector('#email').oninput = compareWithOldValue
 		
-		document.querySelector('input#username').onchange = (e) => {checkUsername(e)}
-		async function checkUsername(e) {
-					usertag = e.target;
-					spin = document.querySelector('#username ~ .spinner');
-					user = e.target.value.urlForm();
-					errorTag = usertag.findParent('.box').querySelector('.error');
-					
-					// nocheck if same as current value
-					usertag.removeAttribute('valid');
-					if (user === usertag.dataset.id) {btn.disabled = true; return}; 
-
-					usertag.value = user;
-					usertag.setAttribute('oldvalue',user);
-					
-					errorTag.removeAttribute('active');
-					spin.setAttribute('active','');
-					await sleep(250);
-					
-					response = await fetch(`/login/login.php?check=availability&username=${user}`);
-					data = await response.json(); // dict parsed response data
-					
-					if (!response.ok) {
-						usertag.setAttribute('invalid','');
-						spin.removeAttribute('active');
-						errorTag.setAttribute('active','');
-						// console.log(data.error)
-					} else {
-						usertag.removeAttribute('invalid','');
-						usertag.value = data.username;
-						usertag.removeAttribute('oldvalue');
-						spin.removeAttribute('active');
-						usertag.setAttribute('valid','');
-						errorTag.removeAttribute('active');
-					}
-					submitAllower()
-				}
+		document.querySelector('input#username').onchange = e => checkInput(e, 'username')
+		document.querySelector('input#email').onchange = e => checkInput(e, 'email')
 		
 		// password visibility manage
 		document.querySelector('.toggle-pass.new').onclick = () => {togglePassword('#pswd')};
@@ -349,7 +275,13 @@ if (isset($_SESSION['message'])) {
 				e.target.findParent('.form-action-wrap').toggleAttribute('hidden')
 				e.target.findParent('.main-info').querySelector('.optional.reverse').toggleAttribute('active')
 				}
+		document.querySelector('.action-btn.reset-mail').onclick = e => {
+				document.querySelector('#email').removeAttribute('readonly');
+				e.target.findParent('.form-action-wrap').toggleAttribute('hidden')
+				e.target.findParent('.main-info').querySelector('.optional.reverse').toggleAttribute('active')
+				}
 		<?php endif; ?>
+		
 		document.querySelector('.action-btn.reset-pswd').onclick = e => {
 				document.querySelector('#pswd').disabled = false;
 				document.querySelector('#pswd-old').disabled = false;
@@ -358,7 +290,8 @@ if (isset($_SESSION['message'])) {
 				e.target.findParent('.main-info').querySelector('.optional-sec').toggleAttribute('active')
 				e.target.findParent('.main-info').querySelector('.optional.reverse').toggleAttribute('active')
 				}
-		document.querySelector('.action-btn.cancel').onclick = e => {
+		
+				document.querySelector('.action-btn.cancel').onclick = e => {
 				document.querySelectorAll('.optional-sec input[type="password"]').forEach(i => {
 					i.disabled = true;
 					i.value = '';
