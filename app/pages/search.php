@@ -132,7 +132,7 @@ $arguments = ($type || $author || $from || $to || $tags !== [null] || $query);
 	    <?php include($root . '/app/templates/header.php') ?>
 		
 		<div id='main'>
-			<form id="search-form" action="/search/search.php">
+			<form id="search-form" action="/engine/search">
 				<div class='box search'>
 					<div class='input-container'>
 						<div class='icon search left medium'><span class='img'></span></div>
@@ -312,7 +312,7 @@ $arguments = ($type || $author || $from || $to || $tags !== [null] || $query);
 				queries = window.location.search.slice(1) // GET query, w/o ?
 
 				// fetch most recent arfticles matching given parameters
-				queries !== '' ? await newsBuilder(received, 3 * nGridItems, '/search/search.php', queries):null;
+				queries !== '' ? await newsBuilder(received, 3 * nGridItems, '/engine/search', queries):null;
 
 				text = `${total} Résultat${total>1?'s':''}`;
 				update ? document.querySelector('.news-header h2').textContent = text:null;
