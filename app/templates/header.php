@@ -93,7 +93,7 @@
 				</span>
             </span>
 			<span class='nav-item'>
-                <a class='nav-item-name' href='tombola.html'>
+                <a class='nav-item-name' href='/contact'>
                     Nous contacter
                 </a>
             </span>
@@ -115,7 +115,7 @@
 			<div class='icon float cross small'><span class='img'></span></div>
 			
 			<?php if (!isset($_SESSION['user_id'])): ?>
-				<form id='auth-form' method='post' action='/login/login.php?auth=local'>
+				<form id='auth-form' method='post' action='/login?auth=local'>
 					<div class="head-info">
 						Connectez-vous
 					</div>
@@ -140,6 +140,7 @@
 								<input class='lineentry decorated' type='password' name='password' id='pswd' autocomplete=off required placeholder="Mot de passe" title="Veuilez entrer votre mot de passe">
 								<div class='icon toggle-pass right medium hoverable'><span class='img' title='Montrer le mot de passe'></span></div>
 							</div>
+							<div class='info mail'><a href='/login/forgotten-password'>Mot de passe oublié ?</a></div>
 						</div>
 					</div>
 					
