@@ -241,6 +241,11 @@ if (preg_match('#^/login/#', $request_url)) { // pattern(?!patternbis) is a "neg
     } elseif (preg_match('#/reset-password$#', $request_url)) {
         $action = 'reset';
         $_SESSION['reset-token'] = $url_parameters['token'];
+    } elseif (preg_match('#/submit$#', $request_url)) {
+        if (!isset($_POST['action'])) {
+            echo "Unauthorized";
+            exit;
+        }
     }
     
     require $root . "/app/login/login.php";
@@ -282,13 +287,13 @@ switch ($request_url) {
     case '/legals':
         header("Location: /mentions-legales"); 
         break;
-    
-	// LOGIN - default login
+	
+    // LOGIN - login
     case '/login':
-        $action = 'login';
+        $action = 'register';
         require $root . '/app/login/login.php';
         break;
-	
+    
     // LOGIN - CAS login
     case '/loginCAS':
         $method = 'CAS';

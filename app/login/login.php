@@ -55,8 +55,7 @@ if ($check === 'availability') {
 $csrf = $_POST['csrf-token'] ?? null;
 
 // Get client-sent arguments
-$method = $method ?? $_GET['auth'];
-$method = $method ?? 'local';
+$method = $method ?? $_GET['auth'] ?? 'local';
 
 // extract other variables
 $action = $action ?? $_POST['action']; 	// action received from POST = from form completion -> check passed credentials
@@ -376,19 +375,19 @@ if ($status === 'pending-check') {
 }
 
 //
-$error = $_SESSION['error'];
+$error = $_SESSION['error'] ?? null;
 unset($_SESSION['error']);
 
-$errordata = $_SESSION['error-data'];
+$errordata = $_SESSION['error-data'] ?? null;
 unset($_SESSION['error-data']);
 
-$resetstatus = $_SESSION['pswd-status'];
+$resetstatus = $_SESSION['pswd-status'] ?? null;
 unset($_SESSION['pswd-status']);
 
-$tmpmail = $_SESSION['tmpmail'];
+$tmpmail = $_SESSION['tmpmail'] ?? null;
 unset($_SESSION['tmpmail']);
 
-$message = $_GET['msg'];
+$message = $_GET['msg'] ?? null;
 unset($_SESSION['message']);
 ?>
 
@@ -458,40 +457,42 @@ unset($_SESSION['message']);
 		>
 		
 		<div id='banner'>
-			<div class="banner-logo">
-				<span class='banner-letter' mode='wave'>
-					<img src='/files/icons/logo_a.png'>
-				</span>
-				<span class='banner-letter' mode='wave'>
-					<img src='/files/icons/logo_r.png'>
-				</span>
-				<span class='banner-letter' mode='wave'>
-					<img src='/files/icons/logo_c.png'>
-				</span>
-				<span class='banner-letter' mode='wave'>
-					<img src='/files/icons/logo_e1.png'>
-				</span>
-				<span class='banner-letter' mode='wave'>
-					<img src='/files/icons/logo_n.png'>
-				</span>
-				<span class='banner-letter' mode='wave'>
-					<img src='/files/icons/logo_s.png'>
-				</span>
-				<span class='banner-letter' mode='wave'>
-					<img src='/files/icons/logo_i.png'>
-				</span>
-				<span class='banner-letter' mode='wave'>
-					<img src='/files/icons/logo_e2.png'>
-				</span>
-				<span class='banner-letter' mode='wave'>
-					<img src='/files/icons/logo_l.png'>
-				</span>
-			</div>
+			<a class='banner-logo-wrap' href="/">
+				<div class="banner-logo">
+					<span class='banner-letter' mode='wave'>
+						<img src='/files/icons/logo_a.png'>
+					</span>
+					<span class='banner-letter' mode='wave'>
+						<img src='/files/icons/logo_r.png'>
+					</span>
+					<span class='banner-letter' mode='wave'>
+						<img src='/files/icons/logo_c.png'>
+					</span>
+					<span class='banner-letter' mode='wave'>
+						<img src='/files/icons/logo_e1.png'>
+					</span>
+					<span class='banner-letter' mode='wave'>
+						<img src='/files/icons/logo_n.png'>
+					</span>
+					<span class='banner-letter' mode='wave'>
+						<img src='/files/icons/logo_s.png'>
+					</span>
+					<span class='banner-letter' mode='wave'>
+						<img src='/files/icons/logo_i.png'>
+					</span>
+					<span class='banner-letter' mode='wave'>
+						<img src='/files/icons/logo_e2.png'>
+					</span>
+					<span class='banner-letter' mode='wave'>
+						<img src='/files/icons/logo_l.png'>
+					</span>
+				</div>
+			</a>
 	    </div>
 		
 		<div id="main">
 			<div class="auth-form-wrap">
-				<form id='auth-form' class='wrap' method='post' action='/login?auth=local'>
+				<form id='auth-form' class='wrap' method='post' action='/login/submit?auth=local'>
 					<h1 class="title">
 						<?php if ($action === 'login'): ?>
 							Se connecter
