@@ -140,7 +140,7 @@
 								<input class='lineentry decorated' type='password' name='password' id='pswd' autocomplete=off required placeholder="Mot de passe" title="Veuilez entrer votre mot de passe">
 								<div class='icon toggle-pass right medium hoverable'><span class='img' title='Montrer le mot de passe'></span></div>
 							</div>
-							<div class='info mail'><a href='/login/forgotten-password'>Mot de passe oublié ?</a></div>
+							<div class='context right mail'><a class="canonic" href='/login/forgotten-password'>Mot de passe oublié ?</a></div>
 						</div>
 					</div>
 					

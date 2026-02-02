@@ -169,8 +169,15 @@ a {
 	color: var(--link-color);
 	text-decoration: none;
 	cursor: pointer;
+	transition: color .25s;
 	
 	/* &:hover {text-decoration: underline} */
+
+	&.canonic {
+		color: white;
+
+		&:hover {color: var(--link-color)}
+	}
 	}
 
 /* Paragraphps */
@@ -901,7 +908,7 @@ nav    {
 										}
 									&:has(.sub-menu):hover { /*:not(:has(.sub-menu[hidden='false']))*/
 											/* @media (max-width: 641px) {background-color: var(--main-color);} */
-										}	
+										}
 									
 								/* submenu */
 								& .sub-menu {
@@ -991,7 +998,7 @@ nav    {
 		transition: right .4s ease-in-out;
 		box-shadow: 0 0 5px 0px black;
 		
-		&.active {right: 0;}
+		&.active, &:has(*:focus) {right: 0;}
 		
 		& a {
 			color: black;
@@ -1299,18 +1306,26 @@ form {
 				}
 		
 		/* end boxwrap section */
-		& .error {
-				color: red;
+		& .error, & .context {
 				font-size: .75em;
 				left: 1em;
 				width: fit-content;
 				margin-top: .25em;
 				position: absolute;
 				bottom: -1.1em;
+
+				&.right {
+					left: unset;
+					right: 1em;
+				}
+				}
+		
+		& .error {
+				color: red;
 				display: none;
 				
 				&[active] {display: block} 
-				}
+		}
 		
 		}
 

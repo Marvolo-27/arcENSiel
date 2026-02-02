@@ -106,6 +106,11 @@ if ($method === 'CAS') {
 if ($action === 'reset' && $status === 'pending-form') {
 	$resetToken = $_SESSION['reset-token'];
 
+	if (!$resetToken) {
+        echo "Unauthorized";
+        exit;
+    }
+	
 	$query = $pdo->prepare("SELECT expiry, user FROM tokens WHERE token = ? AND valid = TRUE");
 	$query->execute([$resetToken]);
 	$result = $query->fetch();
@@ -572,7 +577,7 @@ unset($_SESSION['message']);
 								<div class='icon toggle-pass right medium hoverable'><span class='img' title='Montrer le mot de passe'></span></div>
 							</div>
 							<div class='error password' <?= $error === 'invalid-credentials' ? 'active':'' ?>><?= $action === 'login' ? "Nom d'utilisateur ou mot de passe incorrect":"Le mot de passe n'est pas valide" ?></div>
-							<?php if ($action === 'login'): ?><div class='info mail'><a href='/login/forgotten-password'>Mot de passe oublié ?</a></div><?php endif; ?>
+							<?php if ($action === 'login'): ?><div class='context right mail'><a class="canonic" href='/login/forgotten-password'>Mot de passe oublié ?</a></div><?php endif; ?>
 
 							<?php if ($action === 'register'): ?>
 							<div class='checker password'>
@@ -705,21 +710,13 @@ unset($_SESSION['message']);
 		
 		// username/email check
 		document.querySelector('#username').oninput = compareWithOldValue
-		try {document.querySelector('#email').oninput = compareWithOldValue} ctach(e) {null}
+		try {document.querySelector('#email').oninput = compareWithOldValue} catch(e) {null}
 		
 		
 		document.querySelector('input#username').onchange = e => checkInput(e, 'username')
 		document.querySelector('input#email').onchange = e => checkInput(e, 'email')
 		
 	<?php endif; ?>
-		
-		// password visibility manage
-		try {
-			document.querySelector('.toggle-pass').onclick = () => {togglePassword('#pswd')};
-			document.querySelector('.toggle-pass.bis').onclick = () => {togglePassword('#pswd-bis')};
-		} catch (e) {
-			null
-		}
 		</script>
 	</body>
 </html>
