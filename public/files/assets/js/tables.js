@@ -187,7 +187,7 @@ async function fetchTags(target) {
 										<div class='icon delete inline medium dynamic' title="Supprimer l'étiquette">
 											<span class='img'></span>
 										</div>`}, resizable: false},
-					{ title: "Slug", field: "slug", editor: 'input', validator: ['unique', 'required']},
+					{ title: "Identifiant", field: "slug", editor: 'input', validator: ['unique', 'required']},
 					{ title: "Nom", field: "name", editor: "input", mutator: function (value, data) {return value.trim()}, validator: tagUniqueness},
 				  ],
 				});
@@ -232,7 +232,7 @@ async function fetchTypes(target) {
 										<div class='icon ${cell.getRow().getData().slug !== 'undefined' ? 'delete dynamic' : ''} inline medium ' ${cell.getRow().getData().slug !== 'undefined' ?'title="Supprimer la catégorie"':''}>
 											<span class='img'></span>
 										</div>`}, resizable: false},
-					{ title: "Slug", field: "slug", editor: 'input', editable: cell => cell.getRow().getData().slug !== 'undefined', validator: ['unique', 'required']},
+					{ title: "Identifiant", field: "slug", editor: 'input', editable: cell => cell.getRow().getData().slug !== 'undefined', validator: ['unique', 'required']},
 					{ title: "Nom", field: "name", editor: "input", editable: cell => cell.getRow().getData().slug !== 'undefined', mutator: function (value, data) {return value.trim()}, validator: typeUniqueness},
 					{ title: "Couleur", field: "color", formatter: function(cell) {
 																				// remove broken bonds

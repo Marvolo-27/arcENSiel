@@ -246,9 +246,9 @@ window.onload = () => {
 		document.querySelector('.auth-wrap .icon.cross .img').onclick = authWrap;
 	} catch (error) {null}
 
-	// auth panel password input
+	// password input
 	try {
-		document.querySelector('.toggle-pass').onclick = e => {togglePassword('#'+ e.target.findParent('.icon').previousElementSibling.id)};
+		document.querySelectorAll('.toggle-pass').forEach(tag => tag.onclick = e => {togglePassword('#'+ e.target.findParent('.icon').previousElementSibling.id)});
 	} catch (e) {null}
 	
 	// handle navbar

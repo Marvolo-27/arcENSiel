@@ -262,11 +262,6 @@ if (isset($_SESSION['message'])) {
 		
 		document.querySelector('input#username').onchange = e => checkInput(e, 'username')
 		document.querySelector('input#email').onchange = e => checkInput(e, 'email')
-		
-		// password visibility manage
-		document.querySelector('.toggle-pass.new').onclick = () => {togglePassword('#pswd')};
-		document.querySelector('.toggle-pass.bis').onclick = () => {togglePassword('#pswd-bis')};
-        document.querySelector('.toggle-pass.old').onclick = () => {togglePassword('#pswd-old')};
 
 		// handle edition choices
 		<?php if ($_SESSION['username'] !== 'admin'): ?>

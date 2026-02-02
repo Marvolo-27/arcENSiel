@@ -277,13 +277,6 @@ if ($status === 'preview' && $edition) {
 		<?php if($status !== 'preview'): ?>
 			document.querySelector('#admin-actions .icon.chg-status').onclick = archiveArticle;
 		<?php endif; ?>
-
-		// auth form managemement
-		document.querySelector('.nav-logo.login').onclick = () => {if (window.matchMedia('(hover: none)').matches) {authWrap()}};
-		document.querySelector('.auth-wrap .icon.cross .img').onclick = () => {authWrap()};
-		try {
-			document.querySelector('.toggle-pass').onclick = () => {togglePassword('#pswd')};
-		} catch (e) {null}
 		</script>
 	</body>
 </html>
