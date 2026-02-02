@@ -42,13 +42,16 @@ $artTags = $query->fetchAll(PDO::FETCH_ASSOC) ?? null;
 
 		/*!! Intro Banner style !!*/
 			#intro {
-					height: 75vh;
+					height: 70vh;
 					font-size: 2em;
 					width: 100%;
 					background-image: url('/files/images/rainbow_background.jpg');
 					background-size: max(100vw, calc(3/2 * 75vh));
 					background-position-y: 50%;
 					border-bottom: 7.5vh solid var(--main-color-dark);
+					display: flex;
+					align-items: center;
+					justify-content: center;
 
 					@media (min-width: 600px) {font-size: 2.5em}
 					@media (min-width: 1000px) {font-size: 3em}
@@ -56,7 +59,6 @@ $artTags = $query->fetchAll(PDO::FETCH_ASSOC) ?? null;
 					@media (min-width: 2000px) {font-size: 4.5em}
 
 					& .intro-text	 {
-							margin: 25vh auto;
 							max-width: 60%;
 
 							& p {
