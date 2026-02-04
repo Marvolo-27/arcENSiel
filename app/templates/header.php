@@ -115,7 +115,7 @@
 			<div class='icon float cross small'><span class='img'></span></div>
 			
 			<?php if (!isset($_SESSION['user_id'])): ?>
-				<form id='auth-form' method='post' action='/login?auth=local'>
+				<form id='auth-form' method='post' action='/auth/login?method=local'>
 					<div class="head-info">
 						Connectez-vous
 					</div>
@@ -140,7 +140,7 @@
 								<input class='lineentry decorated' type='password' name='password' id='pswd' autocomplete=off required placeholder="Mot de passe" title="Veuilez entrer votre mot de passe">
 								<div class='icon toggle-pass right medium hoverable'><span class='img' title='Montrer le mot de passe'></span></div>
 							</div>
-							<div class='context right mail'><a class="canonic" href='/login/forgotten-password'>Mot de passe oublié ?</a></div>
+							<div class='context right mail'><a class="canonic" href='/auth/reset-credentials'>Mot de passe oublié ?</a></div>
 						</div>
 					</div>
 					
@@ -151,7 +151,7 @@
 						
 						<div class='form-action'>
 							<span class='label small'>Pas de compte ?</span>
-							<button class='action-btn'><a href='/register'>S'inscrire</a></button>
+							<button class='action-btn'><a href='/auth/register'>S'inscrire</a></button>
 						</div>
 					</div>
 				</form>
@@ -178,7 +178,7 @@
 			<?php if (isset($_SESSION['user_id'])): ?>
 			<div class='form-action-wrap'>
 				<div class='form-action'>
-					<a class="action-btn" href='/logout'>Se déconnecter</a>
+					<a class="action-btn" href='/auth/logout'>Se déconnecter</a>
 				</div>
 			</div>
 			<?php endif; ?>
@@ -187,7 +187,7 @@
 			<div class='form-action-wrap'>
 				<div class='form-action'>
 					<button class='action-btn'>
-						<a href='/login/login.php?auth=CAS'>Se connecter avec ENS de Lyon</a>
+						<a href='/auth/login?method=CAS'>Se connecter avec ENS de Lyon</a>
 					</button>
 				</div>
 			</div>

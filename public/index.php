@@ -328,22 +328,11 @@ $artTags = $query->fetchAll(PDO::FETCH_ASSOC) ?? null;
 		async function loader()  {
 									// PHP sent notifications
 									if (document.querySelector('body').dataset.message === 'login') {
-										notify(`Utilisateur <?= $message ? $_SESSION['username']:'' ?> connecté`, 'green');
+										notify(`Utilisateurice <?= $message ? $_SESSION['username']:'' ?> connecté·e`, 'green');
 										}
-									
-									// Articles layout calc
-									/*if (window.matchMedia(`(min-width: 1268px)`).matches) {
-										n_art = 5;
-									} else */
-									if (window.matchMedia(`(min-width: 900px)`).matches) {
-										n_art = 4;
-									} else if (window.matchMedia(`(min-width: 642px)`).matches) {
-										n_art = 3;
-									} else if (window.matchMedia(`(min-width: 412px)`).matches) {
-										n_art = 2;
-									} else {
-										n_art = 1;
-									}
+									if (document.querySelector('body').dataset.message === 'logged-out') {
+										notify(`Utilisateurice déconnecté·e`, 'green');
+										}
 									
 									// fetch most recent previews
 									newslist = await fetchArticles(0, 5); // 5 most recently published articles

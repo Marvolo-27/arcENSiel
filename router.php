@@ -233,23 +233,33 @@ if (preg_match('#^/search/#', $request_url)) { // pattern(?!patternbis) is a "ne
 }
 
 // CREDENTIAL ACTIONS
-if (preg_match('#^/login/#', $request_url)) { // pattern(?!patternbis) is a "negative lookahead": matches 'pattern' NOT followed by 'patternbis'
-    if (preg_match('#/update-credentials$#', $request_url)) {
-        null;
-    } elseif (preg_match('#/forgotten-password$#', $request_url)) {
-        $action = 'trigger-reset';
-    } elseif (preg_match('#/reset-password$#', $request_url)) {
-        $action = 'reset';
-        $_SESSION['reset-token'] = $url_parameters['token'];
+if (preg_match('#^/auth/#', $request_url)) { // pattern(?!patternbis) is a "negative lookahead": matches 'pattern' NOT followed by 'patternbis'
+    if (preg_match('#/loginCAS$#', $request_url)) {
+        $method = 'CAS';
+        require $root . '/app/auth/authentification.php';
+        exit;
+    
+    } elseif (preg_match('#/auth/.+$#', $request_url)) {
+        $slug = end(explode('/', $request_url));
+        if (in_array($slug, ['login', 'logout', 'register', 'reset-credentials', 'update-credentials'])) {
+            $action = $_POST['action'] ?? $slug; //explode('-', $slug)[0];
+
+            $_SESSION['reset-token'] = $url_parameters['token'] ?? null;
+
+            require $root . "/app/auth/authentification.php";
+            exit;
+        }
+    
     } elseif (preg_match('#/submit$#', $request_url)) {
         if (!isset($_POST['action'])) {
             echo "Unauthorized";
             exit;
         }
-    }
     
-    require $root . "/app/login/login.php";
-    exit;
+    } else {
+        header('Location: /auth/login');
+        exit;
+    }    
 }
 
 // PAGES REQUEST
@@ -283,33 +293,14 @@ switch ($request_url) {
         header("Location: /"); 
         break;
 	
+    // LOGIN
+    case '/auth':
+        header("Location: /auth/login"); 
+        break;
+    
     // PAGES - Mentions légales
     case '/legals':
         header("Location: /mentions-legales"); 
-        break;
-	
-    // LOGIN - login
-    case '/login':
-        $action = 'register';
-        require $root . '/app/login/login.php';
-        break;
-    
-    // LOGIN - CAS login
-    case '/loginCAS':
-        $method = 'CAS';
-        require $root . '/app/login/login.php';
-        break;
-    
-	// LOGIN - register
-    case '/register':
-        $action = 'register';
-        require $root . '/app/login/login.php';
-        break;
-    
-    // LOGIN - logout
-    case '/logout':
-        $action = 'logout';
-        require $root . '/app/login/login.php';
         break;
 		
 	// ADMIN - dashboard

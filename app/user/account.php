@@ -204,7 +204,7 @@ if (isset($_SESSION['message'])) {
 
 						<div class='form-action-wrap optional reverse linear' <?= $error ? 'active':''?>>
 							<div class='form-action'>
-								<button class='action-btn update' type="submit" name="action" value="update" disabled>Enregister</button>
+								<button class='action-btn update' type="submit" name="action" value="update-credentials" disabled>Enregister</button>
 							</div>
 							<div class='form-action'>
 								<div class='action-btn cancel'>Annuler</div>

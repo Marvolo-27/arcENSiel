@@ -56,50 +56,50 @@ function psswdCheck() {
 }
 
 function compareWithOldValue(e) {
-											errorTag = e.target.findParent('.box').querySelector('.error');
-											if (e.target.value !== e.target.getAttribute('oldvalue')) {
-												e.target.removeAttribute('invalid');
-												errorTag.removeAttribute('active');
-											} else {
-												e.target.setAttribute('invalid','');
-												errorTag.setAttribute('active','');
-											}
-										}
+			errorTag = e.target.findParent('.box').querySelector('.error');
+			if (e.target.value !== e.target.getAttribute('oldvalue')) {
+				e.target.removeAttribute('invalid');
+				errorTag.removeAttribute('active');
+			} else {
+				e.target.setAttribute('invalid','');
+				errorTag.setAttribute('active','');
+			}
+		}
 
 
 async function checkInput(e, type) {
-					inputtag = e.target;
+			inputtag = e.target;
 
-					if (!inputtag.checkValidity()) {
-						return
-					}
+			if (!inputtag.checkValidity()) {
+				return
+			}
 
-					spin = inputtag.findParent('.input-container').querySelector('.spinner');
-					value = e.target.value.urlForm();
-					errorTag = inputtag.findParent('.box').querySelector('.error');
-					
-					inputtag.value = value;
-					inputtag.setAttribute('oldvalue',value);
-					inputtag.removeAttribute('valid');
-					errorTag.removeAttribute('active');
-					spin.setAttribute('active','');
-					await sleep(250);
-					
-					response = await fetch(`/login/login.php?check=availability&type=${type}&content=${value}`);
-					data = await response.json(); // dict parsed response data
-					
-					if (!response.ok) {
-						inputtag.setAttribute('invalid','');
-						spin.removeAttribute('active');
-						errorTag.setAttribute('active','');
-						// console.log(data.error)
-					} else {
-						inputtag.removeAttribute('invalid','');
-						inputtag.value = data.value;
-						inputtag.removeAttribute('oldvalue');
-						spin.removeAttribute('active');
-						inputtag.setAttribute('valid','');
-						errorTag.removeAttribute('active');
-					}
-					submitAllower()
-				}
+			spin = inputtag.findParent('.input-container').querySelector('.spinner');
+			value = e.target.value.urlForm();
+			errorTag = inputtag.findParent('.box').querySelector('.error');
+			
+			inputtag.value = value;
+			inputtag.setAttribute('oldvalue',value);
+			inputtag.removeAttribute('valid');
+			errorTag.removeAttribute('active');
+			spin.setAttribute('active','');
+			await sleep(250);
+			
+			response = await fetch(`/auth/login?check=availability&type=${type}&content=${value}`);
+			data = await response.json(); // dict parsed response data
+			
+			if (!response.ok) {
+				inputtag.setAttribute('invalid','');
+				spin.removeAttribute('active');
+				errorTag.setAttribute('active','');
+				// console.log(data.error)
+			} else {
+				inputtag.removeAttribute('invalid','');
+				inputtag.value = data.value;
+				inputtag.removeAttribute('oldvalue');
+				spin.removeAttribute('active');
+				inputtag.setAttribute('valid','');
+				errorTag.removeAttribute('active');
+			}
+			submitAllower()
+		}

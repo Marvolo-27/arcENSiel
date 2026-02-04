@@ -15,13 +15,13 @@ function cas_login(): string {
 	global $root;
 	
 	// Activer le débogage (optionnel)
-	phpCAS::setDebug($root . '/app/login/cas.log');
+	phpCAS::setDebug($root . '/app/auth/cas.log');
 
 	// Mode proxy ou client selon le besoin
 	phpCAS::client(server_version: CAS_VERSION_2_0, server_hostname: 'cas.ens-lyon.fr', server_port: 443, server_uri: '/cas', service_base_url: 'https://cas.ens-lyon.fr:443/cas');
 	
 	// Indiquer le certificat
-	phpCAS::setCasServerCACert($root . '/app/login/certificate.pem');
+	phpCAS::setCasServerCACert($root . '/app/auth/certificate.pem');
 
 	// Forcer l'authentification
 	phpCAS::forceAuthentication();
@@ -55,37 +55,45 @@ if ($check === 'availability') {
 $csrf = $_POST['csrf-token'] ?? null;
 
 // Get client-sent arguments
-$method = $method ?? $_GET['auth'] ?? 'local';
+$method ??= $_GET['method'] ?? 'local';
 
 // extract other variables
-$action = $action ?? $_POST['action']; 	// action received from POST = from form completion -> check passed credentials
-$action = $action ?? $_GET['action'];	// action received from GET = from external page call -> complete form with credentials
-$action = $action ?? 'login';
+$action ??= $_POST['action'] ?? $_GET['action'] ?? 'login';
+	// action received from POST = from form completion -> check passed credentials
+	// action received from GET = from external page call -> complete form with credentials
 
+// Form check
 $status= isset($_POST['action']) ? 'pending-check':'pending-form';
 
 
-// Check log state
-if (isset($_SESSION['user_id']) && $action !== 'update') {// logged in
-	if ($action === 'login') {// no action
+//// Check log state
+if (isset($_SESSION['user_id'])) {// logged in
+	if ($action === 'login') {// no action - send back user info
 		http_response_code(200);
 		$response = ['logged_in' => true, 'username' => $_SESSION['username'], 'role' => $_SESSION['role']];
+	
 	} else if ($action === 'logout') {
-		session_destroy();
+		$_SESSION = [];
+		$_SESSION['message'] = 'logged-out';
+
 		http_response_code(200);
-		$response = ['logged_in' => false, 'message' => 'Successfully logged out.'];
 		logger('/log/users.log', "Successfully logged out.", "Logout");
+	
+	} elseif ($action === 'update-credentials') {
+		null;
+
 	} else {
 		http_response_code(400);
 		$response = ['error' => "Invalid call."];
 	}
-	echo json_encode($response);
+
+	echo json_encode($response ?? ['message' => null]);
 	header("Location: /"); 
 	exit;
 }
 
 
-// switch btw auth methods
+//// switch btw auth methods
 if ($method === 'CAS') {
 	$username = cas_login();
 	$password = null;
@@ -102,38 +110,38 @@ if ($method === 'CAS') {
 	exit;
 }
 
-// check reset token validity upon reception
-if ($action === 'reset' && $status === 'pending-form') {
-	$resetToken = $_SESSION['reset-token'];
+//// check reset token validity upon reception
+if ($action === 'reset-credentials' && $status === 'pending-form') {
+	$resetToken = $_SESSION['reset-token'] ?? null;
+	$_SESSION['tmp-data'] = [];
 
-	if (!$resetToken) {
-        echo "Unauthorized";
-        exit;
-    }
-	
-	$query = $pdo->prepare("SELECT expiry, user FROM tokens WHERE token = ? AND valid = TRUE");
-	$query->execute([$resetToken]);
-	$result = $query->fetch();
-
-	if (!$result) {
-		$_SESSION['pswd-status'] = 'bad-token';
-
-		$query = $pdo->prepare("DELETE FROM tokens WHERE token = ?");
-		// $query->execute([$resetToken]);
-	
-	} elseif ($result['expiry'] < time()) {
-		$_SESSION['pswd-status'] = 'old-token';
-
-		$query = $pdo->prepare("DELETE FROM tokens WHERE token = ?");
+	if ($resetToken) {
+		$query = $pdo->prepare("SELECT expiry, user FROM tokens WHERE token = ? AND valid = TRUE");
 		$query->execute([$resetToken]);
-	
-	} else {// valid token
-		$tmpuser = $result['user'];
+		$result = $query->fetch();
+
+		if (!$result) {
+			$resetstatus = 'bad-token';
+
+			// $query = $pdo->prepare("DELETE FROM tokens WHERE token = ?");
+			// $query->execute([$resetToken]);
+		
+		} elseif ($result['expiry'] < time()) {
+			$resetstatus = 'old-token';
+
+			$query = $pdo->prepare("DELETE FROM tokens WHERE token = ?");
+			$query->execute([$resetToken]);
+		
+		} else {// valid token
+			$_SESSION['tmp-data']['user'] = $result['user'];
+		}
 	}
 }
 
 // Proceed with check if form has been received
 if ($status === 'pending-check') {
+	$dest = null;
+
 	switch ($action) {
 		case 'register':	// register account
 			$query = $pdo->prepare("SELECT id FROM users WHERE username = ?");	// prepare SQL request with placeholder - check user presence
@@ -143,28 +151,34 @@ if ($status === 'pending-check') {
 				http_response_code(400);
 				$response = ['error' => "Nom d'utilisateur indisponible."];
 				$_SESSION['error'] = "used-login";
-				$dest = "/login?auth=local&action=register";
+				$dest = "/auth/register?method=local";
 				break;
 			}
 			
 			// Hash password with default php algo
 			$hash = password_hash($password_token . $password, PASSWORD_DEFAULT);
 			
-			// Insert new user
-			$sql = "INSERT INTO users (username, password_hash, auth_type) VALUES (?, ?, ?)";
-			$params = [$username, $hash, $method];
-			$query = $pdo->prepare($sql);
-			$query->execute($params);
-			
-			logger('/log/users.log', queryMaker($sql, $params).PHP_EOL."Registered successfully.", 'Register');
+			try {
+				// Insert new user
+				$sql = "INSERT INTO users (username, password_hash, auth_type) VALUES (?, ?, ?)";
+				$params = [$username, $hash, $method];
+				$query = $pdo->prepare($sql);
+				$query->execute($params);
+				
+				logger('/log/users.log', queryMaker($sql, $params).PHP_EOL."Registered successfully.", 'Register');
 
-			http_response_code(200);
-			$response = ['error' => null];
-			$dest = "/login?auth=local&action=login&msg=registered";
-			
-			echo json_encode($response);
-			header("Location: $dest");
-			exit;
+				http_response_code(200);
+				$response = ['error' => null];
+				$dest = "/auth/login?method=local&msg=registered";
+			} catch (PDOException $e) {
+				logger('/log/users.log', queryMaker($sql, $params).PHP_EOL."Failed to register.", 'Failed: Register');
+
+				http_response_code(200);
+				$response = ['error' => null];
+				$dest = "/auth/registered";
+			}
+
+			break;
 		
 		case 'login':	// log into account
 			if (!isset($_SESSION['user_id'])) {
@@ -193,12 +207,11 @@ if ($status === 'pending-check') {
 					$response = ['logged_in' => true, 'username' => $username];
 					$dest = "/";
 				} else {
-					$_SESSION['error'] = "invalid-credentials";
-					$_SESSION['error-data'] = ['username' => $username, 'email' => $user['email']];
+					$_SESSION['error'] = ['code' => 'invalid-credentials', 'username' => $username, 'email' => $user['email']];
 					
 					http_response_code(400);
 					$response = ['error' => "Mot de passe ou nom d'utilisateur incorrect"];
-					$dest = "/login";
+					$dest = "/auth/login";
 					break;
 				}
 				
@@ -210,8 +223,6 @@ if ($status === 'pending-check') {
 				$_SESSION['CSRF'] = bin2hex(random_bytes(32)); // génère un tkn aléatoie unique pour authentifier les requêtes
 				$_SESSION['message'] = "login";
 				$_SESSION['method'] = $method;
-				$_SESSION['previous-page'] = '/';
-				$_SESSION['current-page'] = '/login/login.php';
 
 				logger('/log/users.log', "Successfully logged in.", "Login");
 				break;
@@ -223,12 +234,12 @@ if ($status === 'pending-check') {
 				break;
 			}
 		
-		case 'update':	// register account
+		case 'update-credentials':	// update credentials
 			if ($_SESSION['CSRF'] !== $csrf || !$csrf) {
 				http_response_code(401);
 				$reponse = ["error" => "Unauthorized"];
 				$dest = "/";
-				exit;
+				break;
 			}
 			
 			// extract saved data for user
@@ -243,8 +254,7 @@ if ($status === 'pending-check') {
 
 			if ($username !== $new_username) {// username update
 					if ($username === 'admin') {
-							$_SESSION['error'] = "locked-username";
-							$_SESSION['error-data'] = 'empty';
+							$_SESSION['error'] = ['code' => 'locked-username'];
 							
 							http_response_code(400);
 							$response = ['error' => "Nom d'utilisateurice non modifiable"];
@@ -264,8 +274,7 @@ if ($status === 'pending-check') {
 			
 			} if ($email !== $new_email) {// username update
 					if ($username === 'admin') {
-							$_SESSION['error'] = "locked-email";
-							$_SESSION['error-data'] = 'empty';
+							$_SESSION['error'] = ['code' => 'locked-email'];
 							
 							http_response_code(400);
 							$response = ['error' => "Adresse email non modifiable"];
@@ -297,8 +306,7 @@ if ($status === 'pending-check') {
 
 						$response = ['message' => "Mot de passe mis à jour pour $username"];
 					} else {
-							$_SESSION['error'] = "invalid-credentials";
-							$_SESSION['error-data'] = 'empty';
+							$_SESSION['error'] = ['code' => 'invalid-credentials'];
 							
 							http_response_code(400);
 							$response = ['error' => "Mot de passe ou nom d'utilisateur incorrect"];
@@ -311,86 +319,82 @@ if ($status === 'pending-check') {
 			$dest = "/user/myaccount";
 			break;
 		
-		case 'reset':	// send password reset
-			// Hash password with default php algo
-			$hash = password_hash($password_token . $password, PASSWORD_DEFAULT);
+		case 'reset-credentials':	// send password reset
+			$resetToken = $_SESSION['reset-token'];
 			
-			// Insert new user
-			$sql = "UPDATE users SET password_hash = ? WHERE username = ?";
-			$params = [$hash, $username];
-			$query = $pdo->prepare($sql);
-			$query->execute($params);
-			
-			logger('/log/users.log', queryMaker($sql, $params).PHP_EOL."New password for $username.", 'Reset password');
-			
-			// delete reset token
-			$query = $pdo->prepare("DELETE FROM tokens WHERE username = ?");
-			$query->execute([$username]);
-
-			$dest = "/login";
-
-			echo json_encode($response);
-			header("Location: $dest");
-			exit;
-
-		case 'trigger-reset':	// send password reset
-			$query = $pdo->prepare("SELECT id, username FROM users WHERE email = ?");
-			$query->execute([$email]);
-			$result = $query->fetch();
-			
-			if ($result) {
-				// generate token
-				$token = bin2hex(random_bytes(64));
-
-				// save token
-				$sql = "INSERT INTO tokens (user, token, expiry, valid) VALUES (:user, :token, :time, TRUE);";
-				$query = $pdo->prepare($sql);
-				$query->bindValue(':user', $result['username']);
-				$query->bindValue(':token', $token);
-				$query->bindValue(':time', time() + 3600, PDO::PARAM_INT);
-				$query->execute();
-
-				$subject = "Réinitialisez votre mot de passe";
-				$body = "<h3>Bonjour $email,</h3>
-				<div>Nous avons reçu une demande de réinitialisation de mot de passe. Pour définir votre nouveau mot de passe, cliquez sur le lien ci-dessous :</div>
-				<div><a href='localhost:8000/login/reset-password?&token=$token'>Réinitialiser le mot de passe</a></div>
-
-				<div style='margin-top:1em;'><small><i>Le lien est valide une heure. Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer ce message.</i></small></div>";
+			if (!$resetToken) {// get reset token
+				$query = $pdo->prepare("SELECT id, username FROM users WHERE email = ?");
+				$query->execute([$email]);
+				$result = $query->fetch();
 				
-				// send mail
-				$delivery = sendMail(0, 'arcensiel.noreply@ens-lyon.fr', $email, 'Noreply arcENSiel', $subject, $body, 'Associatif/arcENSiel/Website Requests');
+				if ($result) {
+					// generate token
+					$token = bin2hex(random_bytes(64));
+
+					// save token
+					$sql = "INSERT INTO tokens (user, token, expiry, valid) VALUES (:user, :token, :time, TRUE);";
+					$query = $pdo->prepare($sql);
+					$query->bindValue(':user', $result['username']);
+					$query->bindValue(':token', $token);
+					$query->bindValue(':time', time() + 3600, PDO::PARAM_INT);
+					$query->execute();
+
+					$subject = "Réinitialisez votre mot de passe";
+					$body = "<h3>Bonjour $email,</h3>
+					<div>Nous avons reçu une demande de réinitialisation de mot de passe. Pour définir votre nouveau mot de passe, cliquez sur le lien ci-dessous :</div>
+					<div><a href='localhost:8000/auth/reset-credentials?&token=$token'>Réinitialiser le mot de passe</a></div>
+
+					<div style='margin-top:1em;'><small><i>Le lien est valide une heure. Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer ce message.</i></small>
+					</div>";
+					
+					// send mail
+					$delivery = sendMail(0, 'arcensiel.noreply@ens-lyon.fr', $email, 'Noreply arcENSiel', $subject, $body, 'Associatif/arcENSiel/Website Requests');
+				}
+				
+				$_SESSION['tmp-data'] = ['mail' => $email];
+				$resetstatus = 'triggered';
+				break;
+			
+			} else {
+				// Hash password with default php algo
+				$hash = password_hash($password_token . $password, PASSWORD_DEFAULT);
+				
+				// Insert new user
+				$sql = "UPDATE users SET password_hash = ? WHERE username = ?";
+				$params = [$hash, $username];
+				$query = $pdo->prepare($sql);
+				$query->execute($params);
+				
+				logger('/log/users.log', queryMaker($sql, $params).PHP_EOL."New password for $username.", 'Reset password');
+				
+				// delete reset token
+				$query = $pdo->prepare("DELETE FROM tokens WHERE username = ?");
+				$query->execute([$username]);
+
+				$dest = "/auth/login";
+				break;
 			}
-
-			$dest = "/login/forgotten-password";
-			$_SESSION['tmpmail'] = $email;
-			$_SESSION['pswd-status'] = 'triggered';
-
-			echo json_encode($response);
-			header("Location: $dest");
-			exit;
 		
 		default:
 			$connected = false;
 		}
 	
-	// send response
-	echo json_encode($response);
-	header("Location: $dest");
-	exit;
+	if ($dest) {
+		// send response
+		echo json_encode($resetstatus);
+		header("Location: $dest");
+		exit;
+	}
 }
 
-//
-$error = $_SESSION['error'] ?? null;
+// 
+$error = $_SESSION['error'] ?? ['code' => null];
 unset($_SESSION['error']);
 
-$errordata = $_SESSION['error-data'] ?? null;
-unset($_SESSION['error-data']);
+$resetstatus ??= null;
 
-$resetstatus = $_SESSION['pswd-status'] ?? null;
-unset($_SESSION['pswd-status']);
-
-$tmpmail = $_SESSION['tmpmail'] ?? null;
-unset($_SESSION['tmpmail']);
+$tmpdata = $_SESSION['tmp-data'] ?? null;
+$_SESSION['tmp-data'] = [];
 
 $message = $_GET['msg'] ?? null;
 unset($_SESSION['message']);
@@ -454,7 +458,7 @@ unset($_SESSION['message']);
 	
 	<body
 		<?php if ($error): ?>
-			data-error="<?= htmlspecialchars($error, ENT_QUOTES) ?>";
+			data-error="<?= htmlspecialchars($error['code'], ENT_QUOTES) ?>";
 		<?php endif; ?>
 		<?php if ($message): ?>
 			data-message="<?= htmlspecialchars($message, ENT_QUOTES) ?>";
@@ -497,7 +501,7 @@ unset($_SESSION['message']);
 		
 		<div id="main">
 			<div class="auth-form-wrap">
-				<form id='auth-form' class='wrap' method='post' action='/login/submit?auth=local'>
+				<form id='auth-form' class='wrap' method='post' action='/auth/<?= $action ?>'>
 					<h1 class="title">
 						<?php if ($action === 'login'): ?>
 							Se connecter
@@ -505,26 +509,25 @@ unset($_SESSION['message']);
 						<?php if ($action === 'register'): ?>
 							S'inscrire
 						<?php endif; ?>
-						<?php if ($action === 'trigger-reset' || $action === 'reset'): ?>
+						<?php if ($action === 'reset-credentials'): ?>
 							Réinitialiser son mot de passe
 						<?php endif; ?>
 					</h1>
 					
 					<div class='main-info'>
-						
 						<div>
 							<?php if ($resetstatus === 'triggered'): ?>
-								Si un compte est rattaché au mail <i><?= $tmpmail ?></i>, un email contenant un lien de réinitialisation a été envoyé.
+								Si un compte est rattaché au mail <i><?= $tmpdata['mail'] ?></i>, un email contenant un lien de réinitialisation a été envoyé.
 							<?php endif; ?>
 							<?php if ($resetstatus === 'bad-token'): ?>
 								Lien invalide.
 							<?php endif; ?>
 							<?php if ($resetstatus === 'old-token'): ?>
-								Lien expiré. Efectuez une nouvelle demande de réinitialisation.
+								Lien expiré. Effectuez une nouvelle demande de réinitialisation.
 							<?php endif; ?>
 						</div>
 						
-						<?php if ($action !== 'trigger-reset' && !$resetstatus): ?>
+						<?php if (($resetToken || $action !== 'reset-credentials') && !$resetstatus): ?>
 						<div class='box username'>
 							<div class='input-header'>
 								<label class='label' for='username'>Nom d'utilisateur</label>
@@ -532,11 +535,11 @@ unset($_SESSION['message']);
 							<div class='input-container'>
 								<div class='icon username left medium <?= $action === 'register' ? 'right':'' ?>'><span class='img'></span></div>
 								<input class='lineentry decorated' type='text' name='username' id='username' autocomplete=on required placeholder="Nom d'utilisateur" title="Veuillez entrer votre nom d'utilisateur"
-									<?php if ($error === 'invalid-credentials'): ?>
-										value=<?= $errordata['username'] ?>
+									<?php if ($error['code'] === 'invalid-credentials'): ?>
+										value=<?= $error['username'] ?>
 									<?php endif; ?>
-									<?php if ($action === 'reset'): ?>
-										value=<?= $tmpuser ?>
+									<?php if ($action === 'reset-credentials'): ?>
+										value=<?= $tmpdata['user'] ?>
 										readonly
 									<?php endif; ?>
 								>
@@ -547,7 +550,7 @@ unset($_SESSION['message']);
 						</div>
 						<?php endif; ?>
 						
-						<?php if ($action === 'register' || ($action === 'trigger-reset' && !$resetstatus)): ?>
+						<?php if ($action === 'register' || ((!$resetToken && $action === 'reset-credentials') && !$resetstatus)): ?>
 						<div class='box email'>
 							<div class='input-header'>
 								<label class='label' for='email'>Adresse email</label>
@@ -555,8 +558,8 @@ unset($_SESSION['message']);
 							<div class='input-container'>
 								<div class='icon mail left medium'><span class='img'></span></div>
 								<input class='lineentry decorated' type='email' name='email' id='email' autocomplete=on required placeholder='john.doe@example.com' title="Veuilez entrer votre adresse mail"
-									<?php if ($error === 'used-mail'): ?>
-										value=<?= $errordata['email'] ?>
+									<?php if ($error['code'] === 'used-mail'): ?>
+										value=<?= $error['email'] ?>
 									<?php endif; ?>
 								>
 								<div class='icon validity right medium'><span class='img'></span></div>
@@ -566,7 +569,7 @@ unset($_SESSION['message']);
 						</div>
 						<?php endif; ?>
 						
-						<?php if ($action !== 'trigger-reset' && !$resetstatus): ?>
+						<?php if (($resetToken || $action !== 'reset-credentials') && !$resetstatus): ?>
 						<div class='box password'>
 							<div class='input-header'>
 								<label class='label' for='pswd'>Mot de passe</label>
@@ -576,10 +579,10 @@ unset($_SESSION['message']);
 								<input class='lineentry decorated livecheck' type='password' name='password' id='pswd' autocomplete=off required placeholder="Mot de passe" title="Veuilez entrer votre mot de passe" pattern='(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[^\sa-zA-Z0-9]).{6,}'>
 								<div class='icon toggle-pass right medium hoverable'><span class='img' title='Montrer le mot de passe'></span></div>
 							</div>
-							<div class='error password' <?= $error === 'invalid-credentials' ? 'active':'' ?>><?= $action === 'login' ? "Nom d'utilisateur ou mot de passe incorrect":"Le mot de passe n'est pas valide" ?></div>
-							<?php if ($action === 'login'): ?><div class='context right mail'><a class="canonic" href='/login/forgotten-password'>Mot de passe oublié ?</a></div><?php endif; ?>
+							<div class='error password' <?= $error['code'] === 'invalid-credentials' ? 'active':'' ?>><?= $action === 'login' ? "Nom d'utilisateur ou mot de passe incorrect":"Le mot de passe n'est pas valide" ?></div>
+							<?php if ($action === 'login'): ?><div class='context right mail'><a class="canonic" href='/auth/reset-credentials'>Mot de passe oublié ?</a></div><?php endif; ?>
 
-							<?php if ($action === 'register'): ?>
+							<?php if ($action === 'register' || $action === 'reset-credentials'): ?>
 							<div class='checker password'>
 								<div class='check-head'>Le mot de passe contient au moins :</div>
 								<div class='check-item length' invalid>
@@ -607,7 +610,7 @@ unset($_SESSION['message']);
 						</div>
 						<?php endif; ?>
 						
-						<?php if ($action === 'register' || ($action === 'reset' && !$resetstatus)): ?>
+						<?php if ($action === 'register' || (($action === 'reset-credentials' && $resetToken) && !$resetstatus)): ?>
 						<div class='box password-confirm'>
 							<div class='input-header'>
 								<label class='label' for='pswd-bis'>Confirmation du mot de passe</label>
@@ -634,14 +637,9 @@ unset($_SESSION['message']);
 								<button class='action-btn register' name='action' value='register'>S'inscrire</button>
 							</div>
 						<?php endif; ?>
-						<?php if ($action === 'trigger-reset' && !$resetstatus): ?>
+						<?php if ($action === 'reset-credentials' && !$resetstatus): ?>
 							<div class='form-action'>
-								<button class='action-btn' name='action' value='trigger-reset'>Continuer</button>
-							</div>
-						<?php endif; ?>
-						<?php if ($action === 'reset' && !$resetstatus): ?>
-							<div class='form-action'>
-								<button class='action-btn' name='action' value='reset'>Réinitialiser</button>
+								<button class='action-btn reset' name='action' value='reset-credentials'><?= $resetToken ? 'Réinitialiser':'Continuer' ?></button>
 							</div>
 						<?php endif; ?>
 					</div>
@@ -653,19 +651,19 @@ unset($_SESSION['message']);
 					<?php if ($action === 'login'): ?>
 						<div class='form-action'>
 							<span class='label'>Pas encore de compte ?</span>
-							<button class='action-btn'><a href='/register'>S'inscrire</a></button>
+							<button class='action-btn'><a href='/auth/register'>S'inscrire</a></button>
 						</div>
 					<?php endif; ?>
 					<?php if ($action === 'register'): ?>
 						<div class='form-action'>
 							<span class='label'>Déjà un compte ?</span>
-							<button class='action-btn'><a href='/login'>Se connecter</a></button>
+							<button class='action-btn'><a href='/auth/login'>Se connecter</a></button>
 						</div>
 					<?php endif; ?>
 					<?php if (false): ?>
 						<div class='form-action'>
 							<button class='action-btn'>
-								<a href='/loginCAS'>Se connecter avec ENS de Lyon</a>
+								<a href='/auth/loginCAS'>Se connecter avec ENS de Lyon</a>
 							</button>
 						</div>
 					<?php endif; ?>
@@ -693,7 +691,7 @@ unset($_SESSION['message']);
 									}
 		
 		
-	<?php if ($action === 'register' || $action === 'reset'): ?>
+	<?php if ($action === 'register' || ($action === 'reset-credential' && ($resetToken && !$resetstatus))): ?>
 	// Regsiter section logic //
 		// Password match check
 		document.querySelector('#pswd-bis').addEventListener('input', psswdCheck)
@@ -703,19 +701,21 @@ unset($_SESSION['message']);
 		
 		// (in)activate button
 		function submitAllower() {
-				btn = document.querySelector('.action-btn.register');
+				btn = document.querySelector('.action-btn:is(.register,.reset)');
 				
 				btn.disabled = (document.querySelector('.error[active]') !== null || document.querySelector('.check-item[invalid]') !== null)
 		}
 		
 		// username/email check
-		document.querySelector('#username').oninput = compareWithOldValue
-		try {document.querySelector('#email').oninput = compareWithOldValue} catch(e) {null}
-		
-		
-		document.querySelector('input#username').onchange = e => checkInput(e, 'username')
+		try {
+			document.querySelector('#email').oninput = compareWithOldValue
 		document.querySelector('input#email').onchange = e => checkInput(e, 'email')
+		} catch(e) {null}
 		
+		try {
+			document.querySelector('#username').oninput = compareWithOldValue
+			document.querySelector('#username').onchange = e => checkInput(e, 'username')
+		} catch(e) {null}
 	<?php endif; ?>
 		</script>
 	</body>

@@ -1155,7 +1155,7 @@ form {
 								& ~ .icon.validity {display: none !important}
 								}
 						
-						&:focus {
+						&:not([readonly],[disabled]):focus {
 								border-color: var(--focus-color) !important;
 								}
 						
@@ -1277,7 +1277,7 @@ form {
 				& input {
 						width: 100%;
 
-						&:focus {
+						&:not([readonly],[disabled]):focus {
 								box-shadow: 0 0 10px 0px var(--form-color);
 								}
 						}
