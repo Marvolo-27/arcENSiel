@@ -40,11 +40,6 @@ if ($_SESSION['role'] !== 'admin') {
 		
 		<link href="https://unpkg.com/tabulator-tables/dist/css/tabulator.min.css" rel="stylesheet">
 		<script type="text/javascript" src="https://unpkg.com/tabulator-tables/dist/js/tabulator.min.js"></script>
-		
-		<style>
-		#main .form-action-wrap {display: none}
-		#main .form-action-wrap[active] {display: flex}
-		</style>
 	</head>	
 	
 	<body>
@@ -79,7 +74,7 @@ if ($_SESSION['role'] !== 'admin') {
 			<div class='table no-bound' id='goodies'></div>
 			<div class='table no-bound' id='dq7'></div>
 			
-			<div class="form-action-wrap linear">
+			<div class="form-action-wrap linear responsive">
 				<div class='form-action'>
 					<button class='action-btn save'>Sauvegarder</button>
 				</div>

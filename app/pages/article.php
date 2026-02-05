@@ -104,10 +104,10 @@ if ($status === 'preview' && $edition) {
 
 				.metadata {
 						font-size: .9em;
-						color: var(--metadata-color);
+						color: var(--metadata-icons-color);
 						margin: .5em 0 .75em 0;
 
-						& a {color: var(--metadata-color)}
+						& a {color: var(--metadata-icons-color)}
 						}
 				
 				.article-content {

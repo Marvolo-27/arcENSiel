@@ -43,10 +43,10 @@ $arguments = ($type || $author || $from || $to || $tags !== [null] || $query);
 		<meta property="og:type" content="website">
 		
 		<link rel='stylesheet' type='text/css' href='/files/assets/css/main.css'></link>
-		<link rel='stylesheet' type='text/css' href='/files/assets/css/index.css'></link>
+		<link rel='stylesheet' type='text/css' href='/files/assets/css/grid-layout.css'></link>
 		
 		<script src='/files/assets/js/main.js'></script>
-		<script src='/files/assets/js/articles-grid.js'></script>
+		<script src='/files/assets/js/grid.js'></script>
 
 		<style>
 			.box.search {

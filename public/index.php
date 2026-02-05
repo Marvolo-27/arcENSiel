@@ -32,10 +32,10 @@ $artTags = $query->fetchAll(PDO::FETCH_ASSOC) ?? null;
 		<meta property="og:type" content="website">
 		
 		<link rel='stylesheet' type='text/css' href='/files/assets/css/main.css'></link>
-		<link rel='stylesheet' type='text/css' href='/files/assets/css/index.css'></link>
+		<link rel='stylesheet' type='text/css' href='/files/assets/css/grid-layout.css'></link>
 		
 		<script src='/files/assets/js/main.js'></script>
-		<script src='/files/assets/js/articles-grid.js'></script>
+		<script src='/files/assets/js/grid.js'></script>
 
 		<style>
 			#body {background-color: #f0f8ff99;}
@@ -48,7 +48,7 @@ $artTags = $query->fetchAll(PDO::FETCH_ASSOC) ?? null;
 					background-image: url('/files/images/rainbow_background.jpg');
 					background-size: max(100vw, calc(3/2 * 75vh));
 					background-position-y: 50%;
-					border-bottom: 7.5vh solid var(--main-color-dark);
+					border-bottom: 7.5vh solid var(--bg-color-main);
 					display: flex;
 					align-items: center;
 					justify-content: center;
@@ -106,8 +106,8 @@ $artTags = $query->fetchAll(PDO::FETCH_ASSOC) ?? null;
 			
 		/*!! Carousel style !!*/
 			.carousel-wrap	{
-					--h: 30vh;
-					--w: min(55vh, calc(100vw - 2 * var(--gbl-pad)));
+					--h: 50vh;
+					--w: min(75vh, calc(100vw - 2 * var(--gbl-pad)));
 					/* --ws: calc(0.8 * var(--w)); width shrunk */
 					--ws: calc(var(--w) - 2 * (var(--standard-size) * (var(--coeff) + 2 * .2) + var(--gap) + var(--pad))); /* account for gaps, icons width and padding, carousel padding */
 					--pad: .675em;
@@ -136,7 +136,7 @@ $artTags = $query->fetchAll(PDO::FETCH_ASSOC) ?? null;
 							padding: calc(2 * var(--pad)) var(--pad);
 							box-sizing: border-box;
 							border-radius: 1.25em;
-							background-color: #dcf5ea;
+							background-color: #ffd1bddd;
 							--lbl-clr: #ff71f2;
 							
 							.carousel-inputs {display: none}

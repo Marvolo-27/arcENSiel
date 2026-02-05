@@ -59,8 +59,6 @@ $artTypes = getTypes();
 					margin: auto;
 					margin-top: 1.5em;
 					}
-		#main .form-action-wrap {display: none}
-		#main .form-action-wrap[active] {display: flex}
 		
 		.inner-overlay .form-action-wrap {margin-top: 1em}
 
@@ -107,7 +105,7 @@ $artTypes = getTypes();
 			<div class='table' id='tags'></div>
 			<div class='table' id='types'></div>
 			
-			<div class="form-action-wrap linear">
+			<div class="form-action-wrap linear responsive">
 				<div class='form-action'>
 					<button class='action-btn save'>Sauvegarder</button>
 				</div>
