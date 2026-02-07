@@ -422,7 +422,7 @@ if ($action === 'update') {
 			$params = [
 					':name' => str_replace($rootpath, '', $path),
 					':url' => $path,
-					':reference' => $target ? 'documents/'.$subcategory:'null',
+					':reference' => $target === 'uploads/pdf/' ? 'documents/'.$subcategory:'',
 					':size' => $file['size'],
 					':type' => $type,
 					':desc' => $description,

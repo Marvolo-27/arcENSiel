@@ -1214,7 +1214,7 @@ form {
 										
 										&.orange {
 												background: var(--checkbox-secondary-bg-color);
-												border-color: var(--checkbox-secondray-line-color);
+												border-color: var(--checkbox-secondary-line-color);
 												}
 										}
 								

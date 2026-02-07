@@ -148,7 +148,7 @@ if ($action === 'check') {
 	$query->execute([$username, $method]);
 	$user = $query->fetch();
 	
-	if ($user && password_verify($token . $pswd, $user['password_hash'])) {// existing user  - validated credentials
+	if ($user && password_verify($password_token . $pswd, $user['password_hash'])) {// existing user  - validated credentials
 			http_response_code(200);
 			$response = ['message' => 'valid credentials'];
 			echo json_encode($response);

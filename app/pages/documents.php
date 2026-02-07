@@ -60,7 +60,11 @@ $statuts = $query->fetchAll(PDO::FETCH_ASSOC)[0] ?? null;
 			 <h3>
                 Statuts
             </h3>
-               <p>Dernière mise à jour : <span class="last-updated">17 juin 2025</span></p>
+               <p>Dernière mise à jour : <span class="last-updated">17 juin 2025</span>
+					<?php if ($status === 'edit'): ?>
+						<div class='icon edit inline medium dynamic hoverable' onclick="changeEntryTrigger(event.target, 'edit', 'bm')" title="Modifier cette entrée"><span class='img'></span></div>
+					<?php endif; ?>
+				</p>
 
                 <p>Consulter les <a href="<?= $statuts['url'] ?>" target="_blank_" download>statuts</a> <small><i>(<?= formatBytes($statuts['size'],1) ?>)</i></small>.</p> 
             
@@ -203,7 +207,7 @@ $statuts = $query->fetchAll(PDO::FETCH_ASSOC)[0] ?? null;
 							document.querySelector('#overlay-add-form #filename').dataset.name = url.split('/').slice(-1)[0]
 							document.querySelector('#overlay-add-form #filename').value = url.split('/').slice(-1)[0].split('.').slice(0,-1).join('.')
 							document.querySelector('#overlay-add-form #fileextension').value = url.split('.').slice(-1)[0];
-							document.querySelector('#overlay-add-form #filename').disabled = true
+							document.querySelector('#overlay-add-form #filename').readOnly = true
 							
 							mode = 'update';
 						}
@@ -224,8 +228,8 @@ $statuts = $query->fetchAll(PDO::FETCH_ASSOC)[0] ?? null;
 						upload = fileUploadManage(input, /(application\/(pdf|zip|vnd\.sqlite3)|image\/.*)/, 10)
 						
 						if (upload) {
-							document.querySelector('#overlay-add-form #filename').value = file.name.split('.').slice(0,-1).join('.')
-							document.querySelector('#overlay-add-form #filename').dataset.name = file.name
+							document.querySelector('#overlay-add-form #filename').value = file.name.split('.').slice(0,-1).join('.').filenameForm()
+							document.querySelector('#overlay-add-form #filename').dataset.name = file.name.filenameForm()
 							document.querySelector('#overlay-add-form #fileextension').value = file.name.split('.').slice(-1)[0];
 						}
 					}
@@ -245,7 +249,7 @@ $statuts = $query->fetchAll(PDO::FETCH_ASSOC)[0] ?? null;
 						formData.set('subcategory', subcategory)	
 						formData.set('og-url', url)
 						formData.set('url', tag.dataset.targetUrl)
-						formData.set('filename', formData.get('filename')+'.'+document.querySelector('#fileextension'))
+						formData.set('filename', formData.get('filename')+'.'+document.querySelector('#fileextension').value)
 						formData.set('file-updated', mode === 'update' && url !== tag.dataset.targetUrl)
 						formData.set('csrf', document.querySelector('#csrf').dataset.csrf)
 
@@ -339,6 +343,13 @@ $statuts = $query->fetchAll(PDO::FETCH_ASSOC)[0] ?? null;
 						}
 					}
 
+			// filename input
+			overlayAdd.querySelector('#filename').oninput = e => {
+					pos = e.target.selectionStart
+					e.target.value = e.target.value.filenameForm()
+					e.target.setSelectionRange(pos,pos)
+				}
+
 			// show panel to save changes
 			document.querySelector('.action-btn.new-bm').onclick = e => {
 				document.querySelector('#overlay-add #overlay-add-form').reset();
@@ -364,7 +375,7 @@ $statuts = $query->fetchAll(PDO::FETCH_ASSOC)[0] ?? null;
 				document.querySelector("#overlay-add").removeAttribute("active");
 				document.querySelector('#overlay-add #overlay-add-form').reset();
 				document.querySelector("#overlay-add .selected-file").innerText = '';
-				document.querySelector('#overlay-add-form #filename').disabled = false
+				document.querySelector('#overlay-add-form #filename').readOnly = false
 				currentFile = {};
 			}
 
@@ -394,7 +405,7 @@ $statuts = $query->fetchAll(PDO::FETCH_ASSOC)[0] ?? null;
 				document.querySelector('#overlay-add-form #filename').dataset.name = ''
 				document.querySelector('#overlay-add-form #filename').value = ''
 				document.querySelector('#overlay-add-form #fileextension').value = ''
-				document.querySelector('#overlay-add-form #filename').disabled = false
+				document.querySelector('#overlay-add-form #filename').readOnly = false
 			}
 
 			// cancel request action
@@ -402,7 +413,7 @@ $statuts = $query->fetchAll(PDO::FETCH_ASSOC)[0] ?? null;
 				document.querySelector("#overlay-choose").toggleAttribute("active");
 				document.querySelector("#overlay-add").toggleAttribute("active");
 				document.querySelectorAll('#overlay-choose .file-element').forEach(tag => {tag.removeAttribute('selected')})
-				document.querySelector('#overlay-add-form #filename').disabled = false
+				document.querySelector('#overlay-add-form #filename').readOnly = false
 				//currentFile = {};
 			}
 
@@ -429,7 +440,7 @@ $statuts = $query->fetchAll(PDO::FETCH_ASSOC)[0] ?? null;
 						document.querySelector('#overlay-add-form #filename').dataset.name = url.split('/').slice(-1)[0]
 						document.querySelector('#overlay-add-form #filename').value = url.split('/').slice(-1)[0].split('.').slice(0,-1).join('.')
 						document.querySelector('#overlay-add-form #fileextension').value = url.split('.').slice(-1)[0];
-						document.querySelector('#overlay-add-form #filename').disabled = true
+						document.querySelector('#overlay-add-form #filename').readOnly = true
 
 						document.querySelectorAll('#overlay-choose .file-element').forEach(tag => {tag.removeAttribute('selected')})
 						document.querySelector("#overlay-add .selected-file").innerText = url.split('/').slice(-1)[0];
@@ -442,8 +453,8 @@ $statuts = $query->fetchAll(PDO::FETCH_ASSOC)[0] ?? null;
 		document.querySelector('#file').onchange = e => {
 							upload = fileUploadManage(e.target, /(application\/(pdf|zip|vnd\.sqlite3)|image\/.*)/, 10)
 							if (upload) {
-								document.querySelector('#overlay-add-form #filename').value = file.name.split('.').slice(0,-1).join('.')
-								document.querySelector('#overlay-add-form #filename').dataset.name = file.name;
+								document.querySelector('#overlay-add-form #filename').value = file.name.split('.').slice(0,-1).join('.').filenameForm()
+								document.querySelector('#overlay-add-form #filename').dataset.name = file.name.filenameForm();
 								document.querySelector('#overlay-add-form #fileextension').value = file.name.split('.').slice(-1)[0];
 							}
 							};

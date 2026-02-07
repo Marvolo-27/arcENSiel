@@ -84,8 +84,9 @@ $content = $_POST['art-content'];
 $tags_list = json_decode($_POST['art-tags'], true); // format : [{'slug': slug, 'name':name'}, ]
 $typeRaw = json_decode($_POST['type'], true); // id of type
 $updated = date("Y-m-d H:i:s", time());
+$fileDesc = $_POST['file-description'];
 $file_uploaded = $_FILES['art-pic']['error'] !== 4;
-$file_updated = $_POST['pic-updated'] ?? false;
+$file_updated = $_POST['pic-updated'] == 'true';
 
 // Handle tags
 $tags = []; // create list of ids for article tags
@@ -134,8 +135,9 @@ if ($file_uploaded) {// File object passed = image uploaded
 	$picture = $_FILES['art-pic']; // array containing file info : name, type, tmp localization, error, size
 
 		// filename data
-	$extension = '.' . strtolower(pathinfo($picture['name'], PATHINFO_EXTENSION));		// file extension
-	$raw_filename = pathinfo($picture['name'], PATHINFO_FILENAME);							// raw filename
+	$src_filename = $file_uploaded ? $_POST['filename'] : $picture['name']; // prevent abusive file renaming for on-server files
+	$extension = '.' . strtolower(pathinfo($src_filename, PATHINFO_EXTENSION));		// file extension
+	$raw_filename = pathinfo($src_filename, PATHINFO_FILENAME);							// raw filename
 
 	$flat_filename = transliterator_transliterate('Any-Latin; Latin-ASCII', $raw_filename); 					// convert all characters to Latin ASCII alphabet
 	$filename = preg_replace("/[^a-zA-Z0-9._-]/", "_", $flat_filename); 	// proofed filename w/o extension
@@ -182,11 +184,11 @@ if ($file_uploaded) {// File object passed = image uploaded
 if ($file_uploaded) {
 	$sql = "INSERT INTO files (name, url, used_by, size, description, type, status, uploader, category, subcategory) VALUES (:name, :url, :reference, :size, :desc, :type, TRUE, :user, 'poster', 'article')";
 	$params = [
-			':name' => $picture['name'],
+			':name' => end(explode('/', $path)),
 			':url' => $path,
 			':reference' => 'articles/'.$url,
 			':size' => $picture['size'],
-			':desc' => preg_replace('#\.[a-zA-Z]+$#', '', $picture['name']),
+			':desc' => $fileDesc,
 			':type' => $picture['type'],
 			':user' => $_SESSION['username'],
 		];
@@ -225,6 +227,18 @@ if ($file_uploaded) {
 		logger('/log/files.log', queryMaker($sql, $params), 'Update references (add article)');
 	}
 } else {// handle referencing when used file is already on server
+	// update description
+	$sql = "UPDATE files SET description = :description, updated_at = :time WHERE url = :url";
+	$params = [
+			':description' => $fileDesc,
+			':url' => $path,
+			':time' => date('Y-m-d H:i:s', time())
+			];
+
+	$query = $pdo->prepare($sql);
+	$query->execute($params);
+	logger('/log/files.log', queryMaker($sql, $params), 'Update file description');
+
 	// reference new image
 	if ($file_updated || $status === 'creation') {
 		// fetch current use status

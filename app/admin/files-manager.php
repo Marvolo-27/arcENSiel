@@ -811,7 +811,7 @@ if ($_SESSION['role'] !== 'admin') {
 								}
 			}
 
-			// update file description on server
+			// update new file
 			async function uploader(form) {
 						notify('Uploading file', 'orange')
 						fileTag = document.querySelector('#overlay-add-form .fileentry')
@@ -847,13 +847,13 @@ if ($_SESSION['role'] !== 'admin') {
 						formData.set('category', category)	
 						formData.set('og-url', url)
 						formData.set('url', url)
-						formData.set('filename', formData.get('filename')+'.'+document.querySelector('#fileextension'))
+						formData.set('filename', formData.get('filename')+'.'+document.querySelector('#fileextension').value)
 						formData.set('admin', adminCheck)
 						if (!adminCheck) formData.set('source', 'uploads/')
 						formData.set('file-updated', false)
 						formData.set('csrf', document.querySelector('#csrf').dataset.csrf)
 
-						console.log(Object.fromEntries(formData.entries()))
+						// console.log(Object.fromEntries(formData.entries()))
 
 						// Response object
 						response = await fetch("/admin/engine/files", {
@@ -863,7 +863,7 @@ if ($_SESSION['role'] !== 'admin') {
 						
 						// Response body content
 						data = await response.json(); // dict parsed response data
-						console.log(data)
+						//console.log(data)
 
 						if (!response.ok) {// http code 400-500 reuturn false
 								alert(`Error: HTTP ${response.status}: ${data.error}`);

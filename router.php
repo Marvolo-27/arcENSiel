@@ -55,32 +55,25 @@ if (preg_match('#^/admin/#', $request_url)) {
             exit;
         
         // Article tools
-        } elseif (preg_match('#/article/(create)#', $request_url)) {
-            // editmode = edit keyword + any slug
-            $edition = preg_match('#edit#', $request_url);
-            
+        } elseif (preg_match('#/(create)/(article)#', $request_url, $matches)) {
+            $mode = $matches[1];
+            $type = $matches[2];
+
             // unique url of asked article
-            $slug = urldecode(end(explode('/', preg_replace("#/admin/tools/article/(edit|create)#", '', $request_url))));
+            $slug = urldecode(end(explode('/', preg_replace("#/admin/tools/$mode/$type#", '', $request_url))));
             
-            // prevent empty slugs in edit mode
-            if ($edition && !$slug) {
-                http_response_code(403);
-                echo "403: Forbidden";
-                exit;
-                }
-            
-            // reset smug in create mode
-            if (!$edition && $slug) {
-                header("Location: /admin/tools/article/create");
+            // reset slug in create mode
+            if ($slug) {
+                header("Location: /admin/tools/$mode/$type");
                 exit;
                 }
             
             // fetch manager script
-            require $root . '/app/admin/article-manager.php';
+            require $root . "/app/admin/$type-manager.php";
             exit;
         
-        // preview article : archived or draft
-        } elseif (preg_match('#/article/(preview)#', $request_url, $matches)) {
+        // preview article
+        } elseif (preg_match('#/(preview)/(article)#', $request_url, $matches)) {
             $slug = urldecode(end(explode('/', preg_replace("#/admin/tools/article/(preview)#", '', $request_url))));
 
             // prevent empty slugs in edit mode
@@ -91,10 +84,9 @@ if (preg_match('#^/admin/#', $request_url)) {
                 }
             
             $status = $matches[1];
-            // $edition = !isset($_SESSION['post-data']);
             $edition = !isset($_SESSION['post-data']);
 
-            require $root . "/app/pages/article.php";
+            require $root . "/app/pages/".$matches[2].".php";
             exit;
         
         // public pages edition
@@ -109,7 +101,7 @@ if (preg_match('#^/admin/#', $request_url)) {
         // private pages edition
         } elseif (preg_match('#/editor/(article)/(.+)#', $request_url, $matches)) {
             $request = $matches[1];
-            $slug = $matches[2];
+            $slug = rawurldecode($matches[2]);
             
             // fetch manager script
             $edition = true;

@@ -40,7 +40,7 @@ function fileUploadManage(input, format=/image\/.*/, maxsize = 2) {
 			// extract file data
 			file = files[0];
 			
-			console.log(format, file.type.match(format), file.type)
+			// console.log(format, file.type.match(format), file.type)
 			
 			invalid = '';
 			if (files.length > 1) {

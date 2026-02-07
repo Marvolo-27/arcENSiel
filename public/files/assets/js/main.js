@@ -34,6 +34,7 @@ String.prototype.strForm = function () {return this.trimStart().trimEnd().toLowe
 	// normalise separate accentuated letters in {accent + base letter}
 	// \u0300-\u036f match accents range
 String.prototype.urlForm = function () {return this.strForm().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s/g, '-')}
+String.prototype.filenameForm = function () {return this.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s/g, '_')}
 
 // Add method to str to turn a query selector to a list of selectors (the initial query must be only same-index-level query : no sibling/parent selectors)
 // If node name is given, is assumed to be the first element of the query
@@ -117,14 +118,14 @@ function toggleNav(e) {
 					}
 
 // show submenu
-function toggleSubMenu(e) {
+function toggleSubMenu(e, force=false) {
 						duration=400;
 						const menu = e.findParent('.nav-item');
 						
-						if (menu.getAttribute('active') === null) {
+						if (menu.getAttribute('active') === null || force === 'in') {
 								menu.setAttribute('active','');
 								sliderDown(menu, duration, '.nav-item', '.sub-menu');
-						} else {
+						} else if (menu.getAttribute('active') !== null || force === 'out') {
 								menu.removeAttribute('active');
 								sliderUp(menu, duration, '.nav-item', '.sub-menu');
 						}
@@ -255,8 +256,8 @@ window.onload = () => {
 	try {
 		Array.from(document.querySelectorAll('.nav-item:has(.sub-menu)')).forEach(navitem => {
 			if (window.matchMedia(`(hover:hover)`).matches) {
-				navitem.onmouseenter = e => toggleSubMenu(e.target);
-				navitem.onmouseleave = e => toggleSubMenu(e.target);
+				navitem.onmouseenter = e => toggleSubMenu(e.target, 'in');
+				navitem.onmouseleave = e => toggleSubMenu(e.target, 'out');
 			}
 			if (window.matchMedia(`(hover:none)`).matches) {
 				navitem.onclick = e => toggleSubMenu(e.target);

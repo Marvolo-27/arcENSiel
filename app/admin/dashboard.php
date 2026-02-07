@@ -82,7 +82,7 @@ if ($_SESSION['role'] !== 'admin') {
 					<?php endif; ?>
 
 					<div class='grid-item-wrap'>
-						<a href="/admin/tools/article/create">
+						<a href="/admin/tools/create/article">
 							<div class='grid-item'>
 								<div class='article-poster poster-fg icon-style'>
 									<img src="/files/icons/paper.svg">

@@ -2,10 +2,9 @@
 session_start();
 
 // extract passed argument
-$raw_url = $slug ?? $_GET['slug'];
-$raw_url = $raw_url ?? '';
-$status = $status ?? 'published';
-$edition = $edition ?? false;
+$raw_url = $slug ?? $_GET['slug'] ?? '';
+$status ??= 'published';
+$edition ??=  false;
 
 // preview for archived article, draft for unpublished registered article, published for published article, snippet for unpublished unregistered article
 
@@ -176,7 +175,7 @@ if ($status === 'preview' && $edition) {
 		<?php if($_SESSION['role'] === 'admin'): ?>
 		<div id="admin-actions">
 			<?php if($status === 'preview' && $edition): ?>
-				<a class='icon edit inline large dynamic' href="/admin/tools/article/edit/<?= $url ?>" title="Modifier l'article">
+				<a class='icon edit inline large dynamic' href="/admin/tools/editor/article/<?= $url ?>" title="Modifier l'article">
 					<span class='img'></span>
 				</a>
 			<?php endif; ?>
@@ -274,7 +273,7 @@ if ($status === 'preview' && $edition) {
 
 				notify('Statut mis à jour avec succès', 'green')
 		}
-		<?php if($status !== 'preview'): ?>
+		<?php if($status !== 'preview' && $_SESSION['role'] === 'admin'): ?>
 			document.querySelector('#admin-actions .icon.chg-status').onclick = archiveArticle;
 		<?php endif; ?>
 		</script>

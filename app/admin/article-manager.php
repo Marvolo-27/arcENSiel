@@ -49,6 +49,11 @@ if ($edition && $url) {
 	$artData = $query->fetch(PDO::FETCH_ASSOC);
 
 	if ($artData) {
+		// fetch picture metadata
+		$query=$pdo->prepare("SELECT url, name, description FROM files WHERE url = :url");
+		$query->execute( [':url' => $artData['picture_path']]);
+		$fileData = $query->fetch(PDO::FETCH_ASSOC);
+
 		// retrieve article tags
 		$tagsIdList = json_decode($artData['tags'], false);
 		$artTags = [];
@@ -281,9 +286,8 @@ if ($edition && !$artData) {
 								</div>
 								
 								<input class='fileentry hidden' type='file' accept='image/*' name='art-pic' id='art-pic' autocomplete=off placeholder="Affiche" title="Veuillez sélectionner un visuel pour l'évènement" <?= !$edition ? 'required':"data-source-value='".$artData['picture_path']."'" ?>>
-								<img class="visual" alt="Affiche de l'évènement" src="<?= $edition ? $artData['picture_path']:'' ?>" title="Cliquer pour changer d'image">
+								<img class="visual" alt="Affiche de l'évènement" src="<?= $edition ? $fileData['url']:'' ?>" title="Cliquer pour changer d'image">
 								<div class="visual-overlay">
-									<div class='icon extra-large inline file dynamic' onclick=""><span class='img'></span></div>
 									<div class='icon extra-large inline delete dynamic' onclick=""><span class='img'></span></div>
 									<div class='icon extra-large inline edit dynamic' onclick=""><span class='img'></span></div>
 								</div>
@@ -368,9 +372,9 @@ if ($edition && !$artData) {
 							<label class='label' for='filename'>Nom du fichier</label>
 						</div>
 						<div class='input-container'>
-							<input class='lineentry' type='text' name='filename' id='filename' autocomplete=off placeholder="Nom du fichier" title="Nom du fichier" required>
+							<input class='lineentry' type='text' name='filename' id='filename' value="<?= $edition ? implode('.', explode('.', $fileData['name'], -1)):'' ?>" data-name="<?= $edition ? $fileData['name']:'' ?>" autocomplete=off placeholder="Nom du fichier" title="Nom du fichier" <?= $edition ? 'readonly':'' ?> required>
 							<span>.</span>
-							<input class='lineentry' type='text' name='fileextension' id='fileextension' autocomplete=off placeholder="ext" title="Extension du fichier" style="width: 5em" required disabled>
+							<input class='lineentry' type='text' name='fileextension' id='fileextension' value="<?= $edition ? end(explode('.', $fileData['name'])):'' ?>" autocomplete=off placeholder="ext" title="Extension du fichier" style="width: 5em" required readonly>
 						</div>
 					</div>
 					
@@ -379,7 +383,7 @@ if ($edition && !$artData) {
 							<label class='label' for='desc'>Description pour le fichier</label>
 						</div>
 						<div class='input-container'>
-							<input class='lineentry' type='text' name='desc' id='desc' autocomplete=off placeholder="Description" title="Description pour le fichier" required>
+							<input class='lineentry' type='text' name='desc' id='desc' value="<?= $edition ? $fileData['description']:'' ?>" autocomplete=off placeholder="Description" title="Description pour le fichier" required>
 						</div>
 					</div>
 
@@ -449,7 +453,7 @@ if ($edition && !$artData) {
 		}
 		<?php endif; ?>
 		
-		// go to prview
+		// go to preview
 		document.querySelector('.icon.preview .img').onclick = async e => {
 				btn = e.target.findParent('.icon')
 				
@@ -464,7 +468,7 @@ if ($edition && !$artData) {
 									body: formData
 									});
 				
-				open(`/admin/tools/article/preview/${url}`)
+				open(`/admin/tools/preview/article/${url}`)
 		}
 
 		// go on with requested action
@@ -644,6 +648,8 @@ if ($edition && !$artData) {
 				// Update data
 				taglist = Array.from(document.querySelectorAll('.checkbox.option:checked')).map(e => {return {'slug': e.getAttribute('name'), 'name': e.value}});
 				formData.set('art-tags', JSON.stringify(taglist));
+				formData.set('file-description', overlayData.querySelector('#desc').value)
+				formData.set('filename', overlayData.querySelector('#filename').value+'.'+overlayData.querySelector('#fileextension').value)
 				formData.set('type', JSON.stringify({'slug': typeTag.value, 'name': typesList[typeTag.value], 'color': typeTag.querySelector(`option[value='${typeTag.value}']`).dataset.color, 'new': typeTag.classList.contains('new')}));
 				formData.set('art-end-date', formData.get('art-end-date') !== ''?formData.get('art-end-date'):null);
 				// formData.set('art-title', titleTag.textContent);
@@ -916,7 +922,7 @@ if ($edition && !$artData) {
 				}
 		
 		// remove URL protection
-		document.querySelector('.icon.edit').onclick = (e) => {
+		document.querySelector('.box.url .icon.edit').onclick = (e) => {
 					urltag = e.target.findParent('.input-container').querySelector('.livecheck');
 					
 					urltag.disabled = false;
@@ -924,7 +930,7 @@ if ($edition && !$artData) {
 		<?php endif; ?>
 
 		// FILE MANAGEMENT //
-		document.querySelector('#art-pic').onchange = e => {fileUploadManage(e.target)};
+		document.querySelector('#art-pic').onchange = e => fileUploadManage(e.target);
 		
 		document.querySelector('.visual').addEventListener('dragenter', allowDrop);
 		document.querySelector('.visual').addEventListener('dragleave', allowDrop);
@@ -932,7 +938,6 @@ if ($edition && !$artData) {
 		document.querySelector('.visual').ondragover = e => {e.preventDefault()}	// fires when a draggable object is over valid drag zone (repeats)
 		
 		document.querySelector('.frame .action-btn.new-file').onclick = e => {e.target.findParent('.frame').querySelector('input').click()}	// fires when a draggable object is over valid drag zone (repeats)
-		document.querySelector('.frame .visual-overlay .icon.file').onclick = e => {e.target.findParent('.frame').querySelector('input').click()}	// fires when a draggable object is over valid drag zone (repeats)
 		document.querySelector('.frame .visual-overlay .icon.delete').onclick = e => {e.target.findParent('.frame').querySelector('input').value='';e.target.findParent('.frame').querySelector('input').required=true;e.target.findParent('.frame').removeAttribute('active');overlayData.querySelector('#overlay-add-form').reset()}	// fires when a draggable object is over valid drag zone (repeats)
 		document.querySelector('.frame .visual-overlay .icon.edit').onclick = e => overlayData.toggleAttribute('active')
 		document.querySelector('.frame .visual').onclick = e => {e.target.findParent('.frame').querySelector('input').click()}	// fires when a draggable object is over valid drag zone (repeats)
@@ -987,9 +992,12 @@ if ($edition && !$artData) {
 					document.querySelector('.box.pic .visual').src = URL.createObjectURL(file);
 					
 					// extract from file metadata
-					overlayData.querySelector('#filename').value = file.name.split('.').slice(0,-1).join('.');
-					overlayData.querySelector('#filename').dataset.name = file.name;
+					overlayData.querySelector('#filename').readOnly = false;
+					overlayData.querySelector('#filename').value = file.name.split('.').slice(0,-1).join('.').filenameForm();
+					overlayData.querySelector('#filename').dataset.name = file.name.filenameForm();
 					overlayData.querySelector('#fileextension').value = file.name.split('.').slice(-1)[0];
+					overlayData.querySelector('#desc').value = '';
+					
 
 					// display overlay
 					overlayData.toggleAttribute('active')
@@ -1011,6 +1019,10 @@ if ($edition && !$artData) {
 					document.querySelector('.error.file-choice').removeAttribute('active');
 					document.querySelector('#overlay-choose').removeAttribute('active');
 
+					document.querySelectorAll('#overlay-choose .file-element').forEach(tag => {tag.removeAttribute('selected')})
+					document.querySelector('#overlay-choose .file-preview').firstElementChild.src = '';
+					document.querySelector('#overlay-choose .file-preview').firstElementChild.alt = '';
+
 					url = tag.dataset.url;
 					document.querySelector('.box.pic .visual').src = url;
 					document.querySelector('.box.pic .frame').setAttribute('active','');
@@ -1019,6 +1031,8 @@ if ($edition && !$artData) {
 					document.querySelector('#overlay-add-form #filename').dataset.name = url.split('/').slice(-1)[0]
 					document.querySelector('#overlay-add-form #filename').value = url.split('/').slice(-1)[0].split('.').slice(0,-1).join('.')
 					document.querySelector('#overlay-add-form #fileextension').value = url.split('.').slice(-1)[0];
+					document.querySelector('#overlay-add-form #desc').value = tag.dataset.alt;
+					document.querySelector('#overlay-add-form #filename').readOnly = true;
 
 					editsManager(document.querySelector('.box.pic .fileentry'), url)
 				}
@@ -1069,7 +1083,13 @@ if ($edition && !$artData) {
 
 		// file metadata submission
 		overlayData.querySelector('#overlay-add-form').onsubmit = e => {e.preventDefault();overlayData.toggleAttribute('active')}
-
+		
+		// filename input
+		overlayData.querySelector('#filename').oninput = e => {
+				pos = e.target.selectionStart
+				e.target.value = e.target.value.filenameForm()
+				e.target.setSelectionRange(pos,pos)
+				}
 
 		// EDITABLE PARTS MANNAGEMENT //
 		converter = new showdown.Converter({

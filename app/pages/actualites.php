@@ -31,7 +31,7 @@ $artTags = getTags();
 		<link rel='stylesheet' type='text/css' href='/files/assets/css/main.css'></link>
 		
 		<script src='/files/assets/js/main.js'></script>
-		<script src='/files/assets/js/grid-layout.js'></script>
+		<script src='/files/assets/js/grid.js'></script>
 
 		<style>
 			#flow-wrap {
