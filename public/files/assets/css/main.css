@@ -1360,6 +1360,8 @@ form {
 								background: var(--form-color);
 								color: white;
 								border-color: var(--form-color);
+
+								& a {color: white}
 								}
 						
 						&:has(a) {padding: 0}
@@ -1377,8 +1379,6 @@ form {
 								color: black;
 								padding: .5em 1.25em;
 								display: inline-block;
-								
-								&:hover {color: white}
 								}
 						}
 				}
