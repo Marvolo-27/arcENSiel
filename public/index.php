@@ -184,15 +184,6 @@ $artTags = $query->fetchAll(PDO::FETCH_ASSOC) ?? null;
 							}
 					}
 			#news-carousel {--nb: 5;} /* works fibe if n greater than actaual nb of entries */
-			
-	
-			/* JS addition */
-			.carousel:has(#img1:checked) {.carousel-imgs {transform: translateX(calc(-0*(var(--ws))))}  .img1 {background-color: var(--lbl-clr)}}
-			.carousel:has(#img2:checked) {.carousel-imgs {transform: translateX(calc(-1*(var(--ws))))}  .img2 {background-color: var(--lbl-clr)}}
-			.carousel:has(#img3:checked) {.carousel-imgs {transform: translateX(calc(-2*(var(--ws))))}  .img3 {background-color: var(--lbl-clr)}}
-			.carousel:has(#img4:checked) {.carousel-imgs {transform: translateX(calc(-3*(var(--ws))))}  .img4 {background-color: var(--lbl-clr)}}
-			.carousel:has(#img5:checked) {.carousel-imgs {transform: translateX(calc(-4*(var(--ws))))}  .img5 {background-color: var(--lbl-clr)}}
-			.carousel:has(#img6:checked) {.carousel-imgs {transform: translateX(calc(-5*(var(--ws))))}  .img6 {background-color: var(--lbl-clr)}}
 		</style>
 	</head>	
 	
@@ -291,14 +282,14 @@ $artTags = $query->fetchAll(PDO::FETCH_ASSOC) ?? null;
 		
 		<script>
 		function carouselNext() {
-									curr = document.querySelector('.carousel-inputs input:checked')
+									curr = document.querySelector('.carousel-inputs').querySelector('input:checked')
 									next = curr.nextElementSibling === null ? curr.parentNode.firstElementChild : curr.nextElementSibling;
 									next.checked = true;
 									curr.checked = false;
 									}
 		
 		function carouselPrev() {
-									curr = document.querySelector('.carousel-inputs input:checked')
+									curr = document.querySelector('.carousel-inputs').querySelector('input:checked')
 									next = curr.previousElementSibling === null ? curr.parentNode.lastElementChild : curr.previousElementSibling;
 									next.checked = true;
 									curr.checked = false;
@@ -318,9 +309,9 @@ $artTags = $query->fetchAll(PDO::FETCH_ASSOC) ?? null;
 							}
 		
 		function reset(i) {
-							for (j=1;j<25;j++) {
-												document.querySelector(`#img${j}`).checked = i === j;
-												}
+							document.querySelectorAll('.carousel-button').forEach(item => {
+									item.checked = parseInt(item.id.slice(-1)) === i
+									})
 							}
 
 		// On-load logic
@@ -341,31 +332,34 @@ $artTags = $query->fetchAll(PDO::FETCH_ASSOC) ?? null;
 									lbls = document.querySelector('.carousel-lbls')
 									imgs = document.querySelector('.carousel-imgs')
 									i = 1;
+									document.querySelector('head').querySelector('style').textContent += '\n\n/* Auto-generated */'
 									newslist.data.forEach(item => {
 											inp = document.createElement('input');
 											i == 1 ? inp.checked = true:null;
-											inp.setAttribute('type','radio');
-											inp.setAttribute('id',`img${i}`);
+											inp.type = 'radio';
+											inp.id = `carousel-item-${i}`;
 											inps.appendChild(inp);
 											
 											lbl = document.createElement('label');
-											lbl.setAttribute('for',`img${i}`);
-											lbl.setAttribute('class',`img${i}`);
-											lbl.setAttribute('onclick',`reset(${i})`);
+											lbl.setAttribute('for',`carousel-item-${i}`);
+											lbl.id = `carousel-button-${i}`;
+											lbl.classList.toggle('carousel-button');
+											lbl.onclick = e => reset(i);
 											lbls.appendChild(lbl);
 											
 											imgWrap = document.createElement('div');
 											imgWrap.classList.toggle('carousel-img-wrap')
 											
 											img = document.createElement('img');
-											img.setAttribute('src',item['picture_path']);
+											img.src = item['picture_path'];
 											img.dataset.url = item['url'];
 											imgWrap.appendChild(img);
 											imgs.appendChild(imgWrap);
-											img.addEventListener('click', e => window.location.href = '/articles/'+e.target.dataset.url)
-											
+											img.onclick = e => window.location.href = '/articles/'+e.target.dataset.url
+
+											document.querySelector('head').querySelector('style').textContent += `\n.carousel:has(#carousel-item-${i}:checked) {.carousel-imgs {transform: translateX(calc(-${i-1}*(100%\/var(--nb))))}  #carousel-button-${i} {background-color: #fff}}`;
+
 											i++;
-											//document.querySelector('head style').textContent += `\n.carousel:has(#img${i}:checked) {.carousel-imgs {transform: translateX(calc(-${i-1}*(100%\/var(--nb))))}  .img${i} {background-color: #fff}}`;
 											})
 									
 									// carousel shift
