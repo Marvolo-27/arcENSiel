@@ -814,7 +814,7 @@ nav    {
 										padding: .75em .5em;
 										}
 								
-								&[active] a::after {transform: rotate(180deg)}
+								&[active] .nav-item-name::after {transform: rotate(180deg)}
 								
 								&.selected {
 										font-weight: bold;
@@ -850,7 +850,7 @@ nav    {
 										}
 								
 								/* header element with submenu */
-								&:has(.sub-menu) > a {
+								&:has(.sub-menu) > .nav-item-name {
 										@media (min-width: 642px) {
 												display: flex;
 												gap: .25em;
@@ -940,6 +940,10 @@ nav    {
 															}
 													&:hover::before, &:hover::after {width: 90%}
 												}
+										}
+								
+								& .nav-item-name {
+										color: white;
 										}
 								
 								& .nav-item-icon {

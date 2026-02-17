@@ -14,61 +14,60 @@
 			<img src='/files/icons/burger.svg' class='toggle-img'>
 		</div>
         <div class='headers' hidden='true'>
-            <span class='nav-item home-item'>
-                <a class='nav-item-name' href='/actualites'>
+            <a class='nav-item home-item' href='/actualites'>
+                <span class='nav-item-name'>
                     Actualités
-                </a>
-            </span>
+				</span>
+			</a>
 			<span class='nav-item'>
-                <a class='nav-item-name'>
+                <span class='nav-item-name'>
                     L'association
-                </a>
+				</span>
 				
 				<span class="sub-menu" hidden='true'>
-					<span class='sub-nav-item'>
-						<a class='nav-item-name'>
+					<a class='sub-nav-item'>
+						<span class='nav-item-name'>
 							Qui sommes-nous ?
-						</a>
-					</span>
-					<span class='sub-nav-item'>
-						<a class='nav-item-name'>
+						</span>
+					</a>
+					<a class='sub-nav-item'>
+						<span class='nav-item-name'>
 							Nos activités
-						</a>
-					</span>
-					<span class='sub-nav-item'>
-						<a class='nav-item-name' href='/documents'>
+						</span>
+					</a>
+					<a class='sub-nav-item' href='/documents'>
+						<span class='nav-item-name'>
 							Statuts et archives
-						</a>
-					</span>
+						</span>
+					</a>
 				</span>
             </span>
 			<span class='nav-item'>
-                <a class='nav-item-name'>
+                <span class='nav-item-name'>
                     Ressources
-                </a>
+				</span>
 
 				<span class="sub-menu" hidden='true'>
-					<span class='sub-nav-item' href='/ressources'>
-						<a class='nav-item-name'>
+					<a class='sub-nav-item' href='/ressources'>
+						<span class='nav-item-name'>
 							Documents utiles
-						</a>
-					</span>
-					<span class='sub-nav-item'>
-						<a class='nav-item-name' href="/archives">
+						</span>
+					</a>
+					<a class='sub-nav-item' href="/archives">
+						<span class='nav-item-name'>
 							Historique
-						</a>
-					</span>
+						</span>
+					</a>
 				</span>
             </span>
-			<span class='nav-item'>
-                <a class='nav-item-name' href='/contact'>
+			<a class='nav-item' href='/contact'>
+                <span class='nav-item-name'>
                     Nous contacter
-                </a>
-            </span>
+				</span>
+			</a>
 			<span class='nav-item'>
                 <div class='nav-item-icon'>
                     <a class='icon search inline medium hoverable dynamic invertable base-shdw' href="/search"><span class='img'></span></a>
-                    <!-- <a class='icon history inline medium hoverable dynamic invertable' href="/archives"><span class='img'></span></a> -->
 				</div>
             </span>
         </div>
