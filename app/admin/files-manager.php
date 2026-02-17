@@ -28,7 +28,7 @@ if ($_SESSION['role'] !== 'admin') {
 		<meta name="theme-color" content="">
 		<meta name="msapplication-navbutton-color" content="">
 		<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-		<meta property="og:title" content="arcENSiel - Association Queer et LGBT+ de l'ENS de Lyon">
+		<meta property="og:title" content="Gestion des fichiers">
 		<meta property="og:type" content="website">
 		
 		<link rel='stylesheet' type='text/css' href='/files/assets/css/main.css'></link>
@@ -197,7 +197,7 @@ if ($_SESSION['role'] !== 'admin') {
 					</div>
 				</div>
 			</div>
-			<input id='csrf' data-csrf=<?= $_SESSION['CSRF'] ?> hidden readonly>
+			<input id='csrf' name='csrf-token' value=<?= $_SESSION['CSRF'] ?> data-csrf=<?= $_SESSION['CSRF'] ?> required hidden readonly>
 		</div>
 		
 
@@ -262,24 +262,25 @@ if ($_SESSION['role'] !== 'admin') {
 			const overlayAuth = document.querySelector('#overlay-auth')
 			const overlayChoose = document.querySelector('#overlay-choose')
 			const overlayValid = document.querySelector('#overlay-valid')
+			const overlayView = document.querySelector('#overlay-view')
 			
 		/// GENERAL ACTION
 			// On-load logic
 			window.addEventListener('load', loader);
 			async function loader()  {
 										// configure overlay
-										overlayAdd.toggleAttribute('strict')			
+										overlayAdd.toggle('strict')			
 										overlayAdd.querySelector('.exist-file').parentElement.style.display = 'none';			
 										overlayAdd.querySelector('.file-maxsize').firstElementChild.innerText = 'Taille maximale: 10 Mo';			
 										overlayAdd.querySelector('.file-formats').firstElementChild.innerText = 'Formats supportés: image, .pdf, .sqlite, .zip';			
-										overlayAdd.querySelector('#file').setAttribute('accept', 'application/zip,application/pdf,application/vnd.sqlite3,image/*')			
+										overlayAdd.input('file').setAttribute('accept', 'application/zip,application/pdf,application/vnd.sqlite3,image/*')			
 										
 										div = document.createElement('div')
 										div.classList.toggle('checkbox-wrap')
 										div.innerHTML = `<div class='input-container'>
 															<input class='checkbox' type='checkbox' name='admin-check' id='admin-check' autocomplete=off title="Restreindre l'accès aux administrateurs"><label class='label' for='admin-check'>Restreindre l'accès aux administrateurs</label>
 														</div>`
-										document.querySelector('#overlay-add-form').insertBefore(div, overlayAdd.querySelector('.external.form-action-wrap'))
+										overlayAdd.child('form').insertBefore(div, overlayAdd.querySelector('.external.form-action-wrap'))
 
 										// fetch all required data
 										await fetchFiles('#files');
@@ -296,62 +297,27 @@ if ($_SESSION['role'] !== 'admin') {
 										// fetch most recent previews
 										fetchControl()
 										}
-			
-			
-			
-			// close file viewer
-			document.querySelector('#overlay-view .action-btn.close').onclick = e => {
-					document.querySelector("#overlay-view").toggleAttribute("active");
-					document.querySelector("#overlay-view .file-preview img").src = '';
-
-					activeOverlay = pendingAction.overlay;
-					activeOverlay ? document.querySelector(`$#overlay-${activeOverlay}`).toggleAttribute('active'):null;
-					pendingAction = {}
-			}
-
-			// close unregistered files selector
-			overlayChoose.querySelector('.action-btn.cancel').onclick = e => {
-					wrapper = overlayChoose.querySelector('.files-list-container')
-					document.querySelector('.error.file-choice').removeAttribute('active');
-					overlayChoose.toggleAttribute('active')
-					wrapper.innerHTML = '';
-					pendingAction = {}
-			}
-
-			// close deletion control
-			overlayValid.querySelector('.action-btn.cancel').onclick = e => {
-					overlayValid.querySelector('#deletion-mode').checked = false;
-					overlayValid.removeAttribute('active')
-					pendingAction = {}
-			}
-
-			// close deletion control
-			overlayAuth.querySelector('.action-btn.cancel').onclick = e => {
-					overlayValid.querySelector('#deletion-mode').checked = false;
-					overlayAuth.removeAttribute('active')
-					pendingAction = {}
-			}
 
 			// Auth validation before redirection
-			document.querySelector('.overlay-form').onsubmit = e => {e.preventDefault();};
-			overlayAuth.querySelector('.action-btn.validate').onclick = async e => {
+			overlayAuth.child('form').onsubmit = e => {e.preventDefault();};
+			overlayAuth.button('validate').onclick = async e => {
 					validity = await passwordChecker();
 					if (validity) {
-						overlayAuth.removeAttribute("active");	
+						overlayAuth.hide();	
 						pendingAction.link ? pendingAction.function(pendingAction.link):pendingAction.function();
 					}
 			}
 		
-			// co,firm deletion
-			overlayValid.querySelector('.action-btn.validate').onclick = e => {
-					overlayValid.toggleAttribute('active');
-					overlayAuth.toggleAttribute('active');
-					pendingAction['mode'] = document.querySelector('#deletion-mode').checked
+			// confirm deletion
+			overlayValid.button('validate').onclick = e => {
+					overlayValid.toggle();
+					overlayAuth.toggle();
+					pendingAction['mode'] = overlayValid.input('deletion-mode').checked
 			}
 			
 			// close scan message
 			function closer(e) {
-				e.target.findParent('.files-wrap').removeAttribute('active')
+				e.target.findParent('.files-wrap').hide()
 			}
 
 			async function updateData() {
@@ -359,6 +325,7 @@ if ($_SESSION['role'] !== 'admin') {
 					filesList = data['sql-data'];
 					filesTable.setData(filesList).then(statusWizard)
 					gridContainer.innerHTML = '';
+					
 					await buildFiles(3*nGridItems)
 					fetchControl();
 
@@ -377,11 +344,10 @@ if ($_SESSION['role'] !== 'admin') {
 									file = filesList[i];
 
 									// file data
-									url = file.url;
+									url  = file.url;
 									name = file.name;
 									time = file['updated_at']
 									type = file.type;
-									ext = name.split('.').slice(-1)[0];
 									size = file.size;
 									status = file.status;
 
@@ -404,7 +370,7 @@ if ($_SESSION['role'] !== 'admin') {
 			${bgData}
 
 			<div class='article-poster poster-fg'>
-				<img loading="eager" src="${imgURL}" data-url="${imgURL}" data-type="${ext}">
+				<img loading="eager" src="${imgURL}" data-url="${imgURL}" data-type="${name.extension()}">
 			</div>
 
 			<div class="grid-item-preview full">
@@ -430,93 +396,81 @@ if ($_SESSION['role'] !== 'admin') {
 
 									// add event on click
 									if (window.matchMedia(`(hover: none)`).matches) {
-										div.querySelector('.grid-item').addEventListener('click', e => e.target.findParent('.grid-item').querySelector('.grid-item-preview').toggleAttribute('active'))
+										div.querySelector('.grid-item').addEventListener('click', e => e.target.findParent('.grid-item').querySelector('.grid-item-preview').toggle())
 									}
 									
-									div.querySelector('.icon.visualize').addEventListener('click', e => {e.stopPropagation(); viewFile(e.target.findParent('.icons-bar').dataset.url)})
-									div.querySelector('.icon.download').addEventListener('click', e => {e.stopPropagation(); downloadFile({'url': e.target.findParent('.icons-bar').dataset.url})})
-									div.querySelector('.icon.dots').addEventListener('click', e => {e.stopPropagation(); e.target.findParent('.dots').nextElementSibling.toggleAttribute('active')})
+									div.icon('visualize').addEventListener('click', e => {e.stopPropagation(); viewFile(e.target.findParent('.icons-bar').dataset.url)})
+									div.icon('download').addEventListener('click', e => {e.stopPropagation(); downloadFile({'url': e.target.findParent('.icons-bar').dataset.url})})
+									div.icon('dots').addEventListener('click', e => {e.stopPropagation(); e.target.findParent('.dots').nextElementSibling.toggle()})
 							}
 							
 							// add general data
 							plural = received > 1 ? 's':'';
 							total > 0 ? document.querySelector('.news-count').innerHTML = `${received} fichier${plural} affiché${plural} sur ${total}`:null;
 							
-							// update event listeners
-							filesListener();
-							
 							return null
 						}
 			
 			// trigger DOM append
 			window.onscroll = fetchControl
-
 			async function fetchControl() {
 					// end of news in viewport
 					condition = !lock && received < total && document.querySelector('.news-nav-wrap').getBoundingClientRect().y < 0.95 * window.innerHeight;
 					
 					if (condition) {
 						lock = true
-						document.querySelector('.spinner').setAttribute('active','')
+						Spinner().show()
 					
 						// fetch new results
 						await sleep(750)
 						await buildFiles(3*nGridItems)
 
-						document.querySelector('.spinner').removeAttribute('active')
+						Spinner().hide()
 						lock = false
 					}
 			}
 
 			// display layout management
-			document.querySelector('.icon.layout .img').onclick = e => {
-																		e.target.parentNode.toggleAttribute('active');
-																		document.querySelector('#files-list').toggleAttribute('switched');
-																		document.querySelector('#files-list').getAttribute('switched') !== null ? fetchControl():null;
-																		};
+			Icon('layout').onclick = e => {
+												e.target.parentNode.toggle();
+												document.querySelector('#files-list').toggle('switched');
+												document.querySelector('#files-list').getAttribute('switched') !== null ? fetchControl():null;
+												};
 			
 			function statusWizard() {
-				Array.from(filesTable.getColumn('status').getCells()).forEach(cell => {cell.getValue() ? null:cell.getElement().findParent('.tabulator-row').toggleAttribute('invalid')})
+				Array.from(filesTable.getColumn('status').getCells()).forEach(cell => {cell.getValue() ? null:cell.getElement().findParent('.tabulator-row').toggle('invalid')})
 			}
 	
 			function viewFile(url, activeOverlay=null) {
 				url = url.replace(/admin:\/\//, '/admin')
 				
-				ext = url.split('.').slice(-1)[0];
+				ext = url.extension();
 				
 				if (ext === 'pdf') {
 					open(url)
 				} else {
-					overlay = document.querySelector('#overlay-view');
-					overlay.toggleAttribute('active');
+					overlay = overlayView;
+					overlay.toggle();
 					overlay.querySelector('.file-preview img').src = url
 
-					activeOverlay ? document.querySelector(`$#overlay-${activeOverlay}`).toggleAttribute('active'):null;
+					activeOverlay ? document.querySelector(`$#overlay-${activeOverlay}`).toggle():null;
 					pendingAction = {'overlay': activeOverlay}
 				}
 			}
 		/// SCAN
-			document.querySelector('.icon.refresh .img').onclick = fileScanner;
-
+			Icon('refresh').onclick = fileScanner;
 			async function fileScanner(e = null) {
 						notify('Scan initiated', 'orange')
-						e ? e.target.findParent('.icon').setAttribute('active',''):null;
-						document.querySelector('.files-wrap.invalid').removeAttribute('active');
-						document.querySelector('.files-wrap.unregistered').removeAttribute('active');
-						document.querySelector('.files-wrap.recovered').removeAttribute('active');
+						e ? e.target.findParent('.icon').show():null;
+						
+						document.querySelector('.files-wrap.invalid').hide();
+						document.querySelector('.files-wrap.unregistered').hide()
+						document.querySelector('.files-wrap.recovered').hide();
 
 						// update data on server
-						jsonData = JSON.stringify({'csrf':document.querySelector('#csrf').dataset.csrf, 'action':'scan'})
+						jsonData = JSON.stringify({'csrf':csrfToken, 'action':'scan'})
+						files = await fetchAPI('/admin/engine/files', jsonData).then(response => response.body)
 
-						response = await fetch('/admin/engine/files', {
-								method: 'POST',
-								body: jsonData,
-								headers: { 'Content-Type': 'application/json' }
-								})
-
-						files = await response.json();
-						// console.log(files)
-						
 						descMatch = {
 							'unregistered': null
 						}
@@ -525,7 +479,7 @@ if ($_SESSION['role'] !== 'admin') {
 							data = files.unregistered;
 
 							wrap = document.querySelector('.files-wrap.unregistered');
-							wrap.setAttribute('active','');
+							wrap.show();
 
 							nb = data.length;
 							plural = nb > 1 ? 's':'';
@@ -543,7 +497,7 @@ if ($_SESSION['role'] !== 'admin') {
 							data = files.invalid;
 
 							wrap = document.querySelector('.files-wrap.invalid');
-							wrap.setAttribute('active','');
+							wrap.show();
 
 							nb = data.length;
 							plural = nb > 1 ? 's':'';
@@ -560,7 +514,7 @@ if ($_SESSION['role'] !== 'admin') {
 							data = files.recovered;
 
 							wrap = document.querySelector('.files-wrap.recovered');
-							wrap.setAttribute('active','');
+							wrap.show();
 
 							nb = data.length;
 							plural = nb > 1 ? 's':'';
@@ -577,7 +531,7 @@ if ($_SESSION['role'] !== 'admin') {
 							data = files.changed;
 
 							wrap = document.querySelector('.files-wrap.changed');
-							wrap.setAttribute('active','');
+							wrap.show();
 
 							nb = data.length;
 							plural = nb > 1 ? 's':'';
@@ -590,67 +544,27 @@ if ($_SESSION['role'] !== 'admin') {
 							await updateData()
 						}
 
-						e ? e.target.findParent('.icon').removeAttribute('active'):null;
+						e ? e.target.findParent('.icon').hide():null;
 						notify('Scan complete', 'green')
 			}
 
 
 		/// FILES ACTIONS
-			// go to chosen article
-			function fileGet(event) {
-					// extract article url
-					url = event.target.findParent('.grid-item').querySelector('.article-poster.poster-fg img').dataset.url;
-					ext = event.target.findParent('.grid-item').querySelector('.article-poster.poster-fg img').dataset.type;
-					
-					if (ext === 'pdf') {
-						open(url)
-					} else {
-						notify('ok')
-					}
-				}
-
-			// article previews events management
-			function filesListener() {
-					files = document.querySelectorAll('.grid-item-wrap .grid-item');
-					
-					files.forEach(art => {
-						// avoid multiple events for same articleblock
-						art.removeEventListener('click', fileGet);
-						
-						//art.addEventListener('click', (event) => fileGet(event));
-						});
-				}
-
 			// Download file
 			async function downloadFile(rowdata) {
-					// download text file
-					var c = document.createElement("a");
-					
 					url = rowdata.url
-					filename = url.split('/').slice(-1)[0]
 					
 					if (url.match(/^admin:\/\//)) {
-						jsonData = JSON.stringify({'csrf':document.querySelector('#csrf').dataset.csrf, 'action':'encode', 'url':url})
-						response = await fetch('/admin/engine/files', {
-								method: 'POST',
-								body: jsonData,
-								headers: { 'Content-Type': 'application/json' }
-								})
-						data = await response.json()
-						
+						jsonData = JSON.stringify({'csrf':csrfToken, 'action':'encode', 'url':url})
+						data = await fetchAPI('/admin/engine/files', jsonData).then(response => response.body)
+
 						bytes = Uint8Array.fromBase64(data.base64);
 						blob = new Blob([bytes], {type: rowdata.type});
 					} else {
-						response = await fetch(url);
-						blob = await response.blob();
+						blob = await fetchBlob(url);
 					}
 					
-					url = URL.createObjectURL(blob);
-					
-					c.download = filename;
-					c.href = url;
-					c.click();
-					setTimeout(function() { URL.revokeObjectURL(c.href); }, 1500);
+					download(blob, url.filename(true))
 			}
 
 			// Manage unregistered files
@@ -658,29 +572,22 @@ if ($_SESSION['role'] !== 'admin') {
 					notify((pendingAction.action === 'insert' ? 'Insertion':'Suppression')+' en cours', 'orange')
 					
 					overlay = overlayChoose
-					selectedFiles = Array.from(elements).map(elm => {elm.removeAttribute('selected'); return elm.dataset.url})
+					selectedFiles = Array.from(elements).map(elm => {elm.unset('selected'); return elm.dataset.url})
 					action = pendingAction.action;
-					document.querySelector('.files-wrap.unregistered').removeAttribute('active');
-					// console.log(selectedFiles)
+					document.querySelector('.files-wrap.unregistered').hide();
 
 					wrapper = overlay.querySelector('.files-list-container')
 					wrapper.innerHTML = '';
 					pendingAction = {}
 
 					// update data on server
-					jsonData = JSON.stringify({'csrf':document.querySelector('#csrf').dataset.csrf, 'action':action, 'files':selectedFiles})
-
-					response = await fetch('/admin/engine/files', {
-							method: 'POST',
-							body: jsonData,
-							headers: { 'Content-Type': 'application/json' }
-							})
-					data = await response.json()
+					jsonData = JSON.stringify({'csrf':csrfToken, 'action':action, 'files':selectedFiles})
+					response = await fetchAPI('/admin/engine/files', jsonData)
 
 					if (!response.ok) {
-						notify(data.error, 'red')
+						notify(response.body.error, 'red')
 					} else {
-						notify(data.content, 'green')
+						notify(response.body.content, 'green')
 					}
 			}
 			
@@ -688,20 +595,14 @@ if ($_SESSION['role'] !== 'admin') {
 					notify('Operation started', 'orange')
 					mode = pendingAction.mode ? 'force':'keep';
 					pendingAction = {};
-					document.querySelector('#overlay-valid').querySelector('#deletion-mode').checked = false;
+					overlayValid.input('deletion-mode').checked = false;
 
 					// update data on server
-					jsonData = JSON.stringify({'csrf':document.querySelector('#csrf').dataset.csrf, 'action':'remove', 'mode':mode, 'url':data.url, 'status':data.status})
-
-					response = await fetch('/admin/engine/files', {
-							method: 'POST',
-							body: jsonData,
-							headers: { 'Content-Type': 'application/json' }
-							})
-					data = await response.json()
+					jsonData = JSON.stringify({'csrf':csrfToken, 'action':'remove', 'mode':mode, 'url':data.url, 'status':data.status})
+					response = await fetchAPI('/admin/engine/files', jsonData)
 
 					if (!response.ok) {
-						notify(data.error, 'red')
+						notify(response.body.error, 'red')
 					} else {
 						await updateData()
 						notify('Operation succeeded', 'green')
@@ -711,16 +612,16 @@ if ($_SESSION['role'] !== 'admin') {
 			// show file metadata on unhover display
 			document.querySelectorAll('.icon.dots').forEach(item => {
 						item.onclick = e => {
-							e.target.findParent('.icon').nextElementSibling.toggleAttribute('active')
+							e.target.findParent('.icon').nextElementSibling.toggle()
 						}
 					})
 
 			// Action for unregistered files
-			document.querySelector('.action-btn.add-files').onclick = e => {
+			Button('add-files').onclick = e => {
 					pendingAction = {'action': 'insert'}
 					selectionGenerator()
 			}
-			document.querySelector('.action-btn.del-files').onclick = e => {
+			Button('del-files').onclick = e => {
 					pendingAction = {'action': 'delete'}
 					selectionGenerator()
 			}
@@ -741,51 +642,52 @@ if ($_SESSION['role'] !== 'admin') {
 							<div class='file-element' data-url="${file.path}">${file.name}</div>
 						`
 						div.querySelector('.file-element').addEventListener('click', e => e.target.findParent('.file-element').toggleAttribute('selected'))
-						div.querySelector('.icon.visualize').addEventListener('click', e => viewFile(e.target.findParent('.file-element-wrap').querySelector('.file-element').dataset.url))
-						div.querySelector('.icon.download').addEventListener('click', e => downloadFile({'url': e.target.findParent('.file-element-wrap').querySelector('.file-element').dataset.url}))
+						div.icon('visualize').addEventListener('click', e => viewFile(e.target.findParent('.file-element-wrap').querySelector('.file-element').dataset.url))
+						div.icon('download').addEventListener('click', e => downloadFile({'url': e.target.findParent('.file-element-wrap').querySelector('.file-element').dataset.url}))
 
 						wrapper.append(div)
 					})
 
-					overlayChoose.toggleAttribute('active')
+					overlayChoose.toggle()
 			}
 
-			overlayChoose.querySelector('.validate').onclick = e => {
+			overlayChoose.button('validate').onclick = e => {
 					tags = overlayChoose.querySelectorAll('.file-element[selected]')
-					
+					error = overlayChoose.error('file-choice')
+
 					if (tags.length === 0) {
-						overlayChoose.querySelector('.error.file-choice').innerText = 'Sélectionnez au moins un fichier pour continuer';
-						overlayChoose.querySelector('.error.file-choice').setAttribute('active', '');
+						error.innerText = 'Sélectionnez au moins un fichier pour continuer';
+						error.show();
 					} else {
-						overlayChoose.querySelector('.error.file-choice').removeAttribute('active');
-						overlayChoose.removeAttribute('active');
+						error.hide();
+						overlayChoose.hide();
 
 						filesInserter(tags)
 					}
 			}
 		
 		//// FILE UPLOAD
-			document.querySelector('.icon.upload').onclick = e => overlayAdd.toggleAttribute('active')
+			Icon('upload').onclick = e => overlayAdd.toggle()
 			
-			overlayAdd.querySelector('.action-btn.cancel').onclick = e => {
-				overlayAdd.removeAttribute("active");
-				overlayAdd.querySelector('#overlay-add-form').reset();
-				overlayAdd.querySelector('.selected-file').innerText = '';
-				overlayAdd.querySelector('.frame').removeAttribute("active");
-				overlayAdd.querySelector('.fileentry').required = true;
+			overlayAdd.button('cancel').onclick = e => {
+				overlayAdd.hide();
+				overlayAdd.child('form').reset();
+				overlayAdd.child('.selected-file').innerText = '';
+				overlayAdd.child('.frame').hide();
+				overlayAdd.input('file').required = true;
 			}
 
-			overlayAdd.querySelector('.icon.delete').onclick = e => {
-				overlayAdd.querySelector('.frame').removeAttribute("active");
-				overlayAdd.querySelector('.selected-file').innerText = '';
-				overlayAdd.querySelector('#file').value = '';
+			overlayAdd.icon('delete').onclick = e => {
+				overlayAdd.child('.frame').hide();
+				overlayAdd.child('.selected-file').innerText = '';
+				overlayAdd.input('file').value = '';
 			}
 
 			document.querySelector('#file').onchange = e => handlePassedFile(e.target)
 
-			document.querySelector('#overlay-add-form').onsubmit = e => {
+			overlayAdd.child('form').onsubmit = e => {
 				e.preventDefault();
-				overlayAdd.removeAttribute("active");
+				overlayAdd.hide();
 				
 				uploader(e.target)
 			}
@@ -805,17 +707,17 @@ if ($_SESSION['role'] !== 'admin') {
 			function handlePassedFile(input) {
 						upload = fileUploadManage(input, /(application\/(pdf|zip|x-zip-compressed|vnd\.sqlite3)|image\/.*)/, 10)
 							if (upload) {
-								document.querySelector('#overlay-add-form #filename').value = file.name.split('.').slice(0,-1).join('.');
-								document.querySelector('#overlay-add-form #filename').dataset.name = file.name;
-								document.querySelector('#overlay-add-form #fileextension').value = file.name.split('.').slice(-1)[0];
+								overlayAdd.input('filename').value = file.name.filename();
+								overlayAdd.input('filename').dataset.name = file.name;
+								overlayAdd.input('fileextension').value = file.name.extension();
 								}
 			}
 
 			// update new file
 			async function uploader(form) {
 						notify('Uploading file', 'orange')
-						fileTag = document.querySelector('#overlay-add-form .fileentry')
-						adminCheck = document.querySelector('#overlay-add-form .checkbox').checked
+						fileTag = overlayAdd.child('.fileentry')
+						adminCheck = overlayAdd.input('admin-check').checked
 						file = fileTag.files[0];
 						
 						// category congif
@@ -847,33 +749,23 @@ if ($_SESSION['role'] !== 'admin') {
 						formData.set('category', category)	
 						formData.set('og-url', url)
 						formData.set('url', url)
-						formData.set('filename', formData.get('filename')+'.'+document.querySelector('#fileextension').value)
+						formData.set('filename', formData.get('filename')+'.'+Input('fileextension').value)
 						formData.set('admin', adminCheck)
 						if (!adminCheck) formData.set('source', 'uploads/')
 						formData.set('file-updated', false)
-						formData.set('csrf', document.querySelector('#csrf').dataset.csrf)
-
-						// console.log(Object.fromEntries(formData.entries()))
+						formData.set('csrf', csrfToken)
 
 						// Response object
-						response = await fetch("/admin/engine/files", {
-									method: "POST",
-									body: formData
-									});
-						
-						// Response body content
-						data = await response.json(); // dict parsed response data
-						//console.log(data)
+						response = await fetchAPI('/admin/engine/files', formData)
 
 						if (!response.ok) {// http code 400-500 reuturn false
-								alert(`Error: HTTP ${response.status}: ${data.error}`);
-								
+								alert(`Error: HTTP ${response.httpcode}: ${response.body.error}`);
 								return null
 								}
 						
-						if (response.status === 250) {// failed sql request
-							errorData = data.error;
-							errorCode = data.code;
+						if (response.httpcode === 250) {// failed sql request
+							errorData = response.body.error;
+							errorCode = response.body.code;
 							
 							notify(`Error [${errorCode}]: ${errorData}`, 'red');							
 							return
@@ -882,10 +774,43 @@ if ($_SESSION['role'] !== 'admin') {
 						}
 
 						form.reset()
-						document.querySelector('#overlay-add-form .selected-file').innerText = ''
-						document.querySelector('#overlay-add-form .frame').removeAttribute('active')
+						overlayAdd.child('.selected-file').innerText = ''
+						overlayAdd.child('.frame').hide()
 						await updateData()
 					}
+		
+			// close file viewer
+			overlayView.button('close').onclick = e => {
+					overlayView.toggle();
+					overlayView.child('.file-preview img').src = '';
+
+					activeOverlay = pendingAction.overlay;
+					activeOverlay ? document.querySelector(`$#overlay-${activeOverlay}`).toggle():null;
+					pendingAction = {}
+			}
+
+			// close unregistered files selector
+			overlayChoose.button('cancel').onclick = e => {
+					wrapper = overlayChoose.querySelector('.files-list-container')
+					document.error('file-choice').hide();
+					overlayChoose.toggle();
+					wrapper.innerHTML = '';
+					pendingAction = {}
+			}
+
+			// close deletion control
+			overlayValid.button('cancel').onclick = e => {
+					overlayValid.input('deletion-mode').checked = false;
+					overlayValid.hide()
+					pendingAction = {}
+			}
+
+			// close deletion control
+			overlayAuth.button('cancel').onclick = e => {
+					overlayValid.input('deletion-mode').checked = false;
+					overlayAuth.hide()
+					pendingAction = {}
+			}
 		</script>
 	</body>
 </html>

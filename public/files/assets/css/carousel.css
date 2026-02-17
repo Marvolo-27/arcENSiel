@@ -1,0 +1,73 @@
+/*!! Carousel style !!*/
+.carousel-wrap	{
+		--h: 50vh;
+		--w: min(75vh, calc(100vw - 2 * var(--gbl-pad)));
+		/* --ws: calc(0.9 * var(--w)); width shrunk */
+        --ws: calc(var(--w) - 2 * (var(--standard-size) * (var(--coeff) + 2 * .2) + var(--gap) + var(--pad))); /* account for gaps, icons width and padding, carousel padding */
+		--pad: .675em;
+		--gap: .5em;
+		--coeff: 2.25; /* extra large icons */
+		display: flex;
+		align-items: center;
+		height: var(--h);
+		z-index: 1;
+		top: calc(0.5*(100% - var(--h)));
+		left: 5%;
+		width: var(--w);
+		margin: 0 calc(1/2 * (100% - var(--w)));
+		margin-bottom: 1.5em;
+		justify-content: center;
+		gap: var(--gap);
+		& .prev {transform: rotate(180deg); flex-shrink: 0;}
+		& .next {transform: rotate(0deg); flex-shrink: 0;} 
+		
+		.carousel {
+                --n: 5; /* default number of items */
+				overflow: hidden;
+				width: calc(var(--ws) + 2 * var(--pad));
+				z-index: 1;
+				padding: calc(2 * var(--pad)) var(--pad);
+				box-sizing: border-box;
+				border-radius: 1.25em;
+				background-color: #ffd1bddd;
+				--lbl-clr: #ff71f2;
+				
+				.carousel-inputs {display: none}
+				.carousel-lbls {
+						display: flex;
+						align-items: center;
+						justify-content: center;
+						gap: .5em;
+						margin-top: 1em;
+						& label {
+								display: inline-block;
+								width: .7em;
+								aspect-ratio: 1;
+								border-radius: 50%;
+								background-color: #777;
+								cursor: pointer;
+								@media (min-width: 1000px) {width: 1em}
+								}
+						}
+				
+				.carousel-imgs {
+						width: calc(var(--nb) * var(--ws));
+						display: flex;
+						height: calc(0.825 * var(--h));
+						transition: all .3s ease-in-out;
+						& .carousel-img-wrap {
+								width: calc(var(--ws));
+								display: flex;
+								justify-content: center;
+								border-radius: 1.25em;
+								
+								& img {
+										max-width: calc(var(--ws) - 2.1 * var(--pad)); /* pour qu'il n'y ait pas d'overflow au niveau du padding du carousel lors de la translation */
+										cursor: pointer;
+										transition: all .2s;
+										&:hover {box-shadow: 0 0 12px 0 #222;}
+										}
+								}
+						}
+				}
+		}

@@ -27,29 +27,24 @@ if ($_SESSION['role'] !== 'admin') {
 		<meta name="theme-color" content="">
 		<meta name="msapplication-navbutton-color" content="">
 		<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-		<meta property="og:title" content="arcENSiel - Association Queer et LGBT+ de l'ENS de Lyon">
+		<meta property="og:title" content="Admin dashboard">
 		<meta property="og:type" content="website">
 		
 		<link rel='stylesheet' type='text/css' href='/files/assets/css/main.css'></link>
 		<link rel='stylesheet' type='text/css' href='/files/assets/css/grid-layout.css'></link>
 		
 		<script src='/files/assets/js/main.js'></script>
-		
-		<style>
-		</style>
 	</head>	
 	
 	<body>
 	    <?php include($root . '/app/templates/header.php') ?>
 		
 		<div id='main'>
-			<div id="grid-wrap">
-				<div class='icon float cross large'><span class='img'></span></div>
-				
-				<h1 class="head-info">
-					Dashboard
-				</h1>
-				
+			<div class="head-info">
+				<h1>Dashboard</h1>
+			</div>
+			
+			<div id="grid-wrap">	
 				<div id="grid-container">
 					<div class='grid-item-wrap'>
 						<a href="/user/dashboard">
@@ -213,8 +208,5 @@ if ($_SESSION['role'] !== 'admin') {
 		</div>
 		
 		<?php include($root . '/app/templates/footer.html') ?>
-		
-		<script>		
-		</script>
 	</body>
 </html>

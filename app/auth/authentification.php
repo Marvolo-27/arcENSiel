@@ -413,45 +413,12 @@ unset($_SESSION['message']);
 		<meta property="og:type" content="website">
 		
 		<link rel='stylesheet' type='text/css' href='/files/assets/css/main.css'></link>
+		<link rel='stylesheet' type='text/css' href='/files/assets/css/credentials.css'></link>
 		
 		<script src='/files/assets/js/main.js'></script>
 		<script src='/files/assets/js/login.js'></script>
 		
-		<style>			
-			.auth-form-wrap {
-							width: 40em;
-							margin: auto;
-							margin-bottom: 2.5em;
-							margin-top: 1em;
-							color: black;
-							display: flex;
-							gap: 1.5em;
-							flex-flow:column;
-							}
-			
-			.checker {
-					position: absolute;
-					top: 4.5em;
-					left: 28px;
-					display: none;
-					flex-flow: column;
-					gap: .25em;
-					padding: .5em;
-					border-radius: 6px;
-					border: 1px solid black;
-					background: white;
-					z-index: 5;
-					}
-				
-				.check-item {
-							display: flex;
-							flex-flow: row;
-							gap: .5em;
-							align-items: flex-end;
-							}
-			
-			.box:has(input:focus) .checker {display: flex}
-
+		<style>
 			a:not(:hover) {color: unset}
 		</style>
 	</head>
@@ -465,39 +432,7 @@ unset($_SESSION['message']);
 		<?php endif; ?>
 		>
 		
-		<div id='banner'>
-			<a class='banner-logo-wrap' href="/">
-				<div class="banner-logo">
-					<span class='banner-letter' mode='wave'>
-						<img src='/files/icons/logo_a.png'>
-					</span>
-					<span class='banner-letter' mode='wave'>
-						<img src='/files/icons/logo_r.png'>
-					</span>
-					<span class='banner-letter' mode='wave'>
-						<img src='/files/icons/logo_c.png'>
-					</span>
-					<span class='banner-letter' mode='wave'>
-						<img src='/files/icons/logo_e1.png'>
-					</span>
-					<span class='banner-letter' mode='wave'>
-						<img src='/files/icons/logo_n.png'>
-					</span>
-					<span class='banner-letter' mode='wave'>
-						<img src='/files/icons/logo_s.png'>
-					</span>
-					<span class='banner-letter' mode='wave'>
-						<img src='/files/icons/logo_i.png'>
-					</span>
-					<span class='banner-letter' mode='wave'>
-						<img src='/files/icons/logo_e2.png'>
-					</span>
-					<span class='banner-letter' mode='wave'>
-						<img src='/files/icons/logo_l.png'>
-					</span>
-				</div>
-			</a>
-	    </div>
+		<?php include($root . '/app/templates/banner.html') ?>
 		
 		<div id="main">
 			<div class="auth-form-wrap">
@@ -583,29 +518,7 @@ unset($_SESSION['message']);
 							<?php if ($action === 'login'): ?><div class='context right mail'><a class="canonic" href='/auth/reset-credentials'>Mot de passe oublié ?</a></div><?php endif; ?>
 
 							<?php if ($action === 'register' || $action === 'reset-credentials'): ?>
-							<div class='checker password'>
-								<div class='check-head'>Le mot de passe contient au moins :</div>
-								<div class='check-item length' invalid>
-									<div class='icon validity inline medium'><span class='img'></span></div>
-									<div class='check-item-desc'>6 caractères</div>
-								</div>
-								<div class='check-item minuscule' invalid>
-									<div class='icon validity inline medium'><span class='img'></span></div>
-									<div class='check-item-desc'>une lettre minuscule</div>
-								</div>
-								<div class='check-item majuscule' invalid>
-									<div class='icon validity inline medium'><span class='img'></span></div>
-									<div class='check-item-desc'>une lettre majuscule</div>
-								</div>
-								<div class='check-item number' invalid>
-									<div class='icon validity inline medium'><span class='img'></span></div>
-									<div class='check-item-desc'>un chiffre</div>
-								</div>
-								<div class='check-item special' invalid>
-									<div class='icon validity inline medium'><span class='img'></span></div>
-									<div class='check-item-desc'>un caractère spécial</div>
-								</div>
-							</div>
+								<?php include($root . '/app/templates/password-requirements.html') ?>
 							<?php endif; ?>
 						</div>
 						<?php endif; ?>
@@ -613,11 +526,11 @@ unset($_SESSION['message']);
 						<?php if ($action === 'register' || (($action === 'reset-credentials' && $resetToken) && !$resetstatus)): ?>
 						<div class='box password-confirm'>
 							<div class='input-header'>
-								<label class='label' for='pswd-bis'>Confirmation du mot de passe</label>
+								<label class='label' for='pswd-confirm'>Confirmation du mot de passe</label>
 							</div>
 							<div class='input-container'>
 								<div class='icon lock left medium'><span class='img'></span></div>
-								<input class='lineentry decorated' type='password' id='pswd-bis' autocomplete=off required placeholder='Confirmation du mot de passe' title="Veuilez confirmer votre mot de passe">
+								<input class='lineentry decorated' type='password' id='pswd-confirm' autocomplete=off required placeholder='Confirmation du mot de passe' title="Veuilez confirmer votre mot de passe">
 								<div class='icon toggle-pass bis right medium hoverable'><span class='img' title='Montrer le mot de passe'></span></div>
 							</div>
 							<div class='error confirmation'>Les mots de passe ne correspondent pas !</div>
@@ -678,13 +591,13 @@ unset($_SESSION['message']);
 		// On-load logic
 		window.addEventListener('load', loader)
 		async function loader()  {
-									if (document.querySelector('body').dataset.error === 'used-login') {
-										document.querySelector('.error.username').style.display='';
+									if (body.dataset.error === 'used-login') {
+										Error('username').style.display='';
 									}
-									if (document.querySelector('body').dataset.error === 'invalid-credentials') {
-										document.querySelector('.error.password').style.display='';
+									if (body.dataset.error === 'invalid-credentials') {
+										Error('password').style.display='';
 									}
-									if (document.querySelector('body').dataset.message === 'registered') {
+									if (body.dataset.message === 'registered') {
 										notify('Compte créé');
 									}
 									
@@ -694,28 +607,26 @@ unset($_SESSION['message']);
 	<?php if ($action === 'register' || ($action === 'reset-credential' && ($resetToken && !$resetstatus))): ?>
 	// Regsiter section logic //
 		// Password match check
-		document.querySelector('#pswd-bis').addEventListener('input', psswdCheck)
+		Input('pswd-confirm').addEventListener('input', psswdCheck)
 
 		// Password validity check
-		document.querySelector('#pswd').addEventListener('input', paswdRequirementsCheck)
+		Input('pswd').addEventListener('input', paswdRequirementsCheck)
 		
 		// (in)activate button
 		function submitAllower() {
-				btn = document.querySelector('.action-btn:is(.register,.reset)');
+				btns = document.querySelectorAll('.action-btn:is(.register,.reset)');
 				
-				btn.disabled = (document.querySelector('.error[active]') !== null || document.querySelector('.check-item[invalid]') !== null)
+				btns.forEach(btn => {
+					btn.disabled = (document.querySelector('.error[active]') !== null || document.querySelector('.check-item[invalid]') !== null)
+				})
 		}
 		
 		// username/email check
-		try {
-			document.querySelector('#email').oninput = compareWithOldValue
-		document.querySelector('input#email').onchange = e => checkInput(e, 'email')
-		} catch(e) {null}
+		Input('email')?.oninput = compareWithOldValue
+		Input('email')?.onchange = e => checkInput(e, 'email')
 		
-		try {
-			document.querySelector('#username').oninput = compareWithOldValue
-			document.querySelector('#username').onchange = e => checkInput(e, 'username')
-		} catch(e) {null}
+		Input('username')?.oninput = compareWithOldValue
+		Input('username')?.onchange = e => checkInput(e, 'username')
 	<?php endif; ?>
 		</script>
 	</body>

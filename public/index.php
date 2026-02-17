@@ -33,9 +33,11 @@ $artTags = $query->fetchAll(PDO::FETCH_ASSOC) ?? null;
 		
 		<link rel='stylesheet' type='text/css' href='/files/assets/css/main.css'></link>
 		<link rel='stylesheet' type='text/css' href='/files/assets/css/grid-layout.css'></link>
+		<link rel='stylesheet' type='text/css' href='/files/assets/css/carousel.css'></link>
 		
 		<script src='/files/assets/js/main.js'></script>
 		<script src='/files/assets/js/grid.js'></script>
+		<script src='/files/assets/js/carousel.js'></script>
 
 		<style>
 			#body {background-color: #f0f8ff99;}
@@ -79,11 +81,6 @@ $artTags = $query->fetchAll(PDO::FETCH_ASSOC) ?? null;
 			
 				#main {
 						--gbl-pad: 1.5em;
-						
-						background-color: #1616c10a;
-						padding: 2em var(--gbl-pad);
-						/* box-shadow: 0 0 5px 0 darkblue; */
-						
 						@media (min-width: 1000px) {--gbl-pad: 3.5em}
 						}
 			
@@ -104,86 +101,10 @@ $artTags = $query->fetchAll(PDO::FETCH_ASSOC) ?? null;
 
 			.tags span:last-child {display: none}
 			
-		/*!! Carousel style !!*/
-			.carousel-wrap	{
-					--h: 50vh;
-					--w: min(75vh, calc(100vw - 2 * var(--gbl-pad)));
-					/* --ws: calc(0.8 * var(--w)); width shrunk */
-					--ws: calc(var(--w) - 2 * (var(--standard-size) * (var(--coeff) + 2 * .2) + var(--gap) + var(--pad))); /* account for gaps, icons width and padding, carousel padding */
-					--pad: .675em;
-					--gap: .5em;
-					--coeff: 2.25; /* extra large icons */
-
-					display: flex;
-					align-items: center;
-					height: var(--h);
-					z-index: 1;
-					top: calc(0.5*(100% - var(--h)));
-					left: 5%;
-					width: var(--w);
-					margin: 0 calc(1/2 * (100% - var(--w)));
-					margin-bottom: 1.5em;
- 					justify-content: center;
-					gap: var(--gap);
-
-					& .prev {transform: rotate(180deg); flex-shrink: 0;}
-					& .next {transform: rotate(0deg); flex-shrink: 0;} 
-					
-					.carousel {
-							overflow: hidden;
-							width: calc(var(--ws) + 2 * var(--pad));
-							z-index: 1;
-							padding: calc(2 * var(--pad)) var(--pad);
-							box-sizing: border-box;
-							border-radius: 1.25em;
-							background-color: #ffd1bddd;
-							--lbl-clr: #ff71f2;
-							
-							.carousel-inputs {display: none}
-
-							.carousel-lbls {
-									display: flex;
-									align-items: center;
-									justify-content: center;
-									gap: .5em;
-									margin-top: 1em;
-
-									& label {
-											display: inline-block;
-											width: .7em;
-											aspect-ratio: 1;
-											border-radius: 50%;
-											background-color: #777;
-											cursor: pointer;
-
-											@media (min-width: 1000px) {width: 1em}
-											}
-									}
-							
-							.carousel-imgs {
-									width: calc(var(--nb) * var(--ws));
-									display: flex;
-									height: calc(0.825 * var(--h));
-									transition: all .3s ease-in-out;
-
-									& .carousel-img-wrap {
-											width: calc(var(--ws));
-											display: flex;
-											justify-content: center;
-											border-radius: 1.25em;
-											
-											& img {
-													max-width: calc(var(--ws) - 2.1 * var(--pad)); /* pour qu'il n'y ait pas d'overflow au niveau du padding du carousel lors de la translation */
-													cursor: pointer;
-													transition: all .2s;
-
-													&:hover {box-shadow: 0 0 12px 0 #222;}
-													}
-											}
-									}
-							}
-					}
-			#news-carousel {--nb: 5;} /* works fibe if n greater than actaual nb of entries */
+		#news-carousel {
+				--nb: 5 !important; /* works fine if n greater than actaual nb of entries */
+				--w: min(75vh, calc(100vw - 2 * var(--gbl-pad)));
+				}
 		</style>
 	</head>	
 	
@@ -214,18 +135,7 @@ $artTags = $query->fetchAll(PDO::FETCH_ASSOC) ?? null;
 					<h1>Nos actualités</h1>
 				</div>
 				
-				<div id='news-carousel' class="carousel-wrap">
-					<div class='icon chevron prev hoverable very-large inline invertable dynamic' onclick='carouselPrev()'><span class='img'></span></div>
-					<div class='carousel'>
-									<div class='carousel-imgs'>
-									</div>
-									<div class='carousel-inputs'>
-									</div>
-									<div class='carousel-lbls'>
-									</div>
-								</div>
-					<div class='icon chevron next hoverable very-large inline invertable dynamic' onclick='carouselNext()'><span class='img'></span></div>
-				</div>
+				<div id='news-carousel' class="carousel-wrap"></div>
 				
 				<div class="form-action-wrap large">
 					<div class='form-action'>
@@ -281,86 +191,25 @@ $artTags = $query->fetchAll(PDO::FETCH_ASSOC) ?? null;
 		<?php include($root . '/app/templates/footer.html') ?>
 		
 		<script>
-		function carouselNext() {
-									curr = document.querySelector('.carousel-inputs').querySelector('input:checked')
-									next = curr.nextElementSibling === null ? curr.parentNode.firstElementChild : curr.nextElementSibling;
-									next.checked = true;
-									curr.checked = false;
-									}
-		
-		function carouselPrev() {
-									curr = document.querySelector('.carousel-inputs').querySelector('input:checked')
-									next = curr.previousElementSibling === null ? curr.parentNode.lastElementChild : curr.previousElementSibling;
-									next.checked = true;
-									curr.checked = false;
-									}
-		
-		async function carouselShifter() {
-									while (true) {
-										await sleep(4000)
-										
-										carouselNext()
-									}
-									}
-		
-		function openy(i) {
-							reset(i);
-							document.querySelector('.carousel-wrap').style.display = 'flex';
-							}
-		
-		function reset(i) {
-							document.querySelectorAll('.carousel-button').forEach(item => {
-									item.checked = parseInt(item.id.slice(-1)) === i
-									})
-							}
-
 		// On-load logic
 		window.addEventListener('load', loader);
 		async function loader()  {
 									// PHP sent notifications
-									if (document.querySelector('body').dataset.message === 'login') {
+									if (body.dataset.message === 'login') {
 										notify(`Utilisateurice <?= $message ? $_SESSION['username']:'' ?> connecté·e`, 'green');
 										}
-									if (document.querySelector('body').dataset.message === 'logged-out') {
+									if (body.dataset.message === 'logged-out') {
 										notify(`Utilisateurice déconnecté·e`, 'green');
 										}
 									
-									// fetch most recent previews
-									newslist = await fetchArticles(0, 5); // 5 most recently published articles
+									// fetch most recent article
+									newslist = await fetchArticles(0, 5)
+									data = newslist.data.map(item => {
+											return {'src':item['picture_path'], 'url':`/articles/${item.url}`}
+										})
 
-									inps = document.querySelector('.carousel-inputs')
-									lbls = document.querySelector('.carousel-lbls')
-									imgs = document.querySelector('.carousel-imgs')
-									i = 1;
-									document.querySelector('head').querySelector('style').textContent += '\n\n/* Auto-generated */'
-									newslist.data.forEach(item => {
-											inp = document.createElement('input');
-											i == 1 ? inp.checked = true:null;
-											inp.type = 'radio';
-											inp.id = `carousel-item-${i}`;
-											inps.appendChild(inp);
-											
-											lbl = document.createElement('label');
-											lbl.setAttribute('for',`carousel-item-${i}`);
-											lbl.id = `carousel-button-${i}`;
-											lbl.classList.toggle('carousel-button');
-											lbl.onclick = e => reset(i);
-											lbls.appendChild(lbl);
-											
-											imgWrap = document.createElement('div');
-											imgWrap.classList.toggle('carousel-img-wrap')
-											
-											img = document.createElement('img');
-											img.src = item['picture_path'];
-											img.dataset.url = item['url'];
-											imgWrap.appendChild(img);
-											imgs.appendChild(imgWrap);
-											img.onclick = e => window.location.href = '/articles/'+e.target.dataset.url
-
-											document.querySelector('head').querySelector('style').textContent += `\n.carousel:has(#carousel-item-${i}:checked) {.carousel-imgs {transform: translateX(calc(-${i-1}*(100%\/var(--nb))))}  #carousel-button-${i} {background-color: #fff}}`;
-
-											i++;
-											})
+									// Generate carousel
+									carouselGenerator('#news-carousel', data)
 									
 									// carousel shift
 									carouselShifter()

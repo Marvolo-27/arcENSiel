@@ -39,7 +39,7 @@ $arguments = ($type || $author || $from || $to || $tags !== [null] || $query);
 		<meta name="theme-color" content="">
 		<meta name="msapplication-navbutton-color" content="">
 		<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-		<meta property="og:title" content="arcENSiel - Association Queer et LGBT+ de l'ENS de Lyon">
+		<meta property="og:title" content="Recherche">
 		<meta property="og:type" content="website">
 		
 		<link rel='stylesheet' type='text/css' href='/files/assets/css/main.css'></link>
@@ -255,7 +255,7 @@ $arguments = ($type || $author || $from || $to || $tags !== [null] || $query);
 							})
 		
 		// date input requirements
-		document.querySelector('#art-date-from').oninput = e => document.querySelector('#art-date-to').setAttribute('min', e.target.value)
+		Input('art-date-from').oninput = e => Input('art-date-to').setAttribute('min', e.target.value)
 
 		// search submission
 		window.onscroll = e => fetchControl()
@@ -266,12 +266,12 @@ $arguments = ($type || $author || $from || $to || $tags !== [null] || $query);
 				
 				if (condition) {
 					lock = true
-					document.querySelector('.spinner').setAttribute('active','')
+					Spinner().show()
 				
 					// fetch new results
 					await triggerSearch()
 
-					document.querySelector('.spinner').removeAttribute('active')
+					Spinner().hide()
 					lock = false
 				}
 		}
@@ -321,7 +321,7 @@ $arguments = ($type || $author || $from || $to || $tags !== [null] || $query);
 				}
 
 		// filters panel management
-		document.querySelector('.icon.filters .img').onclick = e => {e.target.parentNode.toggleAttribute('active')};
+		Icon('filters').onclick = e => {e.target.parentNode.toggle()};
 		</script>
 	</body>
 </html>

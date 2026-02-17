@@ -15,7 +15,7 @@ require_once $serverroot . "/../config/config.php";
 		<meta name="theme-color" content="">
 		<meta name="msapplication-navbutton-color" content="">
 		<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-		<meta property="og:title" content="arcENSiel - Association Queer et LGBT+ de l'ENS de Lyon">
+		<meta property="og:title" content="Mentions légales">
 		<meta property="og:type" content="website">
 		
 		<link rel='stylesheet' type='text/css' href='/files/assets/css/main.css'></link>

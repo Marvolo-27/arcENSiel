@@ -23,7 +23,7 @@ unset($_SESSION['contact-message']);
 		<meta name="theme-color" content="">
 		<meta name="msapplication-navbutton-color" content="">
 		<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-		<meta property="og:title" content="arcENSiel - Association Queer et LGBT+ de l'ENS de Lyon">
+		<meta property="og:title" content="Nous contacter">
 		<meta property="og:type" content="website">
 		
 		<link rel='stylesheet' type='text/css' href='/files/assets/css/main.css'></link>
@@ -109,17 +109,14 @@ unset($_SESSION['contact-message']);
 			// On-load logic
 			window.addEventListener('load', loader)
 			async function loader()  {
-										if (document.querySelector('body').dataset.error === 'bad-mail') {
-											document.querySelector('.error.mail').setAttribute('active', '');
-										} else if (document.querySelector('body').dataset.error === 'send-failed') {
+										if (body.dataset.error === 'bad-mail') {
+											Error('mail').show();
+										} else if (body.dataset.error === 'send-failed') {
 											notify("Échec de l'envoi du mail", 'red')
-										} else if (document.querySelector('body').dataset.message === 'sent') {
+										} else if (body.dataset.message === 'sent') {
 											notify("Message envoyé !", 'green')
-										} else if (document.querySelector('body').dataset.test === 'test') {
-											notify("OK", 'orange')
 										}
-										
-										}
+									}
 		</script>
 	</body>
 </html>

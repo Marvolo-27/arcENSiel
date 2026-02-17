@@ -74,7 +74,7 @@ function curlQuery($slug, $file_object=false, $postData=false) {
 }
 
 
-if ($action === 'fetch') {
+if ($action === 'update') {
     // Fetch categories
     $fetch = curlQuery('/user/categories');
 

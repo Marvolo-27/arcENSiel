@@ -31,53 +31,25 @@ if (isset($_SESSION['message'])) {
 <!DOCTYPE html>
 <html>
 	<head>
-		<title>arcENSiel - Portail de connexion</title>
+		<title>Paramètres de compte</title>
 		
 		<link rel="icon" href="/files/icons/arcensiel.ico">
 		<meta name="theme-color" content="">
 		<meta name="msapplication-navbutton-color" content="">
 		<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-		<meta property="og:title" content="arcENSiel - Portail de connexion">
+		<meta property="og:title" content="Paramètres de compte">
 		<meta property="og:type" content="website">
 		
 		<link rel='stylesheet' type='text/css' href='/files/assets/css/main.css'></link>
+		<link rel='stylesheet' type='text/css' href='/files/assets/css/credentials.css'></link>
 		
 		<script src='/files/assets/js/main.js'></script>
 		<script src='/files/assets/js/login.js'></script>
-		
-		<style>			
-			.auth-form-wrap {
-							margin: auto;
-							margin-bottom: 2.5em;
-							margin-top: 1em;
-							color: black;
-							display: flex;
-							gap: 1.5em;
-							flex-flow:column;
-							}
-			
-			.checker {
-					position: absolute;
-					top: 4.5em;
-					left: 28px;
+
+		<style>
+			:is(.reset-section,.reset-options):not([active]){
 					display: none;
-					flex-flow: column;
-					gap: .25em;
-					padding: .5em;
-					border-radius: 6px;
-					border: 1px solid black;
-					background: white;
-					z-index: 5;
-					}
-				
-				.check-item {
-							display: flex;
-							flex-flow: row;
-							gap: .5em;
-							align-items: flex-end;
-							}
-			
-			.box:has(input:focus) .checker {display: flex}
+			}
 		</style>
 	</head>
 	
@@ -127,7 +99,7 @@ if (isset($_SESSION['message'])) {
 							<div class='error mail'>Cette adresse mail existe déjà.</div>
 						</div>
 						
-						<div class='form-action-wrap optional' <?= $error ? 'hidden':''?>>
+						<div class='form-action-wrap reset-options linear' <?= $error ? '':'active'?>>
 							<?php if ($_SESSION['username'] !== 'admin'): ?>
 							<div class='form-action'>
 								<div class='action-btn reset-user'>Modifier le nom d'utilisateur</div>
@@ -141,7 +113,7 @@ if (isset($_SESSION['message'])) {
 							</div>
 						</div>
 
-						<section class="optional-sec" <?= $error ? 'active':''?>>
+						<section class="reset-section" <?= $error ? 'active':''?>>
 							<div class='box old-password'>
 								<div class='input-header'>
 									<label class='label' for='pswd-old'>Mot de passe actuel</label>
@@ -164,45 +136,23 @@ if (isset($_SESSION['message'])) {
 									<div class='icon toggle-pass new right medium hoverable'><span class='img' title='Montrer le mot de passe'></span></div>
 								</div>
 								<div class='error password'>Le mot de passe n'est pas valide</div>
-								<div class='checker password'>
-									<div class='check-head'>Le mot de passe contient au moins :</div>
-									<div class='check-item length' invalid>
-										<div class='icon validity inline medium'><span class='img'></span></div>
-										<div class='check-item-desc'>6 caractères</div>
-									</div>
-									<div class='check-item minuscule' invalid>
-										<div class='icon validity inline medium'><span class='img'></span></div>
-										<div class='check-item-desc'>une lettre minuscule</div>
-									</div>
-									<div class='check-item majuscule' invalid>
-										<div class='icon validity inline medium'><span class='img'></span></div>
-										<div class='check-item-desc'>une lettre majuscule</div>
-									</div>
-									<div class='check-item number' invalid>
-										<div class='icon validity inline medium'><span class='img'></span></div>
-										<div class='check-item-desc'>un chiffre</div>
-									</div>
-									<div class='check-item special' invalid>
-										<div class='icon validity inline medium'><span class='img'></span></div>
-										<div class='check-item-desc'>un caractère spécial</div>
-									</div>
-								</div>
+								<?php include($root . '/app/templates/password-requirements.html') ?>
 							</div>
 
 							<div class='box password-confirm'>
 								<div class='input-header'>
-									<label class='label' for='pswd-bis'>Confirmation du nouveau mot de passe</label>
+									<label class='label' for='pswd-confirm'>Confirmation du nouveau mot de passe</label>
 								</div>
 								<div class='input-container'>
 									<div class='icon lock left medium'><span class='img'></span></div>
-									<input class='lineentry decorated' type='password' id='pswd-bis' autocomplete=off placeholder='Confirmation du mot de passe' title="Veuilez confirmer votre mot de passe" required <?= $error ? '':'disabled'?>>
+									<input class='lineentry decorated' type='password' id='pswd-confirm' autocomplete=off placeholder='Confirmation du mot de passe' title="Veuilez confirmer votre mot de passe" required <?= $error ? '':'disabled'?>>
 									<div class='icon toggle-pass bis right medium hoverable'><span class='img' title='Montrer le mot de passe'></span></div>
 								</div>
 								<div class='error confirmation'>Les mots de passe ne correspondent pas !</div>
 							</div>
 						</section>
 
-						<div class='form-action-wrap optional reverse linear' <?= $error ? 'active':''?>>
+						<div class='form-action-wrap reset-actions responsive linear' <?= $error ? 'active':''?>>
 							<div class='form-action'>
 								<button class='action-btn update' type="submit" name="action" value="update-credentials" disabled>Enregister</button>
 							</div>
@@ -213,7 +163,7 @@ if (isset($_SESSION['message'])) {
 					</div>
 
 					<input name='username' value="<?= $_SESSION['username'] ?>" hidden required readonly>
-					<input name='csrf-token' value=<?= $_SESSION['CSRF'] ?> required hidden readonly>
+					<input id='csrf' name='csrf-token' value=<?= $_SESSION['CSRF'] ?> data-csrf=<?= $_SESSION['CSRF'] ?> required hidden readonly>
 				</form>
 			</div>
 		</div>
@@ -224,19 +174,19 @@ if (isset($_SESSION['message'])) {
 		// On-load logic
 		window.addEventListener('load', loader)
 		async function loader()  {
-									if (document.querySelector('body').dataset.error === 'invalid-credentials') {
-										document.querySelector('.error.validation').setAttribute('active','');
+									if (body.dataset.error === 'invalid-credentials') {
+										Error('validation').show();
 									}
 									
-									if (document.querySelector('body').dataset.error === 'locked-username') {
+									if (body.dataset.error === 'locked-username') {
 										notify("login non modifiable pour admin", 'red');
 									}
 
-									if (document.querySelector('body').dataset.error === 'locked-email') {
+									if (body.dataset.error === 'locked-email') {
 										notify("email non modifiable pour admin", 'red');
 									}
 
-									if (document.querySelector('body').dataset.message === 'updated') {
+									if (body.dataset.message === 'updated') {
 										notify(`Informations mises à jour`, 'green');
 										}
 									}
@@ -244,61 +194,77 @@ if (isset($_SESSION['message'])) {
 	
 	// Regsiter section logic //
 		// Password match check
-		document.querySelector('#pswd-bis').addEventListener('input', psswdCheck)
+		Input('pswd-confirm').addEventListener('input', psswdCheck)
 		
 		// Password validity check
-		document.querySelector('#pswd').addEventListener('input', paswdRequirementsCheck)
+		Input('pswd').addEventListener('input', paswdRequirementsCheck)
 		
 		
 		// (in)activate button
-		let btn = document.querySelector('.action-btn.update');
 		function submitAllower() {
-				btn.disabled = (document.querySelectorAll('.error[active]').length !== 0)
+				Button('update').disabled = (document.querySelectorAll('.error[active]').length !== 0)
 		}
 		
 		// username/email check
-		document.querySelector('#username').oninput = compareWithOldValue
-		document.querySelector('#email').oninput = compareWithOldValue
+		Input('username').oninput = compareWithOldValue
+		Input('email').oninput = compareWithOldValue
 		
-		document.querySelector('input#username').onchange = e => checkInput(e, 'username')
-		document.querySelector('input#email').onchange = e => checkInput(e, 'email')
+		Input('username').onchange = e => checkInput(e, 'username')
+		Input('email').onchange = e => checkInput(e, 'email')
 
 		// handle edition choices
 		<?php if ($_SESSION['username'] !== 'admin'): ?>
-		document.querySelector('.action-btn.reset-user').onclick = e => {
-				document.querySelector('#username').removeAttribute('readonly');
-				e.target.findParent('.form-action-wrap').toggleAttribute('hidden')
-				e.target.findParent('.main-info').querySelector('.optional.reverse').toggleAttribute('active')
+		Button('reset-user').onclick = e => {
+				Input('username').readOnly = false;
+				e.target.findParent('.main-info').querySelector('.reset-actions').show()
+				e.target.findParent('.main-info').querySelector('.reset-options').hide()
 				}
-		document.querySelector('.action-btn.reset-mail').onclick = e => {
-				document.querySelector('#email').removeAttribute('readonly');
-				e.target.findParent('.form-action-wrap').toggleAttribute('hidden')
-				e.target.findParent('.main-info').querySelector('.optional.reverse').toggleAttribute('active')
+		Button('reset-mail').onclick = e => {
+				Input('email').readOnly = false;
+				e.target.findParent('.main-info').querySelector('.reset-actions').show()
+				e.target.findParent('.main-info').querySelector('.reset-options').hide()
 				}
 		<?php endif; ?>
 		
-		document.querySelector('.action-btn.reset-pswd').onclick = e => {
-				document.querySelector('#pswd').disabled = false;
-				document.querySelector('#pswd-old').disabled = false;
-				document.querySelector('#pswd-bis').disabled = false;
-				e.target.findParent('.form-action-wrap').toggleAttribute('hidden')
-				e.target.findParent('.main-info').querySelector('.optional-sec').toggleAttribute('active')
-				e.target.findParent('.main-info').querySelector('.optional.reverse').toggleAttribute('active')
+		Button('reset-pswd').onclick = e => {
+				// DOM elements
+				coreInfo = e.target.findParent('.main-info');
+				
+				// reset inputs
+				Input('pswd').disabled = false;
+				Input('pswd-old').disabled = false;
+				Input('pswd-confirm').disabled = false;
+				
+				// update DOM status
+				e.target.findParent('.form-action-wrap').hide()
+				coreInfo.child('.reset-section').show()
+				coreInfo.child('.reset-actions').show()
+				coreInfo.child('.reset-options').hide()
 				}
 		
-				document.querySelector('.action-btn.cancel').onclick = e => {
-				document.querySelectorAll('.optional-sec input[type="password"]').forEach(i => {
+		Button('cancel').onclick = e => {
+				// DOM elements
+				coreInfo = e.target.findParent('.main-info');
+
+				// reset inputs
+				Input('username').value = Input('username').dataset.id;
+				Input('username').readOnly = true;
+				Input('email').value = Input('email').dataset.id;
+				Input('email').readOnly = true;
+
+				// reset DOM elements
+				document.querySelector('.reset-section').childs('input[type="password"]').forEach(i => {
 					i.disabled = true;
 					i.value = '';
 					})
 				document.querySelectorAll('.error').forEach(i => {
-					i.removeAttribute('active')
+					i.hide()
 					})
-				document.querySelector('#username').value = document.querySelector('#username').dataset.id;
-				document.querySelector('#username').setAttribute('readonly', '');
-				e.target.findParent('.main-info').querySelector('.form-action-wrap.optional').removeAttribute('hidden')
-				e.target.findParent('.main-info').querySelector('.optional-sec').removeAttribute('active')
-				e.target.findParent('.main-info').querySelector('.optional.reverse').removeAttribute('active')
+				
+				// update DOM status
+				coreInfo.child('.reset-options').show()
+				coreInfo.child('.reset-section').hide()
+				coreInfo.child('.reset-actions').hide()
 				}
 		</script>
 	</body>

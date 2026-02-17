@@ -17,9 +17,14 @@ $query->execute();
 $documents = $query->fetchAll(PDO::FETCH_ASSOC) ?? null;
 
 // Fetch latest statuts
-$query=$pdo->prepare("SELECT url, size FROM files WHERE status = TRUE AND category = 'statuts' AND used_by LIKE '%documents%' ORDER BY updated_at DESC LIMIT 1;");
+$query=$pdo->prepare("SELECT url, size, description FROM files WHERE status = TRUE AND category = 'statuts' AND used_by LIKE '%documents%' ORDER BY updated_at DESC LIMIT 1;");
 $query->execute();
-$statuts = $query->fetchAll(PDO::FETCH_ASSOC)[0] ?? null;
+$statuts = $query->fetchAll(PDO::FETCH_ASSOC)[0] ?? [];
+
+// fetch last update
+setlocale(LC_TIME, 'fr_FR.utf8');	
+$statuts['date'] = json_decode(file_get_contents($server_content_file), true)['statuts']['date'];
+$statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, IntlDateFormatter::NONE, 'Europe/Paris', IntlDateFormatter::GREGORIAN, 'd MMMM YYYY')->format(DateTime::createFromFormat('Y-m-d', $statuts['date']))
 
 ?>
 
@@ -60,14 +65,22 @@ $statuts = $query->fetchAll(PDO::FETCH_ASSOC)[0] ?? null;
 			 <h3>
                 Statuts
             </h3>
-               <p>Dernière mise à jour : <span class="last-updated">17 juin 2025</span>
-					<?php if ($status === 'edit'): ?>
-						<div class='icon edit inline medium dynamic hoverable' onclick="changeEntryTrigger(event.target, 'edit', 'bm')" title="Modifier cette entrée"><span class='img'></span></div>
-					<?php endif; ?>
+                <p>Dernière mise à jour : 
+					<span class="last-updated">
+						<?php if ($status === 'edit'): ?>
+							<input class='boxentry' type='date' name='update-time' id='update-time' value="<?= $statuts['date'] ?>" autocomplete=off placeholder="Description" title="Date de mise à jour des statuts" required>
+						<?php endif; ?>
+						<?php if ($status !== 'edit'): ?>
+							<?= $statuts['date_fmt'] ?>
+						<?php endif; ?>
+					</span>
 				</p>
 
-                <p>Consulter les <a href="<?= $statuts['url'] ?>" target="_blank_" download>statuts</a> <small><i>(<?= formatBytes($statuts['size'],1) ?>)</i></small>.</p> 
-            
+                <p>Consulter les <a href="<?= $statuts['url'] ?>" target="_blank_" data-alias="<?= $statuts['description'] ?>" download="<?= end(explode('/', $statuts['url'])) ?>">statuts</a> <small><i>(<?= formatBytes($statuts['size'],1) ?>)</i></small>.</p> 
+	
+				<?php if ($status === 'edit'): ?>
+					<div class='icon edit inline medium dynamic hoverable' onclick="updateStatutsTrigger(event.target)" title="Modifier cette entrée"><span class='img'></span></div>
+				<?php endif; ?>
 			<h3>
                 Bilans annuels
             </h3>   
@@ -115,7 +128,7 @@ $statuts = $query->fetchAll(PDO::FETCH_ASSOC)[0] ?? null;
 								<button class='action-btn new-bf'>Ajouter un fichier</button>
 							</div>
 						</div>
-						<input name='csrf-token' id='token' data-csrf='<?= $_SESSION['CSRF'] ?>' value='<?= $_SESSION['CSRF'] ?>' required hidden readonly>
+						<input name='csrf-token' id='csrf' data-csrf='<?= $_SESSION['CSRF'] ?>' value='<?= $_SESSION['CSRF'] ?>' required hidden readonly>
 					<?php endif; ?>
                 </p>
         </div>
@@ -134,8 +147,6 @@ $statuts = $query->fetchAll(PDO::FETCH_ASSOC)[0] ?? null;
 			<?php endif; ?>
 		</div>
 		<?php endif; ?>
-		
-		<input id='csrf' data-csrf=<?= $_SESSION['CSRF'] ?> hidden readonly>
 
 		<div class="body-overlay" id="overlay-valid">
 			<div class="inner-overlay">
@@ -157,7 +168,7 @@ $statuts = $query->fetchAll(PDO::FETCH_ASSOC)[0] ?? null;
 				</div>
 			</div>
 		</div>
-
+		
 		<?php include($root . '/app/templates/overlay_choose.html') ?>
 		<?php include($root . '/app/templates/overlay_new-file.html') ?>
         <?php include($root . '/app/templates/footer.html') ?>
@@ -180,11 +191,11 @@ $statuts = $query->fetchAll(PDO::FETCH_ASSOC)[0] ?? null;
 			async function loader()  {
 										fileSelectorLoad('bilan')
 
-										overlayChoose.querySelector('.file-preview').toggleAttribute('active')
-										overlayChoose.querySelector('.fetch-all').toggleAttribute('active')
+										overlayChoose.querySelector('.file-preview').toggle()
+										overlayChoose.querySelector('.fetch-all').toggle()
 										}
 
-			// remove a file
+			// trigger entry update
 			function changeEntryTrigger(tag, action, subcat = 'bm') {
 						linkTag = tag.findParent('li').querySelector('a');
 						url = linkTag.getAttribute('href'); // .href gives absolute path, so not compatibe with DB format
@@ -193,21 +204,21 @@ $statuts = $query->fetchAll(PDO::FETCH_ASSOC)[0] ?? null;
 						currentFile = {'tag': linkTag, 'url':url, 'subcat': subcat}
 						
 						if (action === 'delete') {// delete file from list							
-							document.querySelector('#overlay-valid .filename').innerText = name;
-							document.querySelector('#overlay-valid').toggleAttribute('active')
+							overlayValid.child('.filename').innerText = name;
+							overlayValid.toggle()
 
 						} else if (action === 'edit') {// edit pour changer description ou fichier
-							document.querySelector('#overlay-add .box.description input').value = linkTag.innerText;
-							document.querySelector('#overlay-add .title').innerText = "Modification d'une entrée"
-							document.querySelector('#overlay-add .selected-file').innerText = name;
-							document.querySelector('#overlay-add .frame').setAttribute('active', '')
-							document.querySelector('#overlay-add .fileentry').required = false;
-							document.querySelector('#overlay-add').toggleAttribute('active')
+							overlayAdd.child('.box.description input').value = linkTag.innerText;
+							overlayAdd.child('.title').innerText = "Modification d'une entrée"
+							overlayAdd.child('.selected-file').innerText = name;
+							overlayAdd.child('.frame').show()
+							overlayAdd.child('.fileentry').required = false;
+							overlayAdd.toggle()
 
-							document.querySelector('#overlay-add-form #filename').dataset.name = url.split('/').slice(-1)[0]
-							document.querySelector('#overlay-add-form #filename').value = url.split('/').slice(-1)[0].split('.').slice(0,-1).join('.')
-							document.querySelector('#overlay-add-form #fileextension').value = url.split('.').slice(-1)[0];
-							document.querySelector('#overlay-add-form #filename').readOnly = true
+							overlayAdd.input('filename').dataset.name = url.filename(true)
+							overlayAdd.input('filename').value = url.filename()
+							overlayAdd.input('fileextension').value = url.extension();
+							overlayAdd.input('filename').readOnly = true
 							
 							mode = 'update';
 						}
@@ -222,25 +233,49 @@ $statuts = $query->fetchAll(PDO::FETCH_ASSOC)[0] ?? null;
 						data = e.dataTransfer;
 						files = data.files;
 						
-						input = document.querySelector('#file');
+						input = Input('file');
 						input.files = files;
 						
 						upload = fileUploadManage(input, /(application\/(pdf|zip|vnd\.sqlite3)|image\/.*)/, 10)
 						
 						if (upload) {
-							document.querySelector('#overlay-add-form #filename').value = file.name.split('.').slice(0,-1).join('.').filenameForm()
-							document.querySelector('#overlay-add-form #filename').dataset.name = file.name.filenameForm()
-							document.querySelector('#overlay-add-form #fileextension').value = file.name.split('.').slice(-1)[0];
+							overlayAdd.input('filename').value = file.name.filename().filenameForm()
+							overlayAdd.input('filename').dataset.name = file.name.filenameForm()
+							overlayAdd.input('fileextension').value = file.name.extension();
 						}
 					}
 			
+			// trigger status update
+			function updateStatutsTrigger(e) {
+				tag = e.findParent('.icon.edit').previousElementSibling.querySelector('a')
+				url = tag.getAttribute('href')
+				name = tag.download
+
+				overlayAdd.child('.title').innerText = "Modification d'une entrée"
+				overlayAdd.child('.selected-file').innerText = name;
+				overlayAdd.child('.frame').show()
+				overlayAdd.child('.fileentry').required = false;
+				overlayAdd.toggle()
+
+				overlayAdd.input('filename').dataset.name = url.split('/').slice(-1)[0]
+				overlayAdd.input('filename').value = url.split('/').slice(-1)[0].split('.').slice(0,-1).join('.')
+				overlayAdd.input('fileextension').value = url.split('.').slice(-1)[0];
+				overlayAdd.input('filename').readOnly = true
+				overlayAdd.input('desc').value = tag.dataset.alias
+			}
+
+			// update statuts metadata on server
+			async function updateStatuts(e) {
+				null
+			}
+
 			// update file description on server
 			async function descUpdate(form) {
 						url = currentFile.url
 						tag = currentFile.tag
 						currentFile = {};
 
-						fileTag = document.querySelector('#overlay-add-form .fileentry')
+						fileTag = overlayAdd.child('.fileentry')
 
 						formData = new FormData(form);
 						formData.set('mode', mode)
@@ -249,29 +284,20 @@ $statuts = $query->fetchAll(PDO::FETCH_ASSOC)[0] ?? null;
 						formData.set('subcategory', subcategory)	
 						formData.set('og-url', url)
 						formData.set('url', tag.dataset.targetUrl)
-						formData.set('filename', formData.get('filename')+'.'+document.querySelector('#fileextension').value)
+						formData.set('filename', formData.get('filename')+'.'+overlayAdd.input('fileextension').value)
 						formData.set('file-updated', mode === 'update' && url !== tag.dataset.targetUrl)
-						formData.set('csrf', document.querySelector('#csrf').dataset.csrf)
-
-						// console.log(Object.fromEntries(formData.entries()))
+						formData.set('csrf', csrfToken)
 
 						// Response object
-						response = await fetch("/admin/engine/files", {
-									method: "POST",
-									body: formData
-									});
-						
-						// Response body content
-						data = await response.json(); // dict parsed response data
-						// console.log(data)
+						response = await fetchAPI('/admin/engine/files', formData)
+						data = response.body
 
 						if (!response.ok) {// http code 400-500 reuturn false
-								alert(`Error: HTTP ${response.status}: ${data.error}`);
-								
+								alert(`Error: HTTP ${response.httpcode}: ${response.body.error}`);
 								return null
-								}
+							}
 						
-						if (response.status === 250) {// failed sql request
+						if (response.httpcode === 250) {// failed sql request
 							errorData = data.error;
 							errorCode = data.code;
 							
@@ -303,6 +329,7 @@ $statuts = $query->fetchAll(PDO::FETCH_ASSOC)[0] ?? null;
 						fileTag.value = '';
 					}
 
+			// delete entry on server
 			async function removeElement() {
 						url = currentFile.url;
 						tag = currentFile.tag;
@@ -310,31 +337,16 @@ $statuts = $query->fetchAll(PDO::FETCH_ASSOC)[0] ?? null;
 						currentFile = {};
 
 						// extract stored data to update it accordingly
-						jsonData = JSON.stringify({'csrf':document.querySelector('#csrf').dataset.csrf, 'action':'reference', 'mode':'fetch', 'url':url})
-
-						response = await fetch('/admin/engine/files', {
-								method: 'POST',
-								body: jsonData,
-								headers: { 'Content-Type': 'application/json' }
-								}
-						)
-						
-						data = await response.json();
-						// console.log(data)
+						jsonData = JSON.stringify({'csrf':csrfToken, 'action':'reference', 'mode':'fetch', 'url':url})
+						data = await fetchAPI('/admin/engine/files', jsonData).then(response => response.body)
 
 						// update used_by
 						usage = data.data['used_by'];
 						newUsage = usageUpdate('documents/'+subcat, usage)
 
 						// update data on server
-						jsonData = JSON.stringify({'csrf':document.querySelector('#csrf').dataset.csrf, 'action':'reference', 'mode':'delete', 'url':url, 'usage':newUsage})
-
-						response = await fetch('/admin/engine/files', {
-								method: 'POST',
-								body: jsonData,
-								headers: { 'Content-Type': 'application/json' }
-								}
-						)
+						jsonData = JSON.stringify({'csrf':csrfToken, 'action':'reference', 'mode':'delete', 'url':url, 'usage':newUsage})
+						response = await fetchAPI('/admin/engine/files', jsonData)
 
 						if (response.ok) {
 							notify('Entry deleted successfully.', 'green');
@@ -344,137 +356,136 @@ $statuts = $query->fetchAll(PDO::FETCH_ASSOC)[0] ?? null;
 					}
 
 			// filename input
-			overlayAdd.querySelector('#filename').oninput = e => {
+			overlayAdd.input('filename').oninput = e => {
 					pos = e.target.selectionStart
 					e.target.value = e.target.value.filenameForm()
 					e.target.setSelectionRange(pos,pos)
 				}
 
 			// show panel to save changes
-			document.querySelector('.action-btn.new-bm').onclick = e => {
-				document.querySelector('#overlay-add #overlay-add-form').reset();
-				document.querySelector('#overlay-add .fileentry').required = true;
-				document.querySelector('#overlay-add .frame').removeAttribute('active');
-				document.querySelector('#overlay-add .title').innerText = "Ajout d'une entrée"
+			Button('new-bm').onclick = e => {
+				overlayAdd.child('form').reset();
+				overlayAdd.child('.fileentry').required = true;
+				overlayAdd.child('.frame').hide();
+				overlayAdd.child('.title').innerText = "Ajout d'une entrée"
 				subcategory = 'bm';
 				mode = 'add';
-				document.querySelector('#overlay-add').toggleAttribute('active')
+				overlayAdd.toggle()
 			}
 
 			// show panel to save changes
-			document.querySelector('.action-btn.new-bf').onclick = e => {
-				document.querySelector('#overlay-add #overlay-add-form').reset();
+			Button('new-bf').onclick = e => {
+				overlayAdd.child('form').reset();
 				document.querySelector('#overlay-add .fileentry').required = true;
 				document.querySelector('#overlay-add .title').innerText = "Ajout d'une entrée"
 				subcategory = 'bf';
 				mode = 'add';
-				document.querySelector('#overlay-add').toggleAttribute('active')
+				overlayAdd.toggle()
 			}
 
-			document.querySelector('#overlay-add .action-btn.cancel').onclick = e => {
-				document.querySelector("#overlay-add").removeAttribute("active");
-				document.querySelector('#overlay-add #overlay-add-form').reset();
-				document.querySelector("#overlay-add .selected-file").innerText = '';
-				document.querySelector('#overlay-add-form #filename').readOnly = false
+			overlayAdd.button('cancel').onclick = e => {
+				overlayAdd.hide();
+				overlayAdd.child('form').reset();
+				overlayAdd.child('.selected-file').innerText = '';
+				overlayAdd.input('filename').readOnly = false
 				currentFile = {};
 			}
 
-			document.querySelector('#overlay-valid .action-btn.cancel').onclick = e => {
-				document.querySelector("#overlay-valid").removeAttribute("active");
+			overlayValid.button('cancel').onclick = e => {
+				overlayValid.hide();
 				currentFile = {};
 			}
 
-			document.querySelector('#overlay-valid .action-btn.validate').onclick = e => {
-				document.querySelector("#overlay-valid").removeAttribute("active");
+			overlayValid.button('validate').onclick = e => {
+				overlayValid.hide();
 				removeElement()
 			}
 
-			document.querySelector('#overlay-add-form').onsubmit = e => {
+			overlayAdd.child('form').onsubmit = e => {
 				e.preventDefault();
-				document.querySelector("#overlay-add").removeAttribute("active");
+				overlayAdd.hide();
 				
 				descUpdate(e.target)
 			}
 
-			document.querySelector('#overlay-add .icon.delete').onclick = e => {
-				document.querySelector("#overlay-add .frame").removeAttribute("active");
-				document.querySelector("#overlay-add .selected-file").innerText = '';
-				document.querySelector('#overlay-add .fileentry').required = true;
-				document.querySelector('#overlay-add #file').value = '';
+			overlayAdd.icon('delete').onclick = e => {
+				filename = overlayAdd.input('filename')
+				fileextension = overlayAdd.input('fileextension')
+				file = overlayAdd.input('file')
 
-				document.querySelector('#overlay-add-form #filename').dataset.name = ''
-				document.querySelector('#overlay-add-form #filename').value = ''
-				document.querySelector('#overlay-add-form #fileextension').value = ''
-				document.querySelector('#overlay-add-form #filename').readOnly = false
+				overlayAdd.child('.frame').hide();
+				overlayAdd.child('.selected-file').innerText = '';
+				file.required = true;
+				file.value = '';
+
+				filename.dataset.name = ''
+				filename.value = ''
+				filename.readOnly = false
+				fileextension.value = ''
 			}
 
 			// cancel request action
-			document.querySelector('#overlay-choose .action-btn.cancel').onclick = e => {
-				document.querySelector("#overlay-choose").toggleAttribute("active");
-				document.querySelector("#overlay-add").toggleAttribute("active");
-				document.querySelectorAll('#overlay-choose .file-element').forEach(tag => {tag.removeAttribute('selected')})
-				document.querySelector('#overlay-add-form #filename').readOnly = false
+			overlayChoose.button('cancel').onclick = e => {
+				overlayChoose.toggle();
+				overlayAdd.toggle();
+				overlayChoose.childs('.file-element').forEach(tag => {tag.removeAttribute('selected')})
+				overlayAdd.input('filename').readOnly = false
 				//currentFile = {};
 			}
 
 			// show file selection panel
-			document.querySelector('#overlay-add .action-btn.exist-file').onclick = e => {
-					document.querySelector("#overlay-choose").toggleAttribute('active');
-					document.querySelector("#overlay-add").toggleAttribute('active');
+			overlayAdd.button('exist-file').onclick = e => {
+					overlayAdd.toggle();
+					overlayChoose.toggle();
 			}
 
-			document.querySelector('#overlay-choose .validate').onclick = e => {
-					tag = document.querySelector('#overlay-choose .file-element[selected]')
-					
+			overlayChoose.button('validate').onclick = e => {
+					tag = overlayChoose('.file-element[selected]')
+					error = Error('file-choice')
+
 					if (tag === null) {
-						document.querySelector('.error.file-choice').innerText = 'Sélectionnez un fichier pour continuer';
-						document.querySelector('.error.file-choice').setAttribute('active', '');
+						error.innerText = 'Sélectionnez un fichier pour continuer';
+						error.show();
 					} else {
-						document.querySelector('.error.file-choice').removeAttribute('active');
-						document.querySelector('#overlay-choose').removeAttribute('active');
-						document.querySelector('#overlay-add').toggleAttribute('active');
+						error.hide();
+						overlayChoose.hide();
+						overlayAdd.toggle();
 
 						url = tag.dataset.targetUrl;
 						Object.keys(currentFile).length !== 0 ? currentFile.tag.dataset.targetUrl = url:currentFile = {'url': null, 'tag': tag}; // prevent error on add mode
 						
-						document.querySelector('#overlay-add-form #filename').dataset.name = url.split('/').slice(-1)[0]
-						document.querySelector('#overlay-add-form #filename').value = url.split('/').slice(-1)[0].split('.').slice(0,-1).join('.')
-						document.querySelector('#overlay-add-form #fileextension').value = url.split('.').slice(-1)[0];
-						document.querySelector('#overlay-add-form #filename').readOnly = true
+						overlayAdd.input('filename').dataset.name = url.split('/').slice(-1)[0]
+						overlayAdd.input('filename').value = url.split('/').slice(-1)[0].split('.').slice(0,-1).join('.')
+						overlayAdd.input('fileextension').value = url.split('.').slice(-1)[0];
+						overlayAdd.input('filename').readOnly = true
 
-						document.querySelectorAll('#overlay-choose .file-element').forEach(tag => {tag.removeAttribute('selected')})
-						document.querySelector("#overlay-add .selected-file").innerText = url.split('/').slice(-1)[0];
-						document.querySelector('#overlay-add .frame').setAttribute('active', '');
-						document.querySelector('#overlay-add .fileentry').required = false;
+						overlayChoose.childs('.file-element').forEach(tag => {tag.removeAttribute('selected')})
+						overlayAdd.child('.selected-file').innerText = url.split('/').slice(-1)[0];
+						overlayAdd.child('.frame').show();
+						overlayAdd.child('.fileentry').required = false;
 					}
 			}
 
 			// FILE MANAGEMENT //
-		document.querySelector('#file').onchange = e => {
+		Input('file').onchange = e => {
 							upload = fileUploadManage(e.target, /(application\/(pdf|zip|vnd\.sqlite3)|image\/.*)/, 10)
 							if (upload) {
-								document.querySelector('#overlay-add-form #filename').value = file.name.split('.').slice(0,-1).join('.').filenameForm()
-								document.querySelector('#overlay-add-form #filename').dataset.name = file.name.filenameForm();
-								document.querySelector('#overlay-add-form #fileextension').value = file.name.split('.').slice(-1)[0];
+								overlayAdd.input('filename').value = file.name.filename().filenameForm()
+								overlayAdd.input('filename').dataset.name = file.name.filenameForm();
+								overlayAdd.input('fileextension').value = file.name.extension();
 							}
 							};
 
 		async function fileSelectorLoad(category=null) {
-				container = document.querySelector('#overlay-choose .files-list-container');
+				container = overlayChoose.child('.files-list-container');
 				container.innerHTML = '<div class="spinner"></div>';
 
-				jsonData = JSON.stringify({'csrf':document.querySelector('#token').dataset.csrf, 'action':'fetch', 'category':category})
-				response = await fetch('/admin/engine/files', {
-						method: 'POST',
-						body: jsonData,
-						headers: { 'Content-Type': 'application/json' }
-						})
-				
-				data = await response.json();
+				jsonData = JSON.stringify({'csrf':csrfToken, 'action':'fetch', 'category':category})
+				response = await fetchAPI('/admin/engine/files', jsonData)
 				
 				container.innerHTML = '';
 
-				data.forEach(file => {
+				response.body.forEach(file => {
 					wrap = document.createElement('div')
 					wrap.classList.toggle('file-element-wrap')
 
@@ -493,19 +504,19 @@ $statuts = $query->fetchAll(PDO::FETCH_ASSOC)[0] ?? null;
 		}
 
 		function fileUpdateSelection(event) {
-				document.querySelectorAll('#overlay-choose .file-element').forEach(tag => {tag.removeAttribute('selected')})
+				overlayChoose.childs('.file-element').forEach(tag => {tag.unset('selected')})
 				target = event.target;
 
-				target.setAttribute('selected', '')
+				target.set('selected')
 		}
 
-		overlayChoose.querySelector('.action-btn.fetch-all').onclick = async e => {
+		overlayChoose.button('fetch-all').onclick = async e => {
 				tag = e.target.findParent('.action-btn')
 				
-				tag.toggleAttribute('active')
+				tag.toggle()
 				tag.disabled = true
 				await fileSelectorLoad()
-				tag.toggleAttribute('active')
+				tag.toggle()
 		}
 		<?php endif; ?>
 		</script>

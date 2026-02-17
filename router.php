@@ -163,7 +163,7 @@ if (preg_match('#^/api/.+#', $request_url)) {
             }
         
         } else {
-            if (in_array($slug, $matches[1] === 'helloasso' ? ['edit', 'update']:['fetch', 'download'])) {
+            if (in_array($slug, $matches[1] === 'helloasso' ? ['edit', 'fetch']:['fetch', 'download'])) {
                 $action = $slug;
 
                 require $root . "/app/api/".$matches[1].'/'.$matches[1]."-engine.php";

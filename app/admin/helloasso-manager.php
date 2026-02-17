@@ -23,13 +23,13 @@ if ($_SESSION['role'] !== 'admin') {
 <!DOCTYPE html>
 <html>
 	<head>
-		<title>HelloAsso</title>
+		<title>HelloAsso Board</title>
 		
 		<link rel="icon" href="/files/icons/arcensiel.ico">
 		<meta name="theme-color" content="">
 		<meta name="msapplication-navbutton-color" content="">
 		<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-		<meta property="og:title" content="arcENSiel - Association Queer et LGBT+ de l'ENS de Lyon">
+		<meta property="og:title" content="HelloAsso Board">
 		<meta property="og:type" content="website">
 		
 		<link rel='stylesheet' type='text/css' href='/files/assets/css/main.css'></link>
@@ -37,6 +37,7 @@ if ($_SESSION['role'] !== 'admin') {
 		
 		<script src='/files/assets/js/main.js'></script>
 		<script src='/files/assets/js/tables.js'></script>
+		<script src='/files/assets/js/api.js'></script>
 		
 		<link href="https://unpkg.com/tabulator-tables/dist/css/tabulator.min.css" rel="stylesheet">
 		<script type="text/javascript" src="https://unpkg.com/tabulator-tables/dist/js/tabulator.min.js"></script>
@@ -81,7 +82,7 @@ if ($_SESSION['role'] !== 'admin') {
 				<div class='form-action'>
 					<button class='action-btn reset'>Réinitialiser</button>
 				</div>
-				<input id='csrf' data-csrf=<?= $_SESSION['CSRF'] ?> hidden readonly>
+				<input id='csrf' name='csrf-token' value=<?= $_SESSION['CSRF'] ?> data-csrf=<?= $_SESSION['CSRF'] ?> required hidden readonly>
 			</div>
 		</div>
 		
@@ -89,7 +90,9 @@ if ($_SESSION['role'] !== 'admin') {
 		
 		<?php include($root . '/app/templates/footer.html') ?>
 		
-		<script>		
+		<script>
+		const overlayValid = document.querySelector('#overlay-valid')
+
 		// on-load logic
 		window.addEventListener('load', loader)
 		async function loader()  {
@@ -109,36 +112,15 @@ if ($_SESSION['role'] !== 'admin') {
 									}
 		
 		// refresh helloasso data
-		document.querySelector('.icon.refresh').onclick = haUpdater;
+		Icon('refresh').onclick = haUpdater;
 		
 		async function haUpdater(e) {
-			notify('Synchronisation depuis HelloAsso', 'orange')
-			e.target.findParent('.icon').setAttribute('active','');
-			e.target.findParent('.icon').setAttribute('title','Fetching data from HelloAsso');
-
-			jsonData = JSON.stringify({'csrf':document.querySelector('#csrf').dataset.csrf})
-
-			response = await fetch('/api/helloasso/update', {
-									method: "POST",
-									body: jsonData,
-									headers: { 'Content-Type': 'application/json' }
-									})
-			
-			if (!response.ok) {
-				json = await response.json();
-
-				notify('Erreur lors de la syncronisation : '+json.error, 'red')
-				e.target.findParent('.icon').removeAttribute('active');
-				e.target.findParent('.icon').setAttribute('title','Synchroniser les données');
-				return
-			}
+			if (!syncerAPI(e, 'HelloAsso')) return
 
 			await fetchHA('#helloasso')
 			await fetchGoodies('#goodies')
 			await fetchDQ7('#dq7')
 			
-			e.target.findParent('.icon').removeAttribute('active');
-			e.target.findParent('.icon').setAttribute('title','Synchroniser les données');
 			notify('Synchronisation terminée', 'green')
 			}
 
@@ -149,26 +131,16 @@ if ($_SESSION['role'] !== 'admin') {
 					type = activeTable.type;
 					table = activeTable.table;
 					
-					// csrf token
-					token = document.querySelector('#csrf').dataset.csrf;
-					
 					await sleep(500);
 					
 					// extract data
 					srcdata = Array.from(goodiesTable.getData()).map(data => {return {"id": data.id, "delivered": data.delivered, "registered": data.registered}});
 
-					jsonData = JSON.stringify({'data':srcdata,'csrf':document.querySelector('#csrf').dataset.csrf})
-
-					response = await fetch('/api/helloasso/edit', {
-									method: "POST",
-									body: jsonData,
-									headers: { 'Content-Type': 'application/json' }
-									})
-					
-					data = await response.json();
+					jsonData = JSON.stringify({'data':srcdata, 'csrf':csrfToken})
+					response = await fetchAPI('/api/helloasso/edit', jsonData)
 					
 					if (!response.ok) {
-						alert(response.code)
+						notify('Erreur lors de la mise à jour des données', 'red')
 						return
 					}
 					
@@ -179,49 +151,44 @@ if ($_SESSION['role'] !== 'admin') {
 					resetState(activeTable)
 				}
 		
-		document.querySelector('.icon.download').onclick = downloadData;
-		function downloadData() {
+		// Show download options
+		Icon('download').onclick = helloassoDownload;
+		function helloassoDownload() {
 				if (activeTable === undefined) {
 					notify('Sélectionner une table pour télécharger les données', 'red')
 					return
 				}
-			
-				// download text file
-				var c = document.createElement("a");
+				
+				type = activeTable.type;
 				data = activeTable.table.getData();
-				
-				type = document.querySelector('.table[active]').getAttribute('id').replace('#','');
-				
-				c.download = `${type}_data.json`;
-				var t = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-				c.href = window.URL.createObjectURL(t);
-				c.click();
-				setTimeout(function() { URL.revokeObjectURL(c.href); }, 1500);
+
+				blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+				download(blob, `${type}_data.json`)
 		}
 
-		
-		document.querySelector('#overlay-valid .action-btn.cancel').onclick = e => {
-				document.querySelector("#overlay-valid").removeAttribute("active");
+		// Cancel pending action
+		overlayValid.button('cancel').onclick = e => {
+				overlayValid.hide();
 				pendingAction = {};
 		}
 
 		// go on with requested action
-		document.querySelector('#overlay-valid .action-btn.validate').onclick = e => {
-				document.querySelector("#overlay-valid").removeAttribute("active");
+		overlayValid.button('validate').onclick = e => {
+				overlayValid.hide();
 				pendingAction.link ? pendingAction.function(pendingAction.link):pendingAction.function();
 				pendingAction = {};
 		}
 
 		// show panel to save changes
-		document.querySelector('.action-btn.save').onclick = e => {
+		Button('save').onclick = e => {
 				pendingAction.function = saveEdits;
-				document.querySelector('#overlay-valid').toggleAttribute('active')
+				overlayValid.toggle()
 		}
 
 		// reset edits
-		document.querySelector('.action-btn.reset').onclick = e => {
+		Button('reset').onclick = e => {
 				pendingAction.function = resetTabledata;
-				document.querySelector('#overlay-valid').toggleAttribute('active')
+				overlayValid.toggle()
 		}
 		</script>
 	</body>

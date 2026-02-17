@@ -76,7 +76,7 @@
 		--checkbox-secondary-line-color: #f78a31;
 		
 		/* FONT SIZE */
-		@media (min-width: 642px) {--font-size: 18px;}
+		@media (min-width: 0px) {--font-size: 18px;}
 		@media (min-width: 642px) {--font-size: 20px;}
 
 		/* MISC */
@@ -389,7 +389,6 @@ p {text-align: justify}
 		height: 100vh;
 		width: 100vw;
 		}
-	/* body:has(.auth.active) #overlay {display:block} */
 
 .body-overlay {
 		width: 100%;
@@ -878,9 +877,6 @@ nav    {
 														}
 												}
 										}
-									&:has(.sub-menu):hover { /*:not(:has(.sub-menu[hidden='false']))*/
-											/* @media (max-width: 641px) {background-color: var(--bg-color-secondary);} */
-										}
 									
 								/* submenu */
 								& .sub-menu {
@@ -970,7 +966,7 @@ nav    {
 		transition: right .4s ease-in-out;
 		box-shadow: 0 0 5px 0px black;
 		
-		&.active, &:has(*:focus) {right: 0;}
+		&[active], &:has(*:focus) {right: 0;}
 		
 		& a {
 			color: black;
@@ -1097,6 +1093,7 @@ form {
 				align-items: baseline;
 				
 				&.checkboxes {
+						display: flex;
 						gap: .5em;
 						flex-wrap: nowrap;
 						max-width: var(--main-width);
@@ -1310,13 +1307,11 @@ form {
 		justify-content: center;
 		/*max-width: 600px;*/
 		
-		&.external {margin-top: 2em;}
-		&.optional[hidden] {display: none;}
-		&.optional.reverse:not([active]) {display: none;}
-		&.linear {flex-flow: row; gap: 1.5em}
-		&.large {font-size: 1.5em;}
+		&.external {margin-top: 2em;} 			/* actions outside of a form */
+		&.linear {flex-flow: row; gap: 1.5em} 	/* buttons on a line */
+		&.large {font-size: 1.5em;}				/* bigger buttons */	
 
-		&.responsive {
+		&.responsive {							/* buttons can be hidden */
 				display: none;
 				&[active] {display: flex;}
 				}
@@ -1349,13 +1344,19 @@ form {
 						/* width: 100%; */
 						transition: all .3s;
 						box-sizing: border-box;
-						/* box-sizing: content-box; */
 						font-size: var(--medium-size);
 						min-width: 8.75em;
 						text-align: center;
-						/* line-height: 1.25em; */
 						
-						&[disabled] {cursor: default; color: #555; background-color: #efefef;}
+						/* disabled buttons */
+						&[disabled] {
+								cursor: default;
+								color: #555;
+								background-color: #efefef;
+								pointer-events: none;
+								}
+						
+						/* buttons dynamic style */
 						&:not([disabled]):hover {
 								background: var(--form-color);
 								color: white;
@@ -1366,6 +1367,7 @@ form {
 						
 						&:has(a) {padding: 0}
 						
+						/* buttons content can be switched to spinner */
 						&.spinnable {
 								& .spinner {display: none}
 

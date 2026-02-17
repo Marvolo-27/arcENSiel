@@ -25,13 +25,13 @@ $artTypes = getTypes();
 <!DOCTYPE html>
 <html>
 	<head>
-		<title>Gestion des données</title>
+		<title>Gestion de la base de données</title>
 		
 		<link rel="icon" href="/files/icons/arcensiel.ico">
 		<meta name="theme-color" content="">
 		<meta name="msapplication-navbutton-color" content="">
 		<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-		<meta property="og:title" content="arcENSiel - Association Queer et LGBT+ de l'ENS de Lyon">
+		<meta property="og:title" content="Gestion de la base de données">
 		<meta property="og:type" content="website">
 		
 		<link rel='stylesheet' type='text/css' href='/files/assets/css/main.css'></link>
@@ -112,7 +112,7 @@ $artTypes = getTypes();
 				<div class='form-action'>
 					<button class='action-btn reset'>Réinitialiser</button>
 				</div>
-				<input id='csrf' data-csrf=<?= $_SESSION['CSRF'] ?> hidden readonly>
+				<input id='csrf' name='csrf-token' value=<?= $_SESSION['CSRF'] ?> data-csrf=<?= $_SESSION['CSRF'] ?> required hidden readonly>
 			</div>
 		</div>
 		
@@ -124,6 +124,8 @@ $artTypes = getTypes();
 		<script>
 		// variables
 		let typesCounter = {};
+		const overlayValid = document.querySelector('#overlay-valid')
+		const overlayAuth = document.querySelector('#overlay-auth')
 
 		// on-load logic
 		window.addEventListener('load', loader)
@@ -150,16 +152,13 @@ $artTypes = getTypes();
 		async function archiveArticle(event, cell, toarchive) {
 				notify('Mise à jour du statut', 'orange')
 				
-				// csrf token
-				token = document.querySelector('#csrf').dataset.csrf;
-				
 				// dom objects
 				const btn = event.target.findParent('.icon')
 				const row = cell.getRow();
 				const statusCell = row.getCell('status')
 				const iconsCell = row.getCell('actions').getElement()
-				visualIcon = iconsCell.querySelector('.visualize')
-				modifyIcon = iconsCell.querySelector('.modify')
+				visualIcon = iconsCell.icon('visualize')
+				modifyIcon = iconsCell.icon('modify')
 
 				// extract data
 				const state = toarchive ? 'archived':'published';
@@ -167,20 +166,13 @@ $artTypes = getTypes();
 
 				await sleep(500);
 				
-				jsonData = JSON.stringify({'action':'archive','type':'articles','csrf':document.querySelector('#csrf').dataset.csrf, 'slug':slug, 'status':state})
-				//console.log(jsonData)
+				jsonData = JSON.stringify({'action':'archive','type':'articles','csrf':csrfToken, 'slug':slug, 'status':state})
 				
 				// update data
-				response = await fetch('/admin/engine/database', {
-										method: 'POST',
-									    body: jsonData,
-									    headers: { 'Content-Type': 'application/json' }
-									    }
-									)
-				data = await response.json();
-
+				response = await fetchAPI('/admin/engine/database', jsonData)
+				
 				if (!response.ok) {
-					notify("Action failed.", 'red')
+					notify("Échec", 'red')
 					return
 				}
 
@@ -203,8 +195,6 @@ $artTypes = getTypes();
 		async function deleter(kwargs) {
 				notify('Suppression en cours')
 				
-				// csrf token
-				token = document.querySelector('#csrf').dataset.csrf;
 				[event, cell] = kwargs;
 
 				// dom objects
@@ -218,21 +208,13 @@ $artTypes = getTypes();
 
 				await sleep(500);
 				
-				jsonData = JSON.stringify({'action':'delete','type':type,'csrf':document.querySelector('#csrf').dataset.csrf, 'slug':slug, 'value':value})
-				// console.log(jsonData)
+				jsonData = JSON.stringify({'action':'delete', 'type':type, 'csrf':csrfToken, 'slug':slug, 'value':value})
 				
 				// update data
-				response = await fetch('/admin/engine/database', {
-										method: 'POST',
-									    body: jsonData,
-									    headers: { 'Content-Type': 'application/json' }
-									    }
-									)
-				data = await response.json();
-				// console.log(data)
+				response = await fetchAPI('/admin/engine/database', jsonData)
 
 				if (!response.ok) {
-					notify("Action failed.", 'red')
+					notify("Échec de la suppression", 'red')
 					return
 				}
 
@@ -241,7 +223,7 @@ $artTypes = getTypes();
 				
 				activeTable.source = JSON.stringify(activeTable.table.getData())
 				resetState(activeTable)
-
+				
 				if (['tags', 'type'].includes(type)) {
 					newData = await dataFetcher('articles');
 					tableMatch.articles.source = JSON.stringify(newData['sql-data'])
@@ -252,7 +234,7 @@ $artTypes = getTypes();
 		}
 
 		// actions that require authentification
-		document.querySelector('.overlay-form').onsubmit = e => {e.preventDefault();};
+		overlayAuth.child('form').onsubmit = e => e.preventDefault();
 		async function saveCurrentData() {
 				// active table
 				table = activeTable.table;
@@ -260,33 +242,15 @@ $artTypes = getTypes();
 				// select edited rows, with values different from original
 				modifiedRows = Array.from(table.getEditedCells().concat(Object.values(autoEditedCells))).map(c => {return c.getValue() !== c.getInitialValue() ? c.getRow().getData():null}).filter((item, index, arr) => (item !== null && arr.indexOf(item) === index));
 
-				// console.log(modifiedRows)
-
 				// update fetch
-				jsonData = JSON.stringify({'action':'update','type':activeTable.type,'csrf':document.querySelector('#csrf').dataset.csrf, 'data':modifiedRows})
-				response = await fetch('/admin/engine/database', {
-										method: 'POST',
-									    body: jsonData,
-									    headers: { 'Content-Type': 'application/json' }
-									    }
-									)
-				
-				data = await response.json();
-				
+				jsonData = JSON.stringify({'action':'update', 'type':activeTable.type, 'csrf':csrfToken, 'data':modifiedRows})
+				response = await fetchAPI('/admin/engine/database', jsonData)
+
 				if (!response.ok) {
-					// console.log(data.error);
-					btn.disabled = false;
-					btnbis.disabled = false;
-					btn.innerHTML = 'Valider';
+					notify('Échec de la mise à jour', 'red')
 					return
 				} else {
-					tag.removeAttribute('invalid','');
-					errorTag.removeAttribute('active');
-					document.querySelector('#main .form-action-wrap').removeAttribute('active')
-					tag.value = '';
-					btn.disabled = false;
-					btnbis.disabled = false;
-					btn.innerHTML = 'Valider';
+					document.querySelector('#main').child('.form-action-wrap').hide()
 					
 					activeTable.source = JSON.stringify(activeTable.table.getData())
 					resetState(activeTable)
@@ -301,42 +265,46 @@ $artTypes = getTypes();
 				}
 		
 		// cancel requested action
-		document.querySelector('#overlay-auth .action-btn.cancel').onclick = e => {
-				document.querySelector("#overlay-auth").removeAttribute("active");
-				document.querySelector("#overlay-pswd").value = '';
+		overlayAuth.button('cancel').onclick = e => {
+				overlayAuth.hide();
+				overlayAuth.input('overlay-pswd').value = '';
 				pendingAction = {};
 		}
-		document.querySelector('#overlay-valid .action-btn.cancel').onclick = e => {
-				document.querySelector("#overlay-valid").removeAttribute("active");
+
+		// cancel requested action
+		overlayValid.button('cancel').onclick = e => {
+				overlayValid.hide();
 				pendingAction = {};
 		}
 
 		// go on with requested action
-		document.querySelector('#overlay-valid .action-btn.validate').onclick = e => {
-				document.querySelector("#overlay-valid").removeAttribute("active");	
+		overlayValid.button('validate').onclick = e => {
+				overlayValid.hide();	
 				pendingAction.link ? pendingAction.function(pendingAction.link):pendingAction.function();
 				pendingAction = {};
 		}
-		document.querySelector('#overlay-auth .action-btn.validate').onclick = async e => {
+
+		// validate credentials and go on with requested action
+		overlayAuth.button('validate').onclick = async e => {
 				// check password
 				validity = await passwordChecker();
 				if (validity) {
-					document.querySelector("#overlay-auth").removeAttribute("active");	
+					overlayAuth.hide();	
 					pendingAction.link ? pendingAction.function(pendingAction.link):pendingAction.function();
 					pendingAction = {};
 				}
 		}
 
-		// show panel to save changes
-		document.querySelector('.action-btn.save').onclick = e => {
+		// show overlay save changes
+		Button('save').onclick = e => {
 				pendingAction.function = saveCurrentData;
-				document.querySelector("#overlay-auth").setAttribute("active",'');
+				overlayAuth.show();
 		}
 
-		// reset edits
-		document.querySelector('.action-btn.reset').onclick = e => {
+		// show overlay to reset edits
+		Button('reset').onclick = e => {
 				pendingAction.function = resetTabledata;
-				document.querySelector('#overlay-valid').toggleAttribute('active')
+				overlayValid.show()
 		}
 
 		</script>

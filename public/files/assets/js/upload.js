@@ -23,7 +23,7 @@ function fileDropHandle(e) {
 						data = e.dataTransfer;
 						files = data.files;
 						
-						input = document.querySelector('#file');
+						input = Input('file');
 						input.files = files;
 						fileUploadManage(input, /application\/pdf/, 2)
 						}
@@ -40,8 +40,6 @@ function fileUploadManage(input, format=/image\/.*/, maxsize = 2) {
 			// extract file data
 			file = files[0];
 			
-			// console.log(format, file.type.match(format), file.type)
-			
 			invalid = '';
 			if (files.length > 1) {
 				invalid = 'Déposez un seul fichier.';
@@ -51,20 +49,19 @@ function fileUploadManage(input, format=/image\/.*/, maxsize = 2) {
 				invalid = 'Taille du fichier trop élevée.';
 			}
 			
-			error = document.querySelector('.error.file');
+			error = IError('file');
 			frame = document.querySelector('.frame');
 			if (invalid !== '') {
 				error.innerText = invalid;
-				error.setAttribute('active', '');
-				frame.removeAttribute('active');
+				error.show();
+				frame.hide();
 				tag.value = '';
 				return false;
 			} else {
-				error.removeAttribute('active')
-				document.querySelector("#overlay-add .selected-file").innerText = file.name;
+				error.hide()
+				document.querySelector('#overlay-add').child('.selected-file').innerText = file.name;
 			}
 			
-			frame.setAttribute('active', '');
-			// document.querySelector('.box.pic .visual').src = URL.createObjectURL(file);
+			frame.show();
 			return true
 }

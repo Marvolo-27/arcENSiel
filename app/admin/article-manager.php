@@ -88,7 +88,7 @@ if ($edition && !$artData) {
 		<meta name="theme-color" content="">
 		<meta name="msapplication-navbutton-color" content="">
 		<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-		<meta property="og:title" content="arcENSiel - Association Queer et LGBT+ de l'ENS de Lyon">
+		<meta property="og:title" content="<?= !$edition ? 'Création':'Modification' ?> d'un article">
 		<meta property="og:type" content="website">
 		
 		<link rel='stylesheet' type='text/css' href='/files/assets/css/main.css'></link>
@@ -144,8 +144,6 @@ if ($edition && !$artData) {
 			.checkboxes {
 				flex-wrap: wrap !important;
 				overflow-x: unset !important;
-				display: flex;
-				gap: .5em;
 			}
 
 			.type-wrap {display: flex; gap: .5em;}
@@ -195,7 +193,7 @@ if ($edition && !$artData) {
 								<div class='icon validity right medium'><span class='img'></span></div>
 								<span class="spinner icon right"></span>
 							</div>
-							<div class='error username'>URL indisponible.</div>
+							<div class='error url'>URL indisponible.</div>
 						</div>
 						
 						<div class='box art-desc'>
@@ -323,7 +321,7 @@ if ($edition && !$artData) {
 							</div>
 						<?php endif; ?>
 
-						<input name='csrf-token' id='token' data-csrf='<?= $_SESSION['CSRF'] ?>' value='<?= $_SESSION['CSRF'] ?>' required hidden readonly>
+						<input name='csrf-token' id='csrf' data-csrf='<?= $_SESSION['CSRF'] ?>' value='<?= $_SESSION['CSRF'] ?>' required hidden readonly>
 						<input name='submit' id='submit' type="submit" hidden readonly>
 					</div>
 					
@@ -402,51 +400,53 @@ if ($edition && !$artData) {
 		<?php include($root . '/app/templates/footer.html') ?>
 		
 		<script>
-		core = 'https://arcensiel.org/articles/'
+		const core = 'https://arcensiel.org/articles/'
 		let status = "<?= $edition ? 'edition':'creation' ?>"
 		let editsHistory = {};
 		let pendingAction = {};
 		let lockedEdit = true ;
 		
-		overlayData = document.querySelector('#overlay-data')
+		// DOM elements
+		const overlayData = document.querySelector('#overlay-data')
+		const overlayChoose = document.querySelector('#overlay-choose')
+		const overlayValid = document.querySelector('#overlay-valid')
+
 
 	/// Actions management
 		// review edits
 		document.querySelectorAll(':is(input, select, textarea)').forEach(elem => {elem.onchange = e => editsManager(e.target)})
 		
 		// show panel to save changes
-		document.querySelector('.action-btn.publish').onclick = e => {
+		Button('publish').onclick = e => {
 				if (e.target.getAttribute('disabled') !== null) return;
-				if (false && checkIntegrity()) {
-					submitForm()
-				} else {
-					document.querySelector("#overlay-valid span").textContent = "Continuer et publier l'article ?";
-					document.querySelector("#overlay-valid").setAttribute("active",'');
-					pendingAction.function = submitForm;
-				}
+				
+				overlayValid.child('span').textContent = "Enregistrer les modifications ?";
+				overlayValid.show();
+				pendingAction.function = submitForm;
 		}
 
 		// show panel to save changes
-		document.querySelector('.action-btn.reset').onclick = e => {
+		Button('reset').onclick = e => {
 				if (e.target.getAttribute('disabled') !== null) return;
+				
 				if (checkIntegrity()) {
 					resetForm()
 				} else {
-					document.querySelector("#overlay-valid span").textContent = "Rétablir le formulaire dans son état d'origine ?";
-					document.querySelector("#overlay-valid").setAttribute("active",'');
+					overlayValid.child("span").textContent = "Rétablir le formulaire dans son état d'origine ?";
+					overlayValid.show();
 					pendingAction.function = resetForm;
 				}
 		}
 
 		<?php if ($edition): ?>
 		// go to view - validate - edition mode
-		document.querySelector('.icon.visualize .img').onclick = e => {
+		Icon('visualize').onclick = e => {
 				btn = e.target.findParent('.icon')
 				if (checkIntegrity()) {
 					redirect(`/admin/tools/article/preview/<?= $artData['url'] ?>`)
 				} else {
-					document.querySelector("#overlay-valid span").textContent = "Poursuivre et abandonner les modifications non enregistrées ?";
-					document.querySelector("#overlay-valid").setAttribute("active",'');
+					overlayValid.child("span").textContent = "Poursuivre et abandonner les modifications non enregistrées ?";
+					overlayValid.show();
 					pendingAction.function = redirect;
 					pendingAction.link = "/articles/<?= $artData['url'] ?>";
 				}
@@ -454,7 +454,7 @@ if ($edition && !$artData) {
 		<?php endif; ?>
 		
 		// go to preview
-		document.querySelector('.icon.preview .img').onclick = async e => {
+		Icon('preview').onclick = async e => {
 				btn = e.target.findParent('.icon')
 				
 				url = 'tmp-' + Math.random().toString(16).slice(2)
@@ -463,38 +463,39 @@ if ($edition && !$artData) {
 				formData.set('action', 'draft')
 				formData.set('tmp-url', url)
 
-				await fetch("/admin/engine/article", {
-									method: "POST",
-									body: formData
-									});
+				await fetchAPI("/admin/engine/article", formData)
 				
 				open(`/admin/tools/preview/article/${url}`)
 		}
 
 		// go on with requested action
-		document.querySelector('#overlay-valid .action-btn.validate').onclick = e => {
+		overlayValid.button('validate').onclick = e => {
 				lockedEdit = false;
-				document.querySelector("#overlay-valid").removeAttribute("active");
+				overlayValid.hide();
 				pendingAction.link ? pendingAction.function(pendingAction.link):pendingAction.function();
 				pendingAction = {};
 		}
 
 		// cancel request action
-		document.querySelector('#overlay-valid .action-btn.cancel').onclick = e => {
-				document.querySelector("#overlay-valid").removeAttribute("active");
+		overlayValid.button('cancel').onclick = e => {
+				overlayValid.hide();
 				pendingAction = {};
 		}
+		
+		// existing file chosen
+		overlayChoose.button('cancel').onclick = e => {
+				preview = overlayChoose.childs('.file-element')
+				overlayChoose.hide();
 
-		// cancel request action
-		document.querySelector('#overlay-choose .action-btn.cancel').onclick = e => {
-				document.querySelector("#overlay-choose").removeAttribute("active");
-				document.querySelectorAll('#overlay-choose .file-element').forEach(tag => {tag.removeAttribute('selected')})
-				document.querySelector('#overlay-choose .file-preview').firstElementChild.src = '';
-				document.querySelector('#overlay-choose .file-preview').firstElementChild.alt = '';
+				preview.forEach(tag => {tag.unset('selected')})
+				preview.firstElementChild.src = '';
+				preview.firstElementChild.alt = '';
 		}
 
-		// submit form
-		function submitForm() {document.querySelector('#submit').click()}
+		// Submit form
+		function submitForm() {Input('submit').click()}
+		
+		// Reset form
 		function resetForm() {
 			document.querySelectorAll(':is(input,select,textarea)').forEach(elem => {
 										elem.value = editsHistory[elem.toSelector(true)].srcValue;
@@ -536,84 +537,74 @@ if ($edition && !$artData) {
 		// disbale/enable submit buttons
 		function buttonsToggler(e, force=null) {
 			if ((force === null && checkIntegrity()) || force === true) {
-				document.querySelector('.action-btn.publish').setAttribute('disabled','');
-				document.querySelector('.action-btn.reset').setAttribute('disabled','');
+				Button('publish').disable();
+				Button('reset').disable();
 			} else {
-				document.querySelector('.action-btn.publish').removeAttribute('disabled');
-				document.querySelector('.action-btn.reset').removeAttribute('disabled');
+				Button('publish').enable();
+				Button('reset').enable();
 			}
 		}
 
 	/// FORM SUBMISSION ///
-		document.querySelector('form#article-form').onsubmit = (e) => {articleSend(e)};
+		document.querySelector('#article-form').onsubmit = articleSend;
 		async function articleSend(e) {
 						e.preventDefault();
 						if (lockedEdit) return;
 						lockedEdit = true;
 						
 						// spinner in submit button
-						btn = document.querySelector('#publish');
+						btn = Button('publish');
 						buttonsToggler(e, true)
-						btn.toggleAttribute('active');
+						btn.toggle();
 						
+						// Raw form data
 						formData = generateFormData(e.target)
 						
-						// extract input data
-						rawdata = formData.entries();
-		                
 						// Parse in dictionary
-						srcdata = Object.fromEntries(rawdata);
-						// console.log(srcdata);
+						srcdata = Object.fromEntries(formData.entries());
 						
 						// Response object
-						response = await fetch("/admin/engine/article", {
-									method: "POST",
-									body: formData
-									});
-						
-						// Response body content
-						data = await response.json(); // dict parsed response data
-						// console.log(data)
-						
+						response = await fetchAPI('/admin/engine/article', formData)
+
 						if (!response.ok) {// http code 400-500 reuturn false
-										alert(`Error: HTTP ${response.status}: ${data.error}`);
+										alert(`Error: HTTP ${response.httpcode}: ${response.body.error}`);
 										
 										buttonsToggler(e, false)
-										btn.toggleAttribute('active')
+										btn.toggle()
 										
 										return null
 										}
 						
 						output = document.querySelector('.output .output-text.clean');
-						urlIn = document.querySelector('input#art-url');
+						urlIn = Input('art-url');
 						
 						output.innerHTML = '';
-						output.removeAttribute('error');
-						output.removeAttribute('success');
-						urlIn.removeAttribute('invalid');
+						output.unset('error');
+						output.unset('success');
+						urlIn.unset('invalid');
 						
-						if (response.status === 250) {// failed sql request
-							errorData = data.error;
-							errorCode = data.code;
+						if (response.httpcode === 250) {// failed sql request
+							errorData = response.body.error;
+							errorCode = response.body.code;
 							
 							output.innerHTML = `Error [${errorCode}]: ${errorData}`;
-							output.setAttribute('error','');
-							urlIn.setAttribute('invalid','');
+							output.set('error');
+							urlIn.set('invalid');
 							urlIn.setAttribute('oldvalue',urlIn.value);
 							
 							buttonsToggler(e, false)
-							btn.toggleAttribute('active')
+							btn.toggle()
 							notify(`Error [${errorCode}]: ${errorData}`, 'red')
 							
 							return
 						} else {// correct sql response
-							artData = data['art-data'];
+							artData = response.body['art-data'];
 						}
 						
 						// make new tags permanent
 						document.querySelectorAll('.checkbox.new').forEach(tag => {
 																					wrap = tag.findParent('.tag-wrap')
-																					wrap.querySelector('.icon.delete').remove()
+																					wrap.icon('delete').remove()
 
 																					// update keys in editsHistory
 																					value = editsHistory[tag.toSelector(true)]
@@ -622,22 +613,21 @@ if ($edition && !$artData) {
 																					editsHistory[tag.toSelector(true)] = value;
 																				})
 
-						//console.log(sqlData);
-						output.setAttribute('success','');
+						output.set('success');
 						output.innerHTML = `Success: article created successfully at url ${artData.url}`;
 						resetEditsHistory()
 
 						notify('Modifications enregistrées', 'green');
 
 						buttonsToggler(e, true)
-						btn.toggleAttribute('active');
+						btn.toggle();
 					}
 		
 		function generateFormData(form) {
-				urlTag = document.querySelector('#art-url');
-				picTag = document.querySelector('#art-pic');
-				typeTag = document.querySelector('#art-type');
-				titleTag = document.querySelector('#art-title');
+				urlTag = Input('art-url');
+				picTag = Input('art-pic');
+				typeTag  = Input('art-type');
+				titleTag = Input('art-title');
 				state = urlTag.disabled;
 				urlTag.disabled = false;
 				
@@ -648,10 +638,10 @@ if ($edition && !$artData) {
 				// Update data
 				taglist = Array.from(document.querySelectorAll('.checkbox.option:checked')).map(e => {return {'slug': e.getAttribute('name'), 'name': e.value}});
 				formData.set('art-tags', JSON.stringify(taglist));
-				formData.set('file-description', overlayData.querySelector('#desc').value)
-				formData.set('filename', overlayData.querySelector('#filename').value+'.'+overlayData.querySelector('#fileextension').value)
+				formData.set('file-description', overlayData.input('desc').value)
+				formData.set('filename', overlayData.input('filename').value + '.' + overlayData.input('fileextension').value)
 				formData.set('type', JSON.stringify({'slug': typeTag.value, 'name': typesList[typeTag.value], 'color': typeTag.querySelector(`option[value='${typeTag.value}']`).dataset.color, 'new': typeTag.classList.contains('new')}));
-				formData.set('art-end-date', formData.get('art-end-date') !== ''?formData.get('art-end-date'):null);
+				formData.set('art-end-date', formData.get('art-end-date') !== '' ? formData.get('art-end-date'):null);
 				// formData.set('art-title', titleTag.textContent);
 				formData.set('art-url', formData.get('art-url').replace(core,''));
 				(picTag.value === '') ? formData.set('picture-path', picTag.nextElementSibling.getAttribute('src')):null;
@@ -721,7 +711,6 @@ if ($edition && !$artData) {
 																	
 																	wrapper.querySelector('.icon.delete').onclick = e => {
 																																wrap = e.target.findParent('.tag-wrap');
-																																// console.log(wrap)
 																																wrap.remove()
 																																delete editsHistory[wrap.firstElementChild.toSelector(true)]
 																																delete tagsList[wrap.firstElementChild.value]
@@ -765,10 +754,10 @@ if ($edition && !$artData) {
 						adder.findParent('.checkboxes').insertBefore(span, adder.parentNode);
 						span.querySelector('.new').focus()
 						
-						span.querySelector('.icon.colors').onclick = e => e.target.findParent('.type-wrap').querySelector('.colorentry').click()
+						span.icon('colors').onclick = e => e.target.findParent('.type-wrap').querySelector('.colorentry').click()
 						span.querySelector('.colorentry').oninput = e => e.target.dataset.changed = true
 
-						span.querySelector('.icon.validity').onclick = function createType(e) {
+						span.icon('validity').onclick = function createType(e) {
 																	// adder button
 																	adder = document.querySelector('#new-type-option');
 																	
@@ -825,24 +814,20 @@ if ($edition && !$artData) {
 
 									buttonsToggler();
 
-									<?php if (!$edition): ?>titleManage({'target':document.querySelector('#art-title')})<?php endif; ?>
+									<?php if (!$edition): ?>titleManage({'target':Input('art-title')})<?php endif; ?>
 
 									fileSelectorLoad()
 									}
-		// BANNER //
-		// handle banner shape
-		window.addEventListener('scroll', bannerManage);
 	
 	/// INPUT CHECKS ///
 		// url maker
-		document.querySelector('#art-title').oninput = titleManage;
+		Input('art-title').oninput = titleManage;
 		function titleManage(e) {
 					tag = e.target;
-					tag.innerText === '\n' || tag.innerText ==='' ? tag.setAttribute('empty',''):tag.removeAttribute('empty')
+					tag.innerText === '\n' || tag.innerText ==='' ? tag.set('empty'):tag.unset('empty')
 					tag.nextElementSibling.value = tag.textContent;
-
-					core = 'https://arcensiel.org/articles/'
-					urltag = document.querySelector('input#art-url');
+					
+					urltag = Input('art-url');
 					
 					(urltag.disabled && status === 'creation') ? urltag.value = core + tag.textContent.urlForm():null;
 					
@@ -853,76 +838,70 @@ if ($edition && !$artData) {
 		<?php if (!$edition): ?>
 		// URL MANAGEMENT //
 		// url input check
-		document.querySelector('#art-url').oninput = (e) => {
-															tag = e.target;
-															core = 'https://arcensiel.org/articles/'
-															
-															// mark invalid value
-															errorTag = tag.findParent('.box').querySelector('.error');
-															if (tag.value !== tag.getAttribute('oldvalue')) {
-																tag.removeAttribute('invalid');
-																errorTag.removeAttribute('active');
-															} else {
-																tag.setAttribute('invalid','');
-																errorTag.setAttribute('active','');
-															}
-															
-															// keeps uneditable part safe
-															!tag.value.includes(core) ? tag.value = core:null;
-														}
+		Input('art-url').oninput = (e) => {
+												tag = e.target;
+												
+												// mark invalid value
+												error = tag.findParent('.box').error();
+												if (tag.value !== tag.getAttribute('oldvalue')) {
+													tag.unset('invalid');
+													error.hide();
+												} else {
+													tag.set('invalid');
+													error.show();
+												}
+												
+												// keeps uneditable part safe
+												!tag.value.includes(core) ? tag.value = core:null;
+											}
 				
 		
 		
 		
 		// check URL validity
-		document.querySelector('#art-title').onblur = e => {document.querySelector('input#art-url').disabled ? checkURL(e):null;} // trigger check on title change
-		document.querySelector('input#art-url').onchange = (e) => {checkURL(e)}		// trigger check on URL change
+		Input('art-title').onblur = e => {Input('art-url').disabled ? checkURL(e):null;} // trigger check on title change
+		Input('art-url').onchange = checkURL		// trigger check on URL change
 		async function checkURL(e) {
-					urltag = document.querySelector('input#art-url');
-					spin = document.querySelector('.input-container:has(#art-url)').querySelector('.spinner');
-					btn = document.querySelector('#submit');
+					urltag = Input('art-url');
+					spin = document.querySelector('.input-container:has(#art-url)').spinner();
+					btn = Input('submit');
 					url = urltag.disabled ? e.target.textContent.replace(core,'').urlForm():e.target.value.replace(core,'').urlForm();
-					errorTag = urltag.findParent('.box').querySelector('.error');
+					error = urltag.findParent('.box').error();
 					
 					urltag.value = core + url;
 					urltag.setAttribute('oldvalue',core + url);
-					urltag.removeAttribute('valid','');
-					urltag.removeAttribute('invalid','');
-					errorTag.removeAttribute('active');
-					spin.setAttribute('active','');
+					urltag.unset('valid');
+					urltag.unset('invalid');
+					error.hide();
+					spin.show();
 					
 					// termiante if no url
 					if (url === '') return;
-					
-					// csrf token
-					token = document.querySelector('#token').dataset.csrf;
 					
 					// edit mode
 					mode = urltag.disabled ? 'locked':'unlocked';
 					
 					await sleep(500);
 					
-					response = await fetch(`/admin/engine/article?url=${url}&mode=${mode}&token=${token}`);
-					data = await response.json(); // dict parsed response data
+					response = await fetchAPI(`/admin/engine/article?url=${url}&mode=${mode}&token=${csrfToken}`);
 					
 					if (!response.ok) {
-						urltag.setAttribute('invalid','');
+						urltag.set('invalid');
 						btn.disabled = true;
-						errorTag.setAttribute('active','');
-						spin.removeAttribute('active');
-						// console.log(data.error)
+						error.show();
+						spin.hide();
 					} else {
-						urltag.setAttribute('valid','');
+						urltag.set('valid');
 						btn.disabled = false;
-						urltag.value = core + data.url;
-						urltag.removeAttribute('oldvalue');
-						errorTag.removeAttribute('active');
-						spin.removeAttribute('active');
+						urltag.value = core + response.body.url;
+						urltag.unset('oldvalue');
+						error.hide();
+						spin.hide();
 					}
 				}
 		
 		// remove URL protection
-		document.querySelector('.box.url .icon.edit').onclick = (e) => {
+		Box('url').icon('edit').onclick = (e) => {
 					urltag = e.target.findParent('.input-container').querySelector('.livecheck');
 					
 					urltag.disabled = false;
@@ -930,19 +909,20 @@ if ($edition && !$artData) {
 		<?php endif; ?>
 
 		// FILE MANAGEMENT //
-		document.querySelector('#art-pic').onchange = e => fileUploadManage(e.target);
+		Input('art-pic').onchange = e => fileUploadManage(e.target);
 		
-		document.querySelector('.visual').addEventListener('dragenter', allowDrop);
-		document.querySelector('.visual').addEventListener('dragleave', allowDrop);
+		visual = document.querySelector('.visual')
+		visual.addEventListener('dragenter', allowDrop);
+		visual.addEventListener('dragleave', allowDrop);
 		
-		document.querySelector('.visual').ondragover = e => {e.preventDefault()}	// fires when a draggable object is over valid drag zone (repeats)
+		visual.ondragover = e => {e.preventDefault()}	// fires when a draggable object is over valid drag zone (repeats)
 		
-		document.querySelector('.frame .action-btn.new-file').onclick = e => {e.target.findParent('.frame').querySelector('input').click()}	// fires when a draggable object is over valid drag zone (repeats)
-		document.querySelector('.frame .visual-overlay .icon.delete').onclick = e => {e.target.findParent('.frame').querySelector('input').value='';e.target.findParent('.frame').querySelector('input').required=true;e.target.findParent('.frame').removeAttribute('active');overlayData.querySelector('#overlay-add-form').reset()}	// fires when a draggable object is over valid drag zone (repeats)
-		document.querySelector('.frame .visual-overlay .icon.edit').onclick = e => overlayData.toggleAttribute('active')
-		document.querySelector('.frame .visual').onclick = e => {e.target.findParent('.frame').querySelector('input').click()}	// fires when a draggable object is over valid drag zone (repeats)
+		document.querySelector('.frame .action-btn.new-file').onclick = e => {e.target.findParent('.frame').input().click()}	// fires when a draggable object is over valid drag zone (repeats)
+		document.querySelector('.frame .visual-overlay').icon('delete').onclick = e => {e.target.findParent('.frame').input().value='';e.target.findParent('.frame').input().required=true;e.target.findParent('.frame').hide();overlayData.child('form').reset()}	// fires when a draggable object is over valid drag zone (repeats)
+		document.querySelector('.frame .visual-overlay').icon('edit').onclick = e => overlayData.toggle()
+		document.querySelector('.frame .visual').onclick = e => {e.target.findParent('.frame').input().click()}	// fires when a draggable object is over valid drag zone (repeats)
 		
-		document.querySelector('.visual').ondrop = fileDropHandle;
+		visual.ondrop = fileDropHandle;
 		
 		function fileDropHandle(e) {
 								allowDrop(e);
@@ -950,7 +930,7 @@ if ($edition && !$artData) {
 								data = e.dataTransfer;
 								files = data.files;
 								
-								input = document.querySelector('#art-pic');
+								input = Input('art-pic');
 								input.files = files;
 								fileUploadManage(input, undefined, 10)
 								}
@@ -975,85 +955,80 @@ if ($edition && !$artData) {
 						invalid = 'Taille du fichier trop élevée.';
 					}
 					
-					error = document.querySelector('.error.file');
+					error = Error('file');
 					frame = document.querySelector('.frame');
 					if (invalid !== '') {
 						error.innerText = invalid;
-						error.setAttribute('active', '');
-						frame.removeAttribute('active');
+						error.show();
+						frame.hide();
 						tag.value = '';
 						return;
 					} else {
-						error.removeAttribute('active')
+						error.hide()
 					}
 					
 					editsManager(tag)
-					frame.setAttribute('active', '');
-					document.querySelector('.box.pic .visual').src = URL.createObjectURL(file);
+					frame.show();
+					Box('pic').child('.visual').src = URL.createObjectURL(file);
 					
 					// extract from file metadata
-					overlayData.querySelector('#filename').readOnly = false;
-					overlayData.querySelector('#filename').value = file.name.split('.').slice(0,-1).join('.').filenameForm();
-					overlayData.querySelector('#filename').dataset.name = file.name.filenameForm();
-					overlayData.querySelector('#fileextension').value = file.name.split('.').slice(-1)[0];
-					overlayData.querySelector('#desc').value = '';
+					overlayData.input('filename').readOnly = false;
+					overlayData.input('filename').value = file.name.filename().filenameForm();
+					overlayData.input('filename').dataset.name = file.name.filenameForm();
+					overlayData.input('fileextension').value = file.name.extension();
+					overlayData.input('desc').value = '';
 					
 
 					// display overlay
-					overlayData.toggleAttribute('active')
+					overlayData.toggle()
 		}
 		
 		//// EXISTING FILE
 		// show file selection panel
-		document.querySelector('.action-btn.exist-file').onclick = e => {
-				document.querySelector("#overlay-choose").toggleAttribute('active');
+		Button('exist-file').onclick = e => {
+				overlayChoose.toggle();
 		}
 
-		document.querySelector('#overlay-choose .validate').onclick = e => {
-				tag = document.querySelector('#overlay-choose .file-element[selected]')
-				
-				if (tag === null) {
-					document.querySelector('.error.file-choice').innerText = 'Sélectionnez une image pour continuer';
-					document.querySelector('.error.file-choice').setAttribute('active', '');
-				} else {
-					document.querySelector('.error.file-choice').removeAttribute('active');
-					document.querySelector('#overlay-choose').removeAttribute('active');
+		overlayChoose.button('validate').onclick = e => {
+				tag = overlayChoose.child('.file-element[selected]')
+				error = Error('file-choice')
 
-					document.querySelectorAll('#overlay-choose .file-element').forEach(tag => {tag.removeAttribute('selected')})
-					document.querySelector('#overlay-choose .file-preview').firstElementChild.src = '';
-					document.querySelector('#overlay-choose .file-preview').firstElementChild.alt = '';
+				if (tag === null) {
+					error.innerText = 'Sélectionnez une image pour continuer';
+					error.show();
+				} else {
+					error.hide();
+					overlayChoose.hide();
+
+					overlayChoose.childs('.file-element').forEach(tag => {tag.unset('selected')})
+					overlayChoose.child('.file-preview').firstElementChild.src = '';
+					overlayChoose.child('.file-preview').firstElementChild.alt = '';
 
 					url = tag.dataset.url;
-					document.querySelector('.box.pic .visual').src = url;
-					document.querySelector('.box.pic .frame').setAttribute('active','');
-					document.querySelector('.box.pic .fileentry').required = false;
+					Box('pic').child('.visual').src = url;
+					Box('pic').child('.frame').show();
+					Box('pic').child('.fileentry').required = false;
 
-					document.querySelector('#overlay-add-form #filename').dataset.name = url.split('/').slice(-1)[0]
-					document.querySelector('#overlay-add-form #filename').value = url.split('/').slice(-1)[0].split('.').slice(0,-1).join('.')
-					document.querySelector('#overlay-add-form #fileextension').value = url.split('.').slice(-1)[0];
-					document.querySelector('#overlay-add-form #desc').value = tag.dataset.alt;
-					document.querySelector('#overlay-add-form #filename').readOnly = true;
+					overlayData.input('filename').dataset.name = url.split('/').slice(-1)[0]
+					overlayData.input('filename').value = url.split('/').slice(-1)[0].split('.').slice(0,-1).join('.')
+					overlayData.input('fileextension').value = url.split('.').slice(-1)[0];
+					overlayData.input('desc').value = tag.dataset.alt;
+					overlayData.input('filename').readOnly = true;
 
-					editsManager(document.querySelector('.box.pic .fileentry'), url)
+					editsManager(Box('pic').child('.fileentry'), url)
 				}
 		}
 
 		async function fileSelectorLoad() {
-				container = document.querySelector('#overlay-choose .files-list-container');
+				container = overlayChoose.child('.files-list-container');
 				container.innerHTML = '<div class="spinner"></div>';
 
-				jsonData = JSON.stringify({'csrf':document.querySelector('#token').dataset.csrf, 'action':'fetch', 'category':'poster'})
-				response = await fetch('/admin/engine/files', {
-						method: 'POST',
-						body: jsonData,
-						headers: { 'Content-Type': 'application/json' }
-						})
-				
-				data = await response.json();
+				jsonData = JSON.stringify({'csrf':csrfToken, 'action':'fetch', 'category':'poster'})
+				response = await fetchAPI('/admin/engine/files', jsonData)
 				
 				container.innerHTML = '';
 
-				data.forEach(file => {
+				response.body.forEach(file => {
 					wrap = document.createElement('div')
 					wrap.classList.toggle('file-element-wrap')
 
@@ -1072,20 +1047,20 @@ if ($edition && !$artData) {
 		}
 
 		function fileUpdateSelection(event) {
-				document.querySelectorAll('#overlay-choose .file-element').forEach(tag => {tag.removeAttribute('selected')})
+				overlayChoose.childs('.file-element').forEach(tag => {tag.unset('selected')})
 				target = event.target;
-				preview = document.querySelector('#overlay-choose .file-preview')
+				preview = overlayChoose.child('.file-preview')
 
-				target.setAttribute('selected', '')
+				target.set('selected')
 				preview.firstElementChild.src = target.dataset.url
 				preview.firstElementChild.setAttribute('alt', target.dataset.alt);
 		}
 
 		// file metadata submission
-		overlayData.querySelector('#overlay-add-form').onsubmit = e => {e.preventDefault();overlayData.toggleAttribute('active')}
+		overlayData.child('form').onsubmit = e => {e.preventDefault();overlayData.toggle()}
 		
 		// filename input
-		overlayData.querySelector('#filename').oninput = e => {
+		overlayData.input('filename').oninput = e => {
 				pos = e.target.selectionStart
 				e.target.value = e.target.value.filenameForm()
 				e.target.setSelectionRange(pos,pos)
@@ -1108,14 +1083,14 @@ if ($edition && !$artData) {
 						}
 		
 		// date input requirements
-		document.querySelector('#art-date').onchange = e => document.querySelector('#art-end-date').setAttribute('min', e.target.value)
+		Input('art-date').onchange = e => Input('art-end-date').setAttribute('min', e.target.value)
 		
 	/// PREVIEW ///
 		// markdown <-> html
-		document.querySelector('#art-content').oninput = e => {contentConverter('html')};
+		Input('art-content').oninput = e => {contentConverter('html')};
 		
 		function contentConverter(direction='html') {
-				mdTag = document.querySelector('#art-content')
+				mdTag = Input('art-content')
 				htmlTag = document.querySelector('.art-content .article-content');
 				
 				if (direction==='html'){

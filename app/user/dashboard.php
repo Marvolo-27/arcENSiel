@@ -23,25 +23,20 @@ if (!isset($_SESSION['user_id'])) {
 		<meta property="og:type" content="website">
 		
 		<link rel='stylesheet' type='text/css' href='/files/assets/css/main.css'></link>
-		<link rel='stylesheet' type='text/css' href='/files/assets/css/index.css'></link>
+		<link rel='stylesheet' type='text/css' href='/files/assets/css/grid-layout.css'></link>
 		
 		<script src='/files/assets/js/main.js'></script>
-		
-		<style>
-		</style>
 	</head>	
 	
 	<body>
 	    <?php include($root . '/app/templates/header.php') ?>
 		
 		<div id='main'>
+			<div class="head-info">
+				<h1>Dashboard</h1>
+			</div>
+			
 			<div id="grid-wrap">
-				<div class='icon float cross large'><span class='img'></span></div>
-				
-				<h1 class="head-info">
-					Dashboard
-				</h1>
-				
 				<div id="grid-container">
 					<div class='grid-item-wrap'>
 						<a href="/user/myaccount">
@@ -91,8 +86,5 @@ if (!isset($_SESSION['user_id'])) {
 		</div>
 		
 		<?php include($root . '/app/templates/footer.html') ?>
-		
-		<script>		
-		</script>
 	</body>
 </html>

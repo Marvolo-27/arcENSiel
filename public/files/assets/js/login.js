@@ -1,7 +1,7 @@
 function paswdRequirementsCheck() {
 			// check new psswd validity
-				ptag = document.querySelector('.box.password .error.password');
-				pswd = document.querySelector('#pswd').value;
+				ptag = Box('password').error('password');
+				pswd = Input('pswd').value;
 				
 				checkList = [
 							{'regex': /.{6,}/, selector: '.length'},
@@ -15,54 +15,44 @@ function paswdRequirementsCheck() {
 				checkList.forEach(item => {
 						tag = document.querySelector(`.check-item${item.selector}`);
 						if (pswd.match(item.regex) === null) {
-							tag.setAttribute('invalid','');
-							tag.removeAttribute('valid');
+							tag.set('invalid');
+							tag.unset('valid');
 						} else {
-							tag.removeAttribute('invalid');
-							tag.setAttribute('valid','');
+							tag.unset('invalid');
+							tag.set('valid');
 						}
 				})
 				
 				if (document.querySelector('.check-item[invalid]') !== null) {
-					ptag.setAttribute('active',"")
+					ptag.show() 
 				} else {
-					ptag.removeAttribute('active')
+					ptag.hide()
 				}
 
-			// check new passwds equality
-				pswd = document.querySelector('#pswd').value;
-				pswdConf = document.querySelector('#pswd-bis').value;
-				
-				if (pswd !== pswdConf && pswdConf !== '') {
-					document.querySelector('.box.password-confirm .error.confirmation').setAttribute('active','');
-				} else {
-					document.querySelector('.box.password-confirm .error.confirmation').removeAttribute('active');
-				}
-			
-				submitAllower()
+				psswdCheck()
 		}
 
 // Password match check
 function psswdCheck() {
-		pswd = document.querySelector('#pswd').value;
-		pswdConf = document.querySelector('#pswd-bis').value;
+		pswd = Input('pswd').value;
+		pswdConf = Input('pswd-confirm').value;
 		
 		if (pswd !== pswdConf  && pswdConf !== '') {
-			document.querySelector('.box.password-confirm .error.confirmation').setAttribute('active','');
+			Box('password-confirm').error('confirmation').show();
 		} else {
-			document.querySelector('.box.password-confirm .error.confirmation').removeAttribute('active');
+			Box('password-confirm').error('confirmation').hide();
 		}
 		submitAllower()
 }
 
 function compareWithOldValue(e) {
-			errorTag = e.target.findParent('.box').querySelector('.error');
+			errorTag = e.target.findParent('.box').error();
 			if (e.target.value !== e.target.getAttribute('oldvalue')) {
-				e.target.removeAttribute('invalid');
-				errorTag.removeAttribute('active');
+				e.target.unset('invalid');
+				errorTag.hide();
 			} else {
-				e.target.setAttribute('invalid','');
-				errorTag.setAttribute('active','');
+				e.target.set('invalid','');
+				errorTag.show();
 			}
 		}
 
@@ -73,33 +63,42 @@ async function checkInput(e, type) {
 			if (!inputtag.checkValidity()) {
 				return
 			}
-
-			spin = inputtag.findParent('.input-container').querySelector('.spinner');
+			
+			// contents
 			value = e.target.value.urlForm();
-			errorTag = inputtag.findParent('.box').querySelector('.error');
+
+			// DOM elements
+			spin = inputtag.findParent('.input-container').spinner();
+			error = inputtag.findParent('.box').error();
 			
 			inputtag.value = value;
 			inputtag.setAttribute('oldvalue',value);
-			inputtag.removeAttribute('valid');
-			errorTag.removeAttribute('active');
-			spin.setAttribute('active','');
+			inputtag.unset('valid');
+			error.hide();
+			spin.show();
 			await sleep(250);
 			
 			response = await fetch(`/auth/login?check=availability&type=${type}&content=${value}`);
 			data = await response.json(); // dict parsed response data
 			
 			if (!response.ok) {
-				inputtag.setAttribute('invalid','');
-				spin.removeAttribute('active');
-				errorTag.setAttribute('active','');
-				// console.log(data.error)
+				inputtag.set('invalid');
+				spin.hide();
+				error.show();
 			} else {
-				inputtag.removeAttribute('invalid','');
+				inputtag.unset('invalid');
+				inputtag.set('valid');
+
 				inputtag.value = data.value;
-				inputtag.removeAttribute('oldvalue');
-				spin.removeAttribute('active');
-				inputtag.setAttribute('valid','');
-				errorTag.removeAttribute('active');
+				inputtag.unset('oldvalue');
+
+				spin.hide();
+				error.hide();
 			}
 			submitAllower()
 		}
+
+window.onload = loginConfig
+function loginConfig() {
+
+}

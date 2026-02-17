@@ -72,7 +72,7 @@ if ($status === 'preview' && $edition) {
 		<meta name="theme-color" content="">
 		<meta name="msapplication-navbutton-color" content="">
 		<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-		<meta property="og:title" content="arcENSiel - Association Queer et LGBT+ de l'ENS de Lyon">
+		<meta property="og:title" content="<?= $title ?>">
 		<meta property="og:type" content="website">
 		
 		<link rel='stylesheet' type='text/css' href='/files/assets/css/main.css'></link>
@@ -184,7 +184,7 @@ if ($status === 'preview' && $edition) {
 					<span class='img'></span>
 				</div>
 			<?php endif; ?>
-			<input id='csrf' data-csrf=<?= $_SESSION['CSRF'] ?> hidden readonly>
+			<input name='csrf-token' id='csrf' data-csrf='<?= $_SESSION['CSRF'] ?>' value='<?= $_SESSION['CSRF'] ?>' required hidden readonly>
 		</div>
 		<?php endif; ?>
 		
@@ -200,8 +200,6 @@ if ($status === 'preview' && $edition) {
 									html = converter.makeHtml(<?= json_encode($content) ?>);
 									
 									tag.innerHTML = html;
-
-									console.log("<?= $from ?>", '\n', "<?= $to ?>")
 									}
 		
 		// handle banner shape
@@ -209,13 +207,13 @@ if ($status === 'preview' && $edition) {
 		
 		<?php if ($_SESSION['user_id'] && $status === 'published'): ?>
 		// bookmark managemement
-		document.querySelector('.icon.star').onclick = markArticle
+		Icon('star').onclick = markArticle
 		async function markArticle(e) {
 				tag = e.target.findParent('.icon');
 				
 				mode = tag.getAttribute('active') !== null ? 'unmark':'mark';
 				url = window.location.pathname.split('/').slice(-1)[0];
-				tag.toggleAttribute('active')
+				tag.toggle()
 			
 				response = await fetch(`/user/bookmarks-engine.php?action=update&mode=${mode}&url=${url}`, {
 						headers: { 'X-Requested-With': 'fetch' },
@@ -224,9 +222,7 @@ if ($status === 'preview' && $edition) {
 
 				if (!response.ok) {
 					notify('Erreur lors de la mise à jour des favoris.', 'red')
-					tag.toggleAttribute('active') // reset attribute status
-
-					console.log(data)
+					tag.toggle() // reset attribute status
 				} else {
 					notify('Favoris mis à jour', 'green')
 				}
@@ -236,9 +232,6 @@ if ($status === 'preview' && $edition) {
 		// handle article archiving
 		async function archiveArticle(event) {
 				notify('Mise à jour du statut', 'orange')
-				
-				// csrf token
-				token = document.querySelector('#csrf').dataset.csrf;
 				
 				// dom objects
 				btn = event.target.findParent('.icon')
@@ -250,17 +243,9 @@ if ($status === 'preview' && $edition) {
 
 				await sleep(500);
 				
-				jsonData = JSON.stringify({'action':'archive','type':'articles','csrf':document.querySelector('#csrf').dataset.csrf, 'slug':slug, 'status':state})
-				//console.log(jsonData)
-				
 				// check password
-				response = await fetch('/admin/engine/database', {
-										method: 'POST',
-									    body: jsonData,
-									    headers: { 'Content-Type': 'application/json' }
-									    }
-									)
-				data = await response.json();
+				jsonData = JSON.stringify({'action':'archive','type':'articles','csrf':csrfToken, 'slug':slug, 'status':state})
+				response = await fetchAPI('/admin/engine/database', jsonData)
 
 				if (!response.ok) {
 					notify("Action failed.", 'red')
@@ -274,7 +259,7 @@ if ($status === 'preview' && $edition) {
 				notify('Statut mis à jour avec succès', 'green')
 		}
 		<?php if($status !== 'preview' && $_SESSION['role'] === 'admin'): ?>
-			document.querySelector('#admin-actions .icon.chg-status').onclick = archiveArticle;
+			document.querySelector('#admin-actions').icon('chg-status').onclick = archiveArticle;
 		<?php endif; ?>
 		</script>
 	</body>

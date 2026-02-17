@@ -19,13 +19,13 @@ $artTags = getTags();
 <!DOCTYPE html>
 <html>
 	<head>
-		<title>arcENSiel - Association Queer et LGBT+ de l'ENS de Lyon</title>
+		<title>Nos actualités</title>
 		
 		<link rel="icon" href="/files/icons/arcensiel.ico">
 		<meta name="theme-color" content="">
 		<meta name="msapplication-navbutton-color" content="">
 		<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-		<meta property="og:title" content="arcENSiel - Association Queer et LGBT+ de l'ENS de Lyon">
+		<meta property="og:title" content="Nos actualités">
 		<meta property="og:type" content="website">
 		
 		<link rel='stylesheet' type='text/css' href='/files/assets/css/main.css'></link>
@@ -69,8 +69,6 @@ $artTags = getTags();
 
 					&.mainer {flex: 1}
 				}
-				
-				/* .title {margin-bottom: 0} */
 
 				.metadata {
 						font-size: .9em;
@@ -139,7 +137,7 @@ $artTags = getTags();
 						
 						if (condition) {
 							lock = true
-							document.querySelector('.spinner').setAttribute('active','')
+							Spinner().show()
 						
 							// fetch new results
 							await flowBuilder(received, 4, script, params)
@@ -152,7 +150,6 @@ $artTags = getTags();
 		// Add articles data to DOM
 		async function flowBuilder(start=0, n=5, script='/engine/news', params='') {
 				newsList = await fetchArticles(start, n, script, params);
-				// console.log(query, newsList)
 				
 				// extract general data
 				received += newsList.metadata.sent;
@@ -175,7 +172,6 @@ $artTags = getTags();
 											</span>
 											<span>-</span>`
 								}):null;
-						// console.log(tagsHTML)
 						title = article.title;
 						type = article.type;
 						slugtype = article.typeslug;

@@ -3,6 +3,9 @@ session_start();
 $root = $_SERVER['DOCUMENT_ROOT'] . DIRECTORY_SEPARATOR . '..';
 $serverroot = $_SERVER['DOCUMENT_ROOT'];
 
+//// VARIABLES
+$server_content_file = $root.'/app/pages/backend/content.json';
+
 //// LIBRARIES
 // load libraries
 require_once $root . '/libraries/vendor/autoload.php';

@@ -1,5 +1,7 @@
 //// VARIABLES ////
 const sleep = (delay) => new Promise((resolve) => setTimeout(resolve, delay));
+let body;
+let csrfToken;
 
 // screen dpi
 function scrResol() {dpi=null;for (i=0; i<600; i++) {window.matchMedia(`(resolution:${i}dpi)`).matches ? dpi=i:null};return dpi}
@@ -18,17 +20,28 @@ fetch('/tmp/types.json').then(response => response.json()).then(data => {typesMa
 fetch('/files/icons/spinner.svg')
 
 // overlay dom config
-window.addEventListener('load', overlayConfig);
-function overlayConfig()  {
+window.addEventListener('load', config);
+function config()  {
+			body = document.body
+
 			// overlayAdd = document.querySelector('#overlay-add')
 			// overlayAuth = document.querySelector('#overlay-auth')
 			// overlayChoose = document.querySelector('#overlay-choose')
 			// overlayValid = document.querySelector('#overlay-valid')
+
+			csrfToken = Input('csrf')?.dataset.csrf
 		}
 
 //// METHODS /////
 // Add wrap method to str to shorten str formatting
 String.prototype.strForm = function () {return this.trimStart().trimEnd().toLowerCase()}
+
+// url/path utils
+String.prototype.filename = function (extension=false) {
+														result = extension ? this.split('/').slice(-1)[0] : this.split('/').slice(-1)[0].split('.').slice(0,-1).join('.');
+														return result
+														}
+String.prototype.extension = function () {return this.split('.').slice(-1)[0]}
 
 // method to convert string to compatible Link
 	// normalise separate accentuated letters in {accent + base letter}
@@ -69,7 +82,6 @@ Element.prototype.toSelector = function(conc) {
 																						conc ? selector += c:null;
 																						!conc && c ? selector.push(c):null;
 																						})
-											/*console.log(selector)*/
 											return selector
 											}
 
@@ -77,9 +89,7 @@ Element.prototype.toSelector = function(conc) {
 // selector is for a single node : sibling/parents selectors like +>~ are ignored
 Element.prototype.findParent = function(selector) { 
 													selList = selector.toSelectorList()
-													/*console.log(selList)*/
 													
-													/*console.log('new search', this, selector)*/
 													elm = this
 													while (elm.nodeName !== 'BODY') {
 																					check = true;
@@ -92,15 +102,70 @@ Element.prototype.findParent = function(selector) {
 																												})
 																					
 																					// conclusion
-																					if (check) {/*console.log('found ', elm);*/return elm} else {elm = elm.parentNode}
+																					if (check) {return elm} else {elm = elm.parentNode}
 																					}
 													return document.querySelector('body')
 													}
 
-// Alias method for querySelectore
-Element.prototype.qs = function(selector) { 
-											return this.querySelector(selector)
+// Alias method for querySelector
+Element.prototype.child = function(selector) {return this.querySelector(selector)}
+Element.prototype.childs = function(selector) {return this.querySelectorAll(selector)}
+
+// Shortcuts to toggle attributes
+Element.prototype.set = function(attr) { 
+											this.setAttribute(attr, '')
 											}
+
+Element.prototype.unset = function(attr) { 
+											this.removeAttribute(attr)
+											}
+
+Element.prototype.show = function() {this.set('active')}
+Element.prototype.hide = function() {this.unset('active')}
+
+Element.prototype.toggle = function(attr='active') { 
+											this.toggleAttribute(attr)
+											}
+
+Element.prototype.enable = function(attr='disabled') { 
+											this.removeAttribute(attr)
+											}
+
+Element.prototype.disable = function(attr='disabled') { 
+											this.setAttribute(attr, '')
+											}
+
+// Shortcut to find common tags
+function Button(selector, parent=document) {return parent.querySelector(`.action-btn${selector ? '.':''}${selector}`)}
+Element.prototype.button = function(selector='') { 
+											return Button(selector, this)
+											}
+
+function Icon(selector, parent=document) {return parent.querySelector(`.icon${selector ? '.':''}${selector}`)}
+Element.prototype.icon = function(selector='') { 
+											return Icon(selector, this)
+											}
+
+function Input(selector, parent=document) {return parent.querySelector(`${selector ? '#':'input'}${selector}`)}
+Element.prototype.input = function(selector='') { 
+											return Input(selector, this)
+											}
+
+function Error(selector, parent=document) {return parent.querySelector(`.error${selector ? '.':''}${selector}`)}
+Element.prototype.error = function(selector='') { 
+											return Error(selector, this)
+											}
+
+function Box(selector, parent=document) {return parent.querySelector(`.box${selector ? '.':''}${selector}`)}
+Element.prototype.box = function(selector='') { 
+											return Box(selector, this)
+											}
+
+function Spinner(parent=document) {return parent.querySelector('.spinner')}
+Element.prototype.spinner = function() { 
+										return Spinner(this)
+										}
+
 
 //// FUNCTIONS ////
 // LAYOUT //
@@ -123,10 +188,10 @@ function toggleSubMenu(e, force=false) {
 						const menu = e.findParent('.nav-item');
 						
 						if (menu.getAttribute('active') === null || force === 'in') {
-								menu.setAttribute('active','');
+								menu.show();
 								sliderDown(menu, duration, '.nav-item', '.sub-menu');
 						} else if (menu.getAttribute('active') !== null || force === 'out') {
-								menu.removeAttribute('active');
+								menu.hide();
 								sliderUp(menu, duration, '.nav-item', '.sub-menu');
 						}
 						}
@@ -157,7 +222,6 @@ function sliderDown(e, duration, father, cible) {
 								let fullheight = targ.offsetHeight;
 								targ.style.transition= `all ${duration}ms, margin-top ${duration}ms`;
 								targ.style.height = 0;
-								// targ.style.padding = 0;
 								targ.style.removeProperty('visibility');
 								
 								setTimeout(() => {
@@ -177,14 +241,12 @@ async function bannerManage()  {
 									
 									banner = document.querySelector('#banner');
 									bannerHeight = banner.offsetHeight;
-									bannerItems = document.querySelectorAll('#banner .banner-img');
+									bannerItems = banner.querySelectorAll('.banner-img');
 									
 									if (y > bannerHeight && !logo.className.includes('show')) {
-										logo.className = logo.className.replace('hide','show');
-										//login.className = login.className.replace('hide','show');
+										logo.className = logo.className.replace('hide','show')
 									} else if (y <= bannerHeight && !banner.className.includes('hide')) {
-										logo.className = logo.className.replace('show', 'hide');
-										//login.className = login.className.replace('show', 'hide')
+										logo.className = logo.className.replace('show', 'hide')
 									}
 								}
 
@@ -244,13 +306,11 @@ window.onload = () => {
 	// handle login form
 	try {
 		window.matchMedia(`(hover: none)`).matches ? document.querySelector('.nav-logo.login').findParent('.nav-logo-wrap').onclick = authWrap:null;
-		document.querySelector('.auth-wrap .icon.cross .img').onclick = authWrap;
+		document.querySelector('.auth-wrap').icon('cross').onclick = authWrap;
 	} catch (error) {null}
 
 	// password input
-	try {
-		document.querySelectorAll('.toggle-pass').forEach(tag => tag.onclick = e => {togglePassword('#'+ e.target.findParent('.icon').previousElementSibling.id)});
-	} catch (e) {null}
+	document.querySelectorAll('.toggle-pass')?.forEach(tag => {tag.onclick = e => togglePassword('#'+ e.target.findParent('.icon').previousElementSibling.id)});
 	
 	// handle navbar
 	try {
@@ -263,7 +323,7 @@ window.onload = () => {
 				navitem.onclick = e => toggleSubMenu(e.target);
 			}
 		})
-	} catch (e) {null}
+	} catch (error) {null}
 }
 
 // Show auth Form
@@ -272,7 +332,7 @@ function authWrap(e) {
 					
 					auth = wrap.querySelector('.auth-wrap');
 					
-					Array.from(e.target.classList).includes('img') ? auth.classList.remove('active'):auth.classList.add('active');
+					Array.from(e.target.classList).includes('img') ? auth.hide():auth.show();
 					}
 
 // toggle password visibility
@@ -281,7 +341,7 @@ function togglePassword(selector) {
 					input.focus();
 					icon = input.nextElementSibling.firstElementChild;
 					
-					icon.toggleAttribute('active');
+					icon.toggle();
 					
 					if (icon.getAttribute('active') === null) {
 						input.setAttribute('type', 'password');
@@ -325,6 +385,40 @@ function newTab(link) {
 		open(link);
 }
 
+// Download file
+function download(blob, name) {
+	c = document.createElement("a");
+	url = URL.createObjectURL(blob);
+				
+	c.download = name;
+	c.href = url;
+	c.click();
+	setTimeout(function() { URL.revokeObjectURL(c.href); }, 1500);
+}
+
+// API request
+async function fetchAPI(url, data=null) {
+	// config request
+	payload = data ? {method: "POST"} : null;
+	data ? payload.body = data : null;
+	typeof data === 'string' ? payload.headers = { 'Content-Type': 'application/json' } : null;
+
+	// fetch data
+	response = await fetch(url, payload);
+	json = await response.json();
+
+	// output
+	return {ok: response.ok, httpcode: response.status, body: json}
+}
+
+// Get file content
+async function fetchBlob(url) {
+	response = await fetch(url);
+	blob = await response.blob()
+
+	return blob
+}
+
 // get cursor position : start position of textContent
 function getCaret() {
 	var sel = document.getSelection();	// global API that handles selection (what is clicked, selected)
@@ -343,7 +437,6 @@ function setCaret(rootNode, start) {
 	offset = start; // remaining offset
 	found = false;	// caret status
 	function navigate(node) {// recursive nested function to find and set valid caret position
-		// console.log(node, node.nodeType)
 		if  (node.nodeType === Node.TEXT_NODE) {// nodeType gives num code of node typ, matched with text node code stored in Node API
 			// node length
 			if (node === rootNode.firstChild) {
@@ -353,7 +446,7 @@ function setCaret(rootNode, start) {
 			} else {
 				len = node.textContent.replaceAll('\n','').length;
 			}
-			console.log('len : ',len, ' vs offset : ', offset)
+			
 			// compare length to remaining offset
 			if (offset > len) {
 				offset -= len; // update offset for next text node
@@ -362,14 +455,12 @@ function setCaret(rootNode, start) {
 				
 				range.setStart(node, offset)			// config range
 				range.collapse(true)					// reduce selection to a point
-				// console.log(range)
 				selection.removeAllRanges()				// reset selection
 				selection.addRange(range)			// update selection
 				
 				found = true; // prevent further caret move
 			}
 		} else {// recursive loop in children
-			// console.log('diving in', node, node.childNodes)
 			for (childnode of node.childNodes) !found ? navigate(childnode):null;
 		}
 	}
@@ -384,42 +475,33 @@ async function passwordChecker(selector='input#overlay-pswd') {
 					pswd = tag.value;
 					
 					// error message
-					errorTag = tag.findParent('.box').querySelector('.error');
+					error = tag.findParent('.box').error();
 					
 					// action buttons
-					btn = document.querySelector('#overlay-auth .action-btn.validate');
-					btnbis = document.querySelector('#overlay-auth .action-btn.cancel');
+					btn = document.querySelector('#overlay-auth').button('validate');
+					btnbis = document.querySelector('#overlay-auth').button('cancel');
 					btn.disabled = true;
 					btnbis.disabled = true;
-					btn.toggleAttribute('active')
+					btn.toggle()
 					
 					// reset state
-					tag.removeAttribute('valid');
-					errorTag.removeAttribute('active');
-					
-					// csrf token
-					token = document.querySelector('#csrf').dataset.csrf;
+					tag.unset('valid');
+					error.hide();
 					
 					await sleep(500);
 					
-					jsonData = JSON.stringify({'action':'check','csrf':document.querySelector('#csrf').dataset.csrf, 'password':pswd})
-					//console.log(jsonData)
-					
 					// update data
-					response = await fetch('/admin/engine/database', {
-											method: 'POST',
-											body: jsonData,
-											headers: { 'Content-Type': 'application/json' }
-											}
-										)
+					jsonData = JSON.stringify({'action':'check', 'csrf':csrfToken, 'password':pswd})
+					response = await fetchAPI('/admin/engine/database', jsonData)
+
 					tag.value = '';
-					btn.toggleAttribute('active');
+					btn.toggle();
 					btn.disabled = false;
 					btnbis.disabled = false;
 					
 					if (!response.ok) {
-						tag.setAttribute('invalid','');
-						errorTag.setAttribute('active','');
+						tag.set('invalid');
+						error.show();
 
 						return false
 					} else {return true}
@@ -475,7 +557,6 @@ function usageUpdate(name, rawlist, action='remove') {
 			newlist.push(name)
 		}
 		
-		// console.log(newlist)
 		newlist = newlist.join(',')
 		return newlist == '' ? null:newlist.replace(/,+/, ',').replace(/(^,|,$)/, '')
 	}

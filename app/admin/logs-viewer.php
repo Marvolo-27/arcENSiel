@@ -29,7 +29,7 @@ if ($_SESSION['role'] !== 'admin') {
 		<meta name="theme-color" content="">
 		<meta name="msapplication-navbutton-color" content="">
 		<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-		<meta property="og:title" content="arcENSiel - Association Queer et LGBT+ de l'ENS de Lyon">
+		<meta property="og:title" content="Logs">
 		<meta property="og:type" content="website">
 		
 		<link rel='stylesheet' type='text/css' href='/files/assets/css/main.css'></link>
@@ -118,7 +118,7 @@ if ($_SESSION['role'] !== 'admin') {
 									Array.from(document.querySelector('.input-container.checkboxes').children).forEach(
 											item => {
 												item.addEventListener('change', e => {
-													tkn = e.target.findParent('span').querySelector('input').value;
+													tkn = e.target.findParent('span').input().value;
 													
 													if (tkn === 'all') {
 														logsTable.clearFilter()
@@ -129,69 +129,19 @@ if ($_SESSION['role'] !== 'admin') {
 											})
 									}
 		
-		document.querySelector('.icon.refresh').onclick = logUpdater;
+		Icon('refresh').onclick = logUpdater;
 		
 		async function logUpdater(e) {
 			notify('Synchronisation des logs.', 'orange')
-			e.target.findParent('.icon').setAttribute('active','');
+			e.target.findParent('.icon').show();
 			e.target.findParent('.icon').setAttribute('title','Syncing logs');
 
 			await fetchLogs('#logs')
 			
-			e.target.findParent('.icon').removeAttribute('active');
+			e.target.findParent('.icon').hide();
 			e.target.findParent('.icon').setAttribute('title','Synchroniser les logs');
 			notify('Synchronisation terminée', 'green')
 			}
-
-		async function passwordChecker() {
-				// pswd zone
-				tag = document.querySelector('input#pswd');
-				pswd = tag.value;
-				
-				// error message
-				errorTag = tag.findParent('.box').querySelector('.error');
-				
-				// action buttons
-				btn = document.querySelector('#overlay-auth .action-btn.validate');
-				btnbis = document.querySelector('#overlay-auth .action-btn.cancel');
-				btn.disabled = true;
-				btnbis.disabled = true;
-				btn.toggleAttribute('active')
-				
-				// active table
-				table = activeTable.table;
-				
-				// reset state
-				tag.removeAttribute('valid');
-				errorTag.removeAttribute('active');
-				
-				// csrf token
-				token = document.querySelector('#csrf').dataset.csrf;
-				
-				await sleep(500);
-				
-				jsonData = JSON.stringify({'action':'check','type':activeTable.type,'csrf':document.querySelector('#csrf').dataset.csrf, 'password':document.querySelector('#pswd').value})
-				//console.log(jsonData)
-				
-				// update data
-				response = await fetch('/admin/engine/database', {
-										method: 'POST',
-									    body: jsonData,
-									    headers: { 'Content-Type': 'application/json' }
-									    }
-									)
-				tag.value = '';
-				btn.toggleAttribute('active');
-				btn.disabled = false;
-				btnbis.disabled = false;
-				
-				if (!response.ok) {
-					tag.setAttribute('invalid','');
-					errorTag.setAttribute('active','');
-
-					return false
-				} else {return true}
-		}
 		</script>
 	</body>
 </html>

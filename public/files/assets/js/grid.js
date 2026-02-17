@@ -44,20 +44,19 @@ function gridDim()  {
 /// GRID GENERATORS
 // fetch recent articles
 async function fetchArticles(start=0, n=0, script='/engine/news', params='') {
-			spin = document.querySelector('.spinner');
+			const spin = Spinner();
 			
 			try {
-				spin.setAttribute('active','');
+				spin.show();
 				raw_data = await fetch(`${script}?n=${n}&start=${start}${params}`, {
-				// raw_data = await fetch(`/search/search.php?n=${n}&start=${start}${params}`, {
 					headers: { 'X-Requested-With': 'fetch' },
 					})
-				parsed_data = await raw_data.json();// parse response json into array
-				spin.removeAttribute('active');
+				parsed_data = await raw_data.json(); // parse response json into array
+				spin.hide();
 			} catch (e) {
 				console.log('Error', e);
 				parsed_data = null;
-				spin.removeAttribute('active');
+				spin.hide();
 			}
 			
 			return parsed_data
@@ -70,12 +69,12 @@ async function fetchControl(script='/engine/news', params='') {
 				
 				if (condition) {
 					lock = true
-					document.querySelector('.spinner').setAttribute('active','')
+					Spinner().show()
 				
 					// fetch new results
 					await newsBuilder(received, 2*nGridItems, script, params)
 
-					// document.querySelector('.spinner').removeAttribute('active')
+					// Spinner.hide()
 					lock = false
 				}
 		}
@@ -83,7 +82,6 @@ async function fetchControl(script='/engine/news', params='') {
 // Add articles data to DOM
 async function newsBuilder(start=0, n=5, script='/engine/news', params='') {
 		newsList = await fetchArticles(start, n, script, params);
-		// console.log(query, newsList)
 		
 		// extract general data
 		received += newsList.metadata.sent;
@@ -93,22 +91,22 @@ async function newsBuilder(start=0, n=5, script='/engine/news', params='') {
 		// add articles
 		newsList.data.forEach((article) => {
 				// article data
-				url = article.url;
+				url  = article.url;
 				desc = article.description;
 				time = article.date != null ? article.date.split(' ')[1]:null;
-				day = article.date != null ? article.date.split(' ')[0]:null;
+				day  = article.date != null ? article.date.split(' ')[0]:null;
 				auth = article.author;
 				tags = JSON.parse(article.tags);
 					tagsHTML = '';
-					tags ? tags.forEach(tag => {
+					tags?.forEach(tag => {
 						tagsHTML += `<span class="tag-item">
 											<a href="/search?&tags=${tagsMatchTable[tag].slug}">${tagsMatchTable[tag].name}</a>
 									</span>
 									<span>-</span>`
-						}):null;
+						});
 				// console.log(tagsHTML)
-				title = article.title;
-				type = article.type;
+				title  = article.title;
+				type   = article.type;
 				imgURL = article['picture_path'];
 				
 				// HTML code for one article

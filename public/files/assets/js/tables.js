@@ -24,7 +24,7 @@ function tablesListener(watcher=false, selector='.input-container') {
 		Array.from(document.querySelector(selector).children).forEach(
 				item => {
 					item.addEventListener('change', e => {
-						tkn = e.target.findParent('span').querySelector('input').value;
+						tkn = e.target.findParent('span').child('input').value;
 						toggleTable(`#${tkn}`);
 						activeTable=tableMatch[tkn];
 
@@ -40,11 +40,13 @@ function tablesSwitcher() {
 }
 
 function dataChecker(data) {
+			main = document.querySelector('#main')
+
 			if (JSON.stringify(data) === activeTable.source) {
-				document.querySelector('#main .form-action-wrap').removeAttribute('active')
+				main.child('.form-action-wrap').hide()
 				activeTable.integrity = true;
 			} else {
-				document.querySelector('#main .form-action-wrap').setAttribute('active','')
+				main.child('.form-action-wrap').show()
 				activeTable.integrity = false;
 			}
 		}
@@ -52,13 +54,13 @@ function dataChecker(data) {
 //// TABULATOR GENERATORS
 // Files table
 async function fetchFiles(target) {
-			data = await dataFetcher('files');
-			filesList = data['sql-data'];
+			sourcedata = await dataFetcher('files');
+			filesList = sourcedata['sql-data'];
 
 			statusMatch = {'published': 'Publié', 'archived': 'Archivé', 'draft': 'Brouillon'}
 
 			filesTable = new Tabulator(target, {
-				data: data['sql-data'],
+				data: sourcedata['sql-data'],
 				layout: "fitDataStretch",
 				rowHeight: 36,
 				pagination:true,
@@ -102,17 +104,17 @@ async function fetchFiles(target) {
 				
 				} else if (e.target.findParent('.icon.delete').nodeName !== 'BODY') {
 					overlay = document.querySelector("#overlay-valid")
-					captionTag = overlay.querySelector(".header span")
+					captionTag = overlay.querySelector('.header span')
 					wrap = overlay.querySelector('.use-warning')
 					listTag = wrap.querySelector('ul')
 					
 					if (data.status) {
 						captionTag.innerText = 'Confirmer la suppression du fichier du serveur ?';
 						listTag.innerHTML = '';
-						overlay.querySelector('.delete-mode-wrap').setAttribute('active', '');
+						overlay.querySelector('.delete-mode-wrap').show();
 						
 						references = data['used_by'] ? data['used_by']:'';
-						references !== '' ? wrap.setAttribute('active', ''):null;
+						references !== '' ? wrap.show():null;
 
 						references.split(',').forEach(item => {
 										if (item !== '') {
@@ -121,13 +123,13 @@ async function fetchFiles(target) {
 						})
 					} else {
 						captionTag.innerText = "Confirmer la suppression de l'entrée de ce fichier dans la base de données ?";
-						wrap.removeAttribute('active')
-						overlay.querySelector('.delete-mode-wrap').removeAttribute('active')
+						wrap.hide()
+						overlay.querySelector('.delete-mode-wrap').hide()
 					}
 
 					pendingAction.function = deleter;
 					pendingAction.link = {'status': data.status, 'url': data.url};
-					document.querySelector('#overlay-valid').toggleAttribute('active')
+					overlay.toggle()
 				
 				} else if (e.target.findParent('.icon.download').nodeName !== 'BODY') {
 					data = cell.getRow().getData()
@@ -148,10 +150,10 @@ async function fetchFiles(target) {
 
 // Users table
 async function fetchUsers(target) {
-			data = await dataFetcher('users');
+			sourcedata = await dataFetcher('users');
 			
 			usersTable = new Tabulator(target, {
-				  data: data['sql-data'],
+				  data: sourcedata['sql-data'],
 				  layout: "fitDataTable",
 				  rowHeight: 36,
 				  columns: [
@@ -175,10 +177,10 @@ async function fetchUsers(target) {
 
 // Tags table
 async function fetchTags(target) {
-			data = await dataFetcher('tags');
+			sourcedata = await dataFetcher('tags');
 			
 			tagsTable = new Tabulator(target, {
-				data: data['sql-data'],
+				data: sourcedata['sql-data'],
 				layout: "fitDataStretch",
 				rowHeight: 36,
 				columns: [
@@ -196,7 +198,7 @@ async function fetchTags(target) {
 			if (e.target.findParent('.icon.delete').nodeName !== 'BODY') {
 					pendingAction.function = deleter;
 					pendingAction.link = [e, cell];
-					document.querySelector('#overlay-auth').toggleAttribute('active')
+					document.querySelector('#overlay-auth').toggle()
 				}
 			})
 
@@ -217,13 +219,13 @@ async function fetchTags(target) {
 	
 // Tags table
 async function fetchTypes(target) {
-			data = await dataFetcher('types');
+			sourcedata = await dataFetcher('types');
 			
 			colorMatchTable = {}
 			colorCount = 0;
 
 			typesTable = new Tabulator(target, {
-				  data: data['sql-data'],
+				  data: sourcedata['sql-data'],
 				  layout: "fitDataStretch",
 				  rowHeight: 36,
 				  columns: [
@@ -269,7 +271,7 @@ async function fetchTypes(target) {
 			if (e.target.findParent('.icon.delete').nodeName !== 'BODY') {
 					pendingAction.function = deleter;
 					pendingAction.link = [e, cell];
-					document.querySelector('#overlay-auth').toggleAttribute('active')
+					document.querySelector('#overlay-auth').toggle()
 				}
 			})
 
@@ -294,12 +296,12 @@ async function fetchTypes(target) {
 
 // Articles table
 async function fetchArticles(target) {
-			data = await dataFetcher('articles');
+			sourcedata = await dataFetcher('articles');
 			
 			statusMatch = {'published': 'Publié', 'archived': 'Archivé', 'draft': 'Brouillon'}
 
 			articlesTable = new Tabulator(target, {
-				  data: data['sql-data'],
+				  data: sourcedata['sql-data'],
 				  layout: "fitDataFill",
 				  rowHeight: 36,
 				  columns: [
@@ -344,7 +346,7 @@ async function fetchArticles(target) {
 					if (!activeTable.integrity) {
 						pendingAction.function = redirect;
 						pendingAction.link = `/articles/${cell.getValue()}`;
-						document.querySelector('#overlay-valid').toggleAttribute('active')
+						document.querySelector('#overlay-valid').toggle()
 					} else {
 						redirect(`/articles/${cell.getValue()}`)
 					}
@@ -352,7 +354,7 @@ async function fetchArticles(target) {
 					if (!activeTable.integrity) {
 						pendingAction.function = redirect;
 						pendingAction.link = `/admin/tools/article/preview/${cell.getValue()}`;
-						document.querySelector('#overlay-valid').toggleAttribute('active')
+						document.querySelector('#overlay-valid').toggle()
 					} else {
 						redirect(`/admin/tools/article/preview/${cell.getValue()}`)
 					}
@@ -360,19 +362,19 @@ async function fetchArticles(target) {
 					if (!activeTable.integrity) {
 						pendingAction.function = redirect;
 						pendingAction.link = `/admin/tools/article/draft/${cell.getValue()}`;
-						document.querySelector('#overlay-valid').toggleAttribute('active')
+						document.querySelector('#overlay-valid').toggle()
 					} else {
 						redirect(`/admin/tools/article/draft/${cell.getValue()}`)
 					}
 				} else if (e.target.findParent('.icon.delete').nodeName !== 'BODY') {
 						pendingAction.function = deleter;
 						pendingAction.link = [e, cell];
-						document.querySelector('#overlay-auth').toggleAttribute('active')
+						document.querySelector('#overlay-auth').toggle()
 				} else if (e.target.findParent('.icon.modify.edit').nodeName !== 'BODY') {
 					if (!activeTable.integrity) {
 						pendingAction.function = redirect;
 						pendingAction.link = `/admin/tools/editor/article/${cell.getValue()}`;
-						document.querySelector('#overlay-valid').toggleAttribute('active')
+						document.querySelector('#overlay-valid').toggle()
 					} else {
 						redirect(`/admin/tools/editor/article/${cell.getValue()}`)
 					}
@@ -384,10 +386,10 @@ async function fetchArticles(target) {
 
 // Logs table
 async function fetchLogs(target) {
-			data = await dataFetcher('logs');
+			sourcedata = await dataFetcher('logs');
 			
 			logsTable = new Tabulator(target, {
-				data: data['sql-data'],
+				data: sourcedata['sql-data'],
 				layout: "fitDataFill",
 				pagination:true,
 				paginationSize:20,
@@ -410,10 +412,7 @@ async function fetchLogs(target) {
 
 // HelloAsso main table
 async function fetchHA(target) {
-			response = await fetch('/api/helloasso/get/all')
-			
-			sourcedata = await response.json();
-			//console.log(sourcedata)
+			sourcedata = await fetchAPI('/api/helloasso/get/all').then(response => response.body)
 			
 			// event match table
 			matchTypeTable = {'Shop':'Boutique', 'Event':'Billeterie', 'Donation':'Don', 'Membership':'Adhésion'}
@@ -488,10 +487,7 @@ async function fetchHA(target) {
 
 // HelloAsso Goodies table
 async function fetchGoodies(target) {
-			response = await fetch('/api/helloasso/get/goodies')
-			
-			sourcedata = await response.json();
-			// console.log(sourcedata)
+			sourcedata = await fetchAPI('/api/helloasso/get/goodies').then(response => response.body)
 			
 			itemsType = ["Pin's arcENSiel", "Pin's Mouflon", "Sticker", "Briquet", "Affiche"]
 
@@ -506,7 +502,7 @@ async function fetchGoodies(target) {
 				columns: [
 				{ title: "", field: "delivered", resizable: false, formatter: function(cell) {
 																							editable = cell.getElement().getAttribute('editable') !== null;
-																							cell.getElement().removeAttribute('editable')
+																							cell.getElement().unset('editable')
 														
 																							return `<input type='checkbox' ${cell.getValue() ? 'checked':''} ${editable ? '':'readonly'}>`
 																						}, frozen: true},
@@ -529,7 +525,7 @@ async function fetchGoodies(target) {
 																														return {'values': val}}},
 				{ title: "Enregistré sur Paheko ?", field: "registered", mutator: function(value,data) {return value ? value:false}, resizable: false, formatter: function(cell) {
 																							editable = cell.getElement().getAttribute('editable') !== null;
-																							cell.getElement().removeAttribute('editable')
+																							cell.getElement().unset('editable')
 														
 																							return `<input type='checkbox' ${cell.getValue() ? 'checked':''} ${editable ? '':'readonly'}>`
 																						}, hozAlign: 'center'},
@@ -537,7 +533,7 @@ async function fetchGoodies(target) {
 			
 			goodiesTable.on('cellClick', (e, cell) => {
 				if (e.target.tagName === 'INPUT') {
-					cell.getElement().toggleAttribute('editable')
+					cell.getElement().toggle('editable')
 					cell.setValue(e.target.checked)
 				}
 			})
@@ -547,10 +543,7 @@ async function fetchGoodies(target) {
 
 // DQ7 Table
 async function fetchDQ7(target) {
-			response = await fetch('/api/helloasso/get/drama-queer-7')
-			
-			sourcedata = await response.json();
-			// console.log(sourcedata)
+			sourcedata = await fetchAPI('/api/helloasso/get/drama-queer-7').then(response => response.body)
 			
 			itemsType = ["Prix conseillé", "Prix minimum", "Prix libre", "Paiement en espèces", "Liste d'attente"]
 
@@ -595,12 +588,8 @@ async function fetchDQ7(target) {
 
 // Paheko categories table
 async function fetchCategories(target) {
-			response = await fetch('/api/paheko/get/composition')
-			data = await response.json();
-
-			response = await fetch('/api/paheko/get/categories')
-			categories = await response.json()
-			// console.log(data)
+			sourcedata = await fetchAPI('/api/paheko/get/composition').then(response => response.body)
+			categories = await fetchAPI('/api/paheko/get/categories').then(response => response.body)
 			
 			// Generate dynamically subsection buttons
 			holder = document.querySelector('input[value="categories"] ~ .input-container.checkboxes.subsection')
@@ -624,7 +613,7 @@ async function fetchCategories(target) {
 					item => {
 						item.addEventListener('change', e => {
 							e.stopPropagation()
-							tkn = e.target.findParent('span').querySelector('input').value;
+							tkn = e.target.findParent('span').child('input').value;
 										
 							if (tkn === 'all') {
 									categoriesTable.clearFilter()
@@ -638,7 +627,7 @@ async function fetchCategories(target) {
 			
 			// create tabulator
 			categoriesTable = new Tabulator(target, {
-				data: data,
+				data: sourcedata,
 				layout: "fitDataFill",
 				pagination:true,
 				paginationSize:20,
@@ -660,11 +649,8 @@ async function fetchCategories(target) {
 
 // Subscriptions table
 async function fetchSubscriptions(target) {
-			response = await fetch('/api/paheko/get/users')
-			data = await response.json();
-
-			response = await fetch('/api/paheko/get/services')
-			services = await response.json();
+			sourcedata = await fetchAPI('/api/paheko/get/users').then(response => response.body)
+			services   = await fetchAPI('/api/paheko/get/services').then(response => response.body)
 			
 			// Generate dynamically subsection buttons
 			holder = document.querySelector('input[value="subscriptions"] ~ .input-container.checkboxes.subsection')
@@ -681,7 +667,7 @@ async function fetchSubscriptions(target) {
 
 					span.onchange = e => {
 						e.stopPropagation()
-						tkn = e.target.findParent('span').querySelector('input').value;
+						tkn = e.target.findParent('span').child('input').value;
 
 						subscriptionsTable.setFilter("label", "=", tkn)
 						subscriptionsTable.setSort([{column:"nom", dir:"asc"}]);
@@ -692,7 +678,7 @@ async function fetchSubscriptions(target) {
 			
 			// create tabulator
 			subscriptionsTable = new Tabulator(target, {
-				data: data,
+				data: sourcedata,
 				layout: "fitDataFill",
 				pagination:true,
 				paginationSize:20,
@@ -716,12 +702,11 @@ async function fetchSubscriptions(target) {
 			}
 
 async function fetchStocks(target) {
-			response = await fetch('/api/paheko/get/goodies')
-			data = await response.json();
+			sourcedata = await fetchAPI('/api/paheko/get/goodies').then(response => response.body)
 			
 			// create tabulator
 			stocksTable = new Tabulator(target, {
-				data: data,
+				data: sourcedata,
 				layout: "fitDataFill",
 				pagination:true,
 				paginationSize:20,
@@ -741,29 +726,22 @@ async function fetchStocks(target) {
 //// UTILS FUNCTIONS
 // Fetch SQL data
 async function dataFetcher(type, extra=null) {
-            queryData = {'action':'fetch','type':type,'csrf':document.querySelector('#csrf').dataset.csrf}
+            queryData = {'action':'fetch', 'type':type, 'csrf':csrfToken}
 		    
             if (extra) {// extra query arguments
                 Object.fromEntries(extra).forEach(key, val => {queryData[key] = val})
             }
 
             jsonData = JSON.stringify(queryData)
-    
-		    response = await fetch('/admin/engine/database', {
-		    						method: 'POST',
-		    					    body: jsonData,
-		    					    headers: { 'Content-Type': 'application/json' }
-		    					    }
-		    					)
-                            
-		    data = await response.json();
+		    data = await fetchAPI('/admin/engine/database', jsonData).then(response => response.body)
+
 		    return data
 		}
 
 // Restore table cells dom state
 function resetState(table) {
 			document.querySelectorAll(`${table.selector} .tabulator-cell[changed]`).forEach(elem => {
-				elem.removeAttribute('changed')
+				elem.unset('changed')
 				}
 			)
 	    }
@@ -779,6 +757,6 @@ async function resetTabledata(table = activeTable) {
 
 // navigate between tables
 function toggleTable(query) {
-	        document.querySelector(query).setAttribute('active','');
-	        document.querySelectorAll(`.table:not(${query})`).forEach(e => {e.removeAttribute('active')});
+	        document.querySelector(query).show();
+	        document.querySelectorAll(`.table:not(${query})`).forEach(e => {e.hide()});
 		}

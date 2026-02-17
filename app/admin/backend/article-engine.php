@@ -33,6 +33,7 @@ $rootpath = '/files/uploads/';
 $action = $_POST['action'] ?? null;
 if ($action === 'draft') {
 	$_SESSION['post-data'] = $_POST;
+	echo json_encode(['message' => 'Draft generated']);
 	exit;
 }
 
