@@ -215,7 +215,7 @@ if ($status === 'preview' && $edition) {
 				url = window.location.pathname.split('/').slice(-1)[0];
 				tag.toggle()
 			
-				response = await fetch(`/user/bookmarks-engine.php?action=update&mode=${mode}&url=${url}`, {
+				response = await fetch(`/user/engine/bookmarks?action=update&mode=${mode}&url=${url}`, {
 						headers: { 'X-Requested-With': 'fetch' },
 						})
 				data = await response.json()
