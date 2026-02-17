@@ -112,28 +112,15 @@ Element.prototype.child = function(selector) {return this.querySelector(selector
 Element.prototype.childs = function(selector) {return this.querySelectorAll(selector)}
 
 // Shortcuts to toggle attributes
-Element.prototype.set = function(attr) { 
-											this.setAttribute(attr, '')
-											}
-
-Element.prototype.unset = function(attr) { 
-											this.removeAttribute(attr)
-											}
+Element.prototype.set = function(attr) {this.setAttribute(attr, '')}
+Element.prototype.unset = function(attr) {this.removeAttribute(attr)}
+Element.prototype.toggle = function(attr='active') {this.toggleAttribute(attr)}
 
 Element.prototype.show = function() {this.set('active')}
 Element.prototype.hide = function() {this.unset('active')}
 
-Element.prototype.toggle = function(attr='active') { 
-											this.toggleAttribute(attr)
-											}
-
-Element.prototype.enable = function(attr='disabled') { 
-											this.removeAttribute(attr)
-											}
-
-Element.prototype.disable = function(attr='disabled') { 
-											this.setAttribute(attr, '')
-											}
+Element.prototype.enable = function() {this.removeAttribute('disabled')}
+Element.prototype.disable = function() {this.setAttribute('disabled')}
 
 // Shortcut to find common tags
 function Button(selector, parent=document) {return parent.querySelector(`.action-btn${selector ? '.':''}${selector}`)}
