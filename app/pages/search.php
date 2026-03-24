@@ -53,6 +53,7 @@ $arguments = ($type || $author || $from || $to || $tags !== [null] || $query);
 					& .input-container {
 						align-items: center;
 						gap: .5em;
+						flex: 1 0;
 						}
 			}
 
@@ -70,10 +71,10 @@ $arguments = ($type || $author || $from || $to || $tags !== [null] || $query);
     						left: calc(-0.5 * (100vw - 1000px) - 2em - 1em + min(100vw - 1000px, var(--offset)));
 							}
 
+					&[active] #filters {display: flex  !important;}
+
 					& .icon.filters {
 							flex-shrink: 0;
-						
-							&[active] ~ #filters {display: flex  !important;}
 							}
 					
 					& #filters {
@@ -133,22 +134,16 @@ $arguments = ($type || $author || $from || $to || $tags !== [null] || $query);
 		
 		<div id='main'>
 			<form id="search-form" action="/engine/search">
-				<div class='box search'>
+				<div class='box search linear'>
+					<div class='icon filters inline large hoverable dynamic' <?= ($type || $author || $from || $to || $tags !== [null]) ? 'active':'' ?>><span class='img'></span></div>
 					<div class='input-container'>
 						<div class='icon search left medium'><span class='img'></span></div>
 						<input class='lineentry decorated' type='search' name='query' value="<?= $search ?>" id='textsearch' value="<?= $query_slug ?>" autocomplete=on <?= $arguments ? '':'required' ?> placeholder="Recherche...">
-						<button class='icon send large inline dynamic hoverable' type='submit'><span class='img'></span></button>
 					</div>
-					<div class="form-action-wrap">
-						<div class='form-action'>
-							<button class='action-btn reset' type='submit' id="submit" hidden>Send</button>
-						</div>
-					</div>
+					<button class='icon send large inline dynamic hoverable' type='submit'><span class='img'></span></button>
 				</div>
 				
-				<div class="filters-wrap">
-					<div class='icon filters inline large hoverable dynamic' <?= ($type || $author || $from || $to || $tags !== [null]) ? 'active':'' ?>><span class='img'></span></div>
-					
+				<div class="filters-wrap">					
 					<div id="filters">
 						<div class="box tags condensed">
 							<div class="input-container">
@@ -321,7 +316,7 @@ $arguments = ($type || $author || $from || $to || $tags !== [null] || $query);
 				}
 
 		// filters panel management
-		Icon('filters').onclick = e => {e.target.parentNode.toggle()};
+		Icon('filters').onclick = e => {e.target.findParent('#search-form').child('.filters-wrap').toggle()};
 		</script>
 	</body>
 </html>
