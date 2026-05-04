@@ -44,15 +44,6 @@ $artTypes = getTypes();
 		<script type="text/javascript" src="https://unpkg.com/tabulator-tables/dist/js/tabulator.min.js"></script>
 		
 		<style>
-			/*!! News !!*/
-			#placeholder {
-				width: 95%;
-				margin: auto;
-				}
-		
-		/*.external.auth-action {display: none}
-		.external.auth-action::before {display: none}*/
-		
 		#main .external.auth-action {
 					display:none;
 					width: 95%;
@@ -100,11 +91,13 @@ $artTypes = getTypes();
 				</div>
 			</div>
 
-			<div class='table' id='users'></div>
-			<div class='table no-bound' id='articles'></div>
-			<div class='table' id='tags'></div>
-			<div class='table' id='types'></div>
-			
+			<div class="tables">
+				<div class='table' id='users'></div>
+				<div class='table no-bound' id='articles'></div>
+				<div class='table' id='tags'></div>
+				<div class='table' id='types'></div>
+			</div>
+
 			<div class="form-action-wrap linear responsive">
 				<div class='form-action'>
 					<button class='action-btn save'>Sauvegarder</button>
@@ -124,8 +117,6 @@ $artTypes = getTypes();
 		<script>
 		// variables
 		let typesCounter = {};
-		const overlayValid = document.querySelector('#overlay-valid')
-		const overlayAuth = document.querySelector('#overlay-auth')
 
 		// on-load logic
 		window.addEventListener('load', loader)
@@ -234,7 +225,7 @@ $artTypes = getTypes();
 		}
 
 		// actions that require authentification
-		overlayAuth.child('form').onsubmit = e => e.preventDefault();
+		Overlay('auth').child('form').onsubmit = e => e.preventDefault();
 		async function saveCurrentData() {
 				// active table
 				table = activeTable.table;
@@ -265,31 +256,31 @@ $artTypes = getTypes();
 				}
 		
 		// cancel requested action
-		overlayAuth.button('cancel').onclick = e => {
-				overlayAuth.hide();
-				overlayAuth.input('overlay-pswd').value = '';
+		Overlay('auth').button('cancel').onclick = e => {
+				e.container().hide();
+				Overlay('auth').input('overlay-pswd').value = '';
 				pendingAction = {};
 		}
 
 		// cancel requested action
-		overlayValid.button('cancel').onclick = e => {
-				overlayValid.hide();
+		Overlay('validate').button('cancel').onclick = e => {
+				e.container().hide();
 				pendingAction = {};
 		}
 
 		// go on with requested action
-		overlayValid.button('validate').onclick = e => {
-				overlayValid.hide();	
+		Overlay('validate').button('validate').onclick = e => {
+				e.container().hide();	
 				pendingAction.link ? pendingAction.function(pendingAction.link):pendingAction.function();
 				pendingAction = {};
 		}
 
 		// validate credentials and go on with requested action
-		overlayAuth.button('validate').onclick = async e => {
+		Overlay('auth').button('validate').onclick = async e => {
 				// check password
 				validity = await passwordChecker();
 				if (validity) {
-					overlayAuth.hide();	
+					e.container().hide();	
 					pendingAction.link ? pendingAction.function(pendingAction.link):pendingAction.function();
 					pendingAction = {};
 				}
@@ -298,13 +289,13 @@ $artTypes = getTypes();
 		// show overlay save changes
 		Button('save').onclick = e => {
 				pendingAction.function = saveCurrentData;
-				overlayAuth.show();
+				e.container().show();
 		}
 
 		// show overlay to reset edits
 		Button('reset').onclick = e => {
 				pendingAction.function = resetTabledata;
-				overlayValid.show()
+				e.container().show()
 		}
 
 		</script>

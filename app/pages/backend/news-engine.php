@@ -26,7 +26,7 @@ if ($n === 0) {
 }
 $sql = $sql.$extension;
 
-logger('/log/queries.log', queryMaker($sql, [':n' => $n, ':start' => $start]), "Fetch articles data", false);
+//DEBUG: logger('/log/queries.log', queryMaker($sql, [':n' => $n, ':start' => $start]), "Fetch articles data", false);
 
 // select coresponding articles
 $query = $pdo->prepare($sql);

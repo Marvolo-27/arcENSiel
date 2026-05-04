@@ -169,8 +169,8 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 			</div>
 		</div>
 		
-		<?php include($root . '/app/templates/overlay_choose.html') ?>
-		<?php include($root . '/app/templates/overlay_new-file.html') ?>
+		<?php include($root . '/app/templates/overlay_file-picker.html') ?>
+		<?php include($root . '/app/templates/overlay_file-uploader.html') ?>
         <?php include($root . '/app/templates/footer.html') ?>
 
 		<script>
@@ -208,17 +208,18 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 							overlayValid.toggle()
 
 						} else if (action === 'edit') {// edit pour changer description ou fichier
-							overlayAdd.child('.box.description input').value = linkTag.innerText;
-							overlayAdd.child('.title').innerText = "Modification d'une entrée"
-							overlayAdd.child('.selected-file').innerText = name;
-							overlayAdd.child('.frame').show()
-							overlayAdd.child('.fileentry').required = false;
-							overlayAdd.toggle()
+							overlay = Overlay('ulpoader')
+							overlay.box('description').input().value = linkTag.innerText;
+							overlay.child('.title').innerText = "Modification d'une entrée"
+							overlay.child('.selected-file').innerText = name;
+							overlay.child('.frame').show()
+							overlay.child('.fileentry').required = false;
+							overlay.toggle()
 
-							overlayAdd.input('filename').dataset.name = url.filename(true)
-							overlayAdd.input('filename').value = url.filename()
-							overlayAdd.input('fileextension').value = url.extension();
-							overlayAdd.input('filename').readOnly = true
+							overlay.input('filename').dataset.name = url.filename(true)
+							overlay.input('filename').value = url.filename()
+							overlay.input('fileextension').value = url.extension();
+							overlay.input('filename').readOnly = true
 							
 							mode = 'update';
 						}
@@ -239,29 +240,30 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 						upload = fileUploadManage(input, /(application\/(pdf|zip|vnd\.sqlite3)|image\/.*)/, 10)
 						
 						if (upload) {
-							overlayAdd.input('filename').value = file.name.filename().filenameForm()
-							overlayAdd.input('filename').dataset.name = file.name.filenameForm()
-							overlayAdd.input('fileextension').value = file.name.extension();
+							Overlay('uploader').input('filename').value = file.name.filename().filenameForm()
+							Overlay('uploader').input('filename').dataset.name = file.name.filenameForm()
+							Overlay('uploader').input('fileextension').value = file.name.extension();
 						}
 					}
 			
 			// trigger status update
 			function updateStatutsTrigger(e) {
+				overlay = Overlay('uploader')
 				tag = e.findParent('.icon.edit').previousElementSibling.querySelector('a')
 				url = tag.getAttribute('href')
 				name = tag.download
 
-				overlayAdd.child('.title').innerText = "Modification d'une entrée"
-				overlayAdd.child('.selected-file').innerText = name;
-				overlayAdd.child('.frame').show()
-				overlayAdd.child('.fileentry').required = false;
-				overlayAdd.toggle()
+				overlay.child('.title').innerText = "Modification d'une entrée"
+				overlay.child('.selected-file').innerText = name;
+				overlay.child('.frame').show()
+				overlay.child('.fileentry').required = false;
+				overlay.toggle()
 
-				overlayAdd.input('filename').dataset.name = url.split('/').slice(-1)[0]
-				overlayAdd.input('filename').value = url.split('/').slice(-1)[0].split('.').slice(0,-1).join('.')
-				overlayAdd.input('fileextension').value = url.split('.').slice(-1)[0];
-				overlayAdd.input('filename').readOnly = true
-				overlayAdd.input('desc').value = tag.dataset.alias
+				overlay.input('filename').dataset.name = url.filename(true)
+				overlay.input('filename').value = url.filename()
+				overlay.input('fileextension').value = url.extension()
+				overlay.input('filename').readOnly = true
+				overlay.input('desc').value = tag.dataset.alias
 			}
 
 			// update statuts metadata on server
@@ -275,7 +277,7 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 						tag = currentFile.tag
 						currentFile = {};
 
-						fileTag = overlayAdd.child('.fileentry')
+						fileTag = Overlay('uploader').child('.fileentry')
 
 						formData = new FormData(form);
 						formData.set('mode', mode)
@@ -284,7 +286,7 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 						formData.set('subcategory', subcategory)	
 						formData.set('og-url', url)
 						formData.set('url', tag.dataset.targetUrl)
-						formData.set('filename', formData.get('filename')+'.'+overlayAdd.input('fileextension').value)
+						formData.set('filename', formData.get('filename') + '.' + Overlay('uploader').input('fileextension').value)
 						formData.set('file-updated', mode === 'update' && url !== tag.dataset.targetUrl)
 						formData.set('csrf', csrfToken)
 
@@ -356,7 +358,7 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 					}
 
 			// filename input
-			overlayAdd.input('filename').oninput = e => {
+			Overlay('uploader').input('filename').oninput = e => {
 					pos = e.target.selectionStart
 					e.target.value = e.target.value.filenameForm()
 					e.target.setSelectionRange(pos,pos)
@@ -364,13 +366,14 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 
 			// show panel to save changes
 			Button('new-bm').onclick = e => {
-				overlayAdd.child('form').reset();
-				overlayAdd.child('.fileentry').required = true;
-				overlayAdd.child('.frame').hide();
-				overlayAdd.child('.title').innerText = "Ajout d'une entrée"
+				overlay = e.container()
+				overlay.child('form').reset();
+				overlay.child('.fileentry').required = true;
+				overlay.child('.frame').hide();
+				overlay.child('.title').innerText = "Ajout d'une entrée"
 				subcategory = 'bm';
 				mode = 'add';
-				overlayAdd.toggle()
+				overlay.toggle()
 			}
 
 			// show panel to save changes
@@ -383,38 +386,40 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 				overlayAdd.toggle()
 			}
 
-			overlayAdd.button('cancel').onclick = e => {
-				overlayAdd.hide();
-				overlayAdd.child('form').reset();
-				overlayAdd.child('.selected-file').innerText = '';
-				overlayAdd.input('filename').readOnly = false
+			Overlay('uploader').button('cancel').onclick = e => {
+				overlay = e.container()
+				overlay.hide();
+				overlay.child('form').reset();
+				overlay.child('.selected-file').innerText = '';
+				overlay.input('filename').readOnly = false
 				currentFile = {};
 			}
 
-			overlayValid.button('cancel').onclick = e => {
-				overlayValid.hide();
+			Overlay('validate').button('cancel').onclick = e => {
+				e.container().hide();
 				currentFile = {};
 			}
 
-			overlayValid.button('validate').onclick = e => {
-				overlayValid.hide();
+			Overlay('validate').button('validate').onclick = e => {
+				e.container().hide();
 				removeElement()
 			}
 
-			overlayAdd.child('form').onsubmit = e => {
+			Overlay('uploader').child('form').onsubmit = e => {
 				e.preventDefault();
-				overlayAdd.hide();
+				e.container().hide();
 				
 				descUpdate(e.target)
 			}
 
-			overlayAdd.icon('delete').onclick = e => {
-				filename = overlayAdd.input('filename')
-				fileextension = overlayAdd.input('fileextension')
-				file = overlayAdd.input('file')
+			Overlay('uploader').icon('delete').onclick = e => {
+				overlay = e.container()
+				filename = overlay.input('filename')
+				fileextension = overlay.input('fileextension')
+				file = overlay.input('file')
 
-				overlayAdd.child('.frame').hide();
-				overlayAdd.child('.selected-file').innerText = '';
+				overlay.child('.frame').hide();
+				overlay.child('.selected-file').innerText = '';
 				file.required = true;
 				file.value = '';
 
@@ -425,21 +430,21 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 			}
 
 			// cancel request action
-			overlayChoose.button('cancel').onclick = e => {
-				overlayChoose.toggle();
-				overlayAdd.toggle();
-				overlayChoose.childs('.file-element').forEach(tag => {tag.removeAttribute('selected')})
-				overlayAdd.input('filename').readOnly = false
+			Overlay('filepicker').button('cancel').onclick = e => {
+				e.container().toggle();
+				Overlay('uploader').toggle();
+				e.container().childs('.file-element').forEach(tag => {tag.unset('selected')})
+				Overlay('uploader').input('filename').readOnly = false
 				//currentFile = {};
 			}
 
 			// show file selection panel
-			overlayAdd.button('exist-file').onclick = e => {
-					overlayAdd.toggle();
-					overlayChoose.toggle();
+			Overlay('uploader').button('exist-file').onclick = e => {
+					e.container().toggle();
+					Overlay('filepicker').toggle();
 			}
 
-			overlayChoose.button('validate').onclick = e => {
+			Overlay('filepicker').button('validate').onclick = e => {
 					tag = overlayChoose('.file-element[selected]')
 					error = Error('file-choice')
 
@@ -447,22 +452,23 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 						error.innerText = 'Sélectionnez un fichier pour continuer';
 						error.show();
 					} else {
+						overlay = Overlay('uploader')
 						error.hide();
-						overlayChoose.hide();
-						overlayAdd.toggle();
+						e.container().hide();
+						overlay.toggle();
 
 						url = tag.dataset.targetUrl;
 						Object.keys(currentFile).length !== 0 ? currentFile.tag.dataset.targetUrl = url:currentFile = {'url': null, 'tag': tag}; // prevent error on add mode
 						
-						overlayAdd.input('filename').dataset.name = url.split('/').slice(-1)[0]
-						overlayAdd.input('filename').value = url.split('/').slice(-1)[0].split('.').slice(0,-1).join('.')
-						overlayAdd.input('fileextension').value = url.split('.').slice(-1)[0];
-						overlayAdd.input('filename').readOnly = true
+						Overlay('uploader').input('filename').dataset.name = url.filename(true)
+						Overlay('uploader').input('filename').value = url.filename()
+						Overlay('uploader').input('fileextension').value = url.extension()
+						Overlay('uploader').input('filename').readOnly = true
 
-						overlayChoose.childs('.file-element').forEach(tag => {tag.removeAttribute('selected')})
-						overlayAdd.child('.selected-file').innerText = url.split('/').slice(-1)[0];
-						overlayAdd.child('.frame').show();
-						overlayAdd.child('.fileentry').required = false;
+						e.container().childs('.file-element').forEach(tag => {tag.unset('selected')})
+						Overlay('uploader').child('.selected-file').innerText = url.filename(true);
+						Overlay('uploader').child('.frame').show();
+						Overlay('uploader').child('.fileentry').required = false;
 					}
 			}
 
@@ -470,9 +476,9 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 		Input('file').onchange = e => {
 							upload = fileUploadManage(e.target, /(application\/(pdf|zip|vnd\.sqlite3)|image\/.*)/, 10)
 							if (upload) {
-								overlayAdd.input('filename').value = file.name.filename().filenameForm()
-								overlayAdd.input('filename').dataset.name = file.name.filenameForm();
-								overlayAdd.input('fileextension').value = file.name.extension();
+								Overlay('uploader').input('filename').value = file.name.filename().filenameForm()
+								Overlay('uploader').input('filename').dataset.name = file.name.filenameForm();
+								Overlay('uploader').input('fileextension').value = file.name.extension();
 							}
 							};
 
@@ -504,13 +510,13 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 		}
 
 		function fileUpdateSelection(event) {
-				overlayChoose.childs('.file-element').forEach(tag => {tag.unset('selected')})
+				Overlay('filepicker').childs('.file-element').forEach(tag => {tag.unset('selected')})
 				target = event.target;
 
 				target.set('selected')
 		}
 
-		overlayChoose.button('fetch-all').onclick = async e => {
+		Overlay('filepicker').button('fetch-all').onclick = async e => {
 				tag = e.target.findParent('.action-btn')
 				
 				tag.toggle()

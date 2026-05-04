@@ -175,7 +175,7 @@ if ($status === 'preview' && $edition) {
 		<?php if($_SESSION['role'] === 'admin'): ?>
 		<div id="admin-actions">
 			<?php if($status === 'preview' && $edition): ?>
-				<a class='icon edit inline large dynamic' href="/admin/tools/editor/article/<?= $url ?>" title="Modifier l'article">
+				<a class='icon edit inline large dynamic' href="/admin/tools/edit/article/<?= $url ?>" title="Modifier l'article">
 					<span class='img'></span>
 				</a>
 			<?php endif; ?>

@@ -50,6 +50,8 @@ $arguments = ($type || $author || $from || $to || $tags !== [null] || $query);
 
 		<style>
 			.box.search {
+					gap: .5em;
+					
 					& .input-container {
 						align-items: center;
 						gap: .5em;

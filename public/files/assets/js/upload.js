@@ -49,7 +49,7 @@ function fileUploadManage(input, format=/image\/.*/, maxsize = 2) {
 				invalid = 'Taille du fichier trop élevée.';
 			}
 			
-			error = IError('file');
+			error = Error('file');
 			frame = document.querySelector('.frame');
 			if (invalid !== '') {
 				error.innerText = invalid;
@@ -59,7 +59,7 @@ function fileUploadManage(input, format=/image\/.*/, maxsize = 2) {
 				return false;
 			} else {
 				error.hide()
-				document.querySelector('#overlay-add').child('.selected-file').innerText = file.name;
+				Overlay('uploader').child('.selected-file').innerText = file.name;
 			}
 			
 			frame.show();

@@ -356,7 +356,7 @@ if ($edition && !$artData) {
 			
 		</div>
 		
-		<div class="body-overlay" id="overlay-data">
+		<div class="body-overlay" id="overlay-metadata">
 			<div class="inner-overlay">
 				<div>
 					<h4 class="title">
@@ -394,7 +394,7 @@ if ($edition && !$artData) {
 			</div>
 		</div>
 
-		<?php include($root . '/app/templates/overlay_choose.html') ?>
+		<?php include($root . '/app/templates/overlay_file-picker.html') ?>
 		<?php include($root . '/app/templates/overlay_validation.html') ?>
 
 		<?php include($root . '/app/templates/footer.html') ?>
@@ -405,11 +405,6 @@ if ($edition && !$artData) {
 		let editsHistory = {};
 		let pendingAction = {};
 		let lockedEdit = true ;
-		
-		// DOM elements
-		const overlayData = document.querySelector('#overlay-data')
-		const overlayChoose = document.querySelector('#overlay-choose')
-		const overlayValid = document.querySelector('#overlay-valid')
 
 
 	/// Actions management
@@ -420,8 +415,8 @@ if ($edition && !$artData) {
 		Button('publish').onclick = e => {
 				if (e.target.getAttribute('disabled') !== null) return;
 				
-				overlayValid.child('span').textContent = "Enregistrer les modifications ?";
-				overlayValid.show();
+				Overlay('validate').child('span').textContent = "Enregistrer les modifications ?";
+				Overlay('validate').show();
 				pendingAction.function = submitForm;
 		}
 
@@ -432,8 +427,8 @@ if ($edition && !$artData) {
 				if (checkIntegrity()) {
 					resetForm()
 				} else {
-					overlayValid.child("span").textContent = "Rétablir le formulaire dans son état d'origine ?";
-					overlayValid.show();
+					Overlay('validate').child("span").textContent = "Rétablir le formulaire dans son état d'origine ?";
+					Overlay('validate').show();
 					pendingAction.function = resetForm;
 				}
 		}
@@ -445,8 +440,8 @@ if ($edition && !$artData) {
 				if (checkIntegrity()) {
 					redirect(`/admin/tools/article/preview/<?= $artData['url'] ?>`)
 				} else {
-					overlayValid.child("span").textContent = "Poursuivre et abandonner les modifications non enregistrées ?";
-					overlayValid.show();
+					Overlay('validate').child("span").textContent = "Poursuivre et abandonner les modifications non enregistrées ?";
+					Overlay('validate').show();
 					pendingAction.function = redirect;
 					pendingAction.link = "/articles/<?= $artData['url'] ?>";
 				}
@@ -469,23 +464,23 @@ if ($edition && !$artData) {
 		}
 
 		// go on with requested action
-		overlayValid.button('validate').onclick = e => {
+		Overlay('validate').button('validate').onclick = e => {
 				lockedEdit = false;
-				overlayValid.hide();
+				e.container().hide();
 				pendingAction.link ? pendingAction.function(pendingAction.link):pendingAction.function();
 				pendingAction = {};
 		}
 
 		// cancel request action
-		overlayValid.button('cancel').onclick = e => {
-				overlayValid.hide();
+		Overlay('validate').button('cancel').onclick = e => {
+				e.container().hide();
 				pendingAction = {};
 		}
 		
 		// existing file chosen
-		overlayChoose.button('cancel').onclick = e => {
-				preview = overlayChoose.childs('.file-element')
-				overlayChoose.hide();
+		Overlay('filepicker').button('cancel').onclick = e => {
+				preview = e.container().childs('.file-element')
+				e.container().hide();
 
 				preview.forEach(tag => {tag.unset('selected')})
 				preview.firstElementChild.src = '';
@@ -624,6 +619,7 @@ if ($edition && !$artData) {
 					}
 		
 		function generateFormData(form) {
+				overlay = Overlay('metadata')
 				urlTag = Input('art-url');
 				picTag = Input('art-pic');
 				typeTag  = Input('art-type');
@@ -638,8 +634,8 @@ if ($edition && !$artData) {
 				// Update data
 				taglist = Array.from(document.querySelectorAll('.checkbox.option:checked')).map(e => {return {'slug': e.getAttribute('name'), 'name': e.value}});
 				formData.set('art-tags', JSON.stringify(taglist));
-				formData.set('file-description', overlayData.input('desc').value)
-				formData.set('filename', overlayData.input('filename').value + '.' + overlayData.input('fileextension').value)
+				formData.set('file-description', overlay.input('desc').value)
+				formData.set('filename', overlay.input('filename').value + '.' + overlay.input('fileextension').value)
 				formData.set('type', JSON.stringify({'slug': typeTag.value, 'name': typesList[typeTag.value], 'color': typeTag.querySelector(`option[value='${typeTag.value}']`).dataset.color, 'new': typeTag.classList.contains('new')}));
 				formData.set('art-end-date', formData.get('art-end-date') !== '' ? formData.get('art-end-date'):null);
 				// formData.set('art-title', titleTag.textContent);
@@ -665,7 +661,7 @@ if ($edition && !$artData) {
 						assertion = document.querySelector('#art-tags .tag-item.new') === null;
 						if (!assertion) {return}
 						
-						adder.setAttribute('disabled','') // lock add button
+						adder.disable() // lock add button
 						
 						span = document.createElement('span');
 						span.setAttribute('class','tag-wrap');
@@ -690,12 +686,12 @@ if ($edition && !$artData) {
 																		tag.setAttribute('duplicate','')
 																		return
 																	}
-																	tag.removeAttribute('duplicate')
+																	tag.unset('duplicate')
 																	
 																	// add tags
 																	tagsList[val.urlForm()] = val;
 																	
-																	adder.removeAttribute('disabled') // unlock button
+																	adder.enable() // unlock button
 																	tag.value = tag.value.trim();
 																	tag.setAttribute('name', val.urlForm());
 																	
@@ -745,7 +741,7 @@ if ($edition && !$artData) {
 						assertion = document.querySelector('#art-type .type-option.new') === null;
 						if (!assertion) {return}
 						
-						adder.setAttribute('disabled','') // lock add button
+						adder.disable()
 						
 						span = document.createElement('span');
 						span.setAttribute('class','type-wrap');
@@ -778,7 +774,7 @@ if ($edition && !$artData) {
 
 																	// check uniqueness
 																	if (val === '' || !ctag.dataset.changed || Object.keys(typesList).includes(val.urlForm())) {
-																		tag.setAttribute('duplicate','')
+																		tag.set('duplicate')
 																		return
 																	}
 																	tag.findParent('.type-wrap').remove();
@@ -787,7 +783,7 @@ if ($edition && !$artData) {
 																	typesList[val.urlForm()] = val;
 																	
 																	// unlock button
-																	adder.removeAttribute('disabled') 
+																	adder.enable()
 																	
 																	// append label + icon
 																	wrapper.append(option)
@@ -918,8 +914,8 @@ if ($edition && !$artData) {
 		visual.ondragover = e => {e.preventDefault()}	// fires when a draggable object is over valid drag zone (repeats)
 		
 		document.querySelector('.frame .action-btn.new-file').onclick = e => {e.target.findParent('.frame').input().click()}	// fires when a draggable object is over valid drag zone (repeats)
-		document.querySelector('.frame .visual-overlay').icon('delete').onclick = e => {e.target.findParent('.frame').input().value='';e.target.findParent('.frame').input().required=true;e.target.findParent('.frame').hide();overlayData.child('form').reset()}	// fires when a draggable object is over valid drag zone (repeats)
-		document.querySelector('.frame .visual-overlay').icon('edit').onclick = e => overlayData.toggle()
+		document.querySelector('.frame .visual-overlay').icon('delete').onclick = e => {e.target.findParent('.frame').input().value='';e.target.findParent('.frame').input().required=true;e.target.findParent('.frame').hide();Overlay('metadata').child('form').reset()}	// fires when a draggable object is over valid drag zone (repeats)
+		document.querySelector('.frame .visual-overlay').icon('edit').onclick = e => Overlay('metadata').toggle()
 		document.querySelector('.frame .visual').onclick = e => {e.target.findParent('.frame').input().click()}	// fires when a draggable object is over valid drag zone (repeats)
 		
 		visual.ondrop = fileDropHandle;
@@ -938,6 +934,7 @@ if ($edition && !$artData) {
 		// check selected file validity
 		function fileUploadManage(input, format=/image\/.*/, maxsize = 2) {
 					tag = input;
+					overlay = Overlay('metadata')
 					
 					// extract files info
 					files = tag.files;
@@ -972,25 +969,26 @@ if ($edition && !$artData) {
 					Box('pic').child('.visual').src = URL.createObjectURL(file);
 					
 					// extract from file metadata
-					overlayData.input('filename').readOnly = false;
-					overlayData.input('filename').value = file.name.filename().filenameForm();
-					overlayData.input('filename').dataset.name = file.name.filenameForm();
-					overlayData.input('fileextension').value = file.name.extension();
-					overlayData.input('desc').value = '';
+					overlay.input('filename').readOnly = false;
+					overlay.input('filename').value = file.name.filename().filenameForm();
+					overlay.input('filename').dataset.name = file.name.filenameForm();
+					overlay.input('fileextension').value = file.name.extension();
+					overlay.input('desc').value = '';
 					
 
 					// display overlay
-					overlayData.toggle()
+					overlay.toggle()
 		}
 		
 		//// EXISTING FILE
 		// show file selection panel
 		Button('exist-file').onclick = e => {
-				overlayChoose.toggle();
+				e.container().toggle();
 		}
 
-		overlayChoose.button('validate').onclick = e => {
-				tag = overlayChoose.child('.file-element[selected]')
+		Overlay('filepicker').button('validate').onclick = e => {
+				overlay = e.container()
+				tag = overlay.child('.file-element[selected]')
 				error = Error('file-choice')
 
 				if (tag === null) {
@@ -998,29 +996,29 @@ if ($edition && !$artData) {
 					error.show();
 				} else {
 					error.hide();
-					overlayChoose.hide();
+					overlay.hide();
 
-					overlayChoose.childs('.file-element').forEach(tag => {tag.unset('selected')})
-					overlayChoose.child('.file-preview').firstElementChild.src = '';
-					overlayChoose.child('.file-preview').firstElementChild.alt = '';
+					overlay.childs('.file-element').forEach(tag => {tag.unset('selected')})
+					overlay.child('.file-preview').firstElementChild.src = '';
+					overlay.child('.file-preview').firstElementChild.alt = '';
 
 					url = tag.dataset.url;
 					Box('pic').child('.visual').src = url;
 					Box('pic').child('.frame').show();
 					Box('pic').child('.fileentry').required = false;
 
-					overlayData.input('filename').dataset.name = url.split('/').slice(-1)[0]
-					overlayData.input('filename').value = url.split('/').slice(-1)[0].split('.').slice(0,-1).join('.')
-					overlayData.input('fileextension').value = url.split('.').slice(-1)[0];
-					overlayData.input('desc').value = tag.dataset.alt;
-					overlayData.input('filename').readOnly = true;
+					Overlay('metadata').input('filename').dataset.name = url.filename(true)
+					Overlay('metadata').input('filename').value = url.filename()
+					Overlay('metadata').input('fileextension').value = url.extension()
+					Overlay('metadata').input('desc').value = tag.dataset.alt;
+					Overlay('metadata').input('filename').readOnly = true;
 
 					editsManager(Box('pic').child('.fileentry'), url)
 				}
 		}
 
 		async function fileSelectorLoad() {
-				container = overlayChoose.child('.files-list-container');
+				container = Overlay('filepicker').child('.files-list-container');
 				container.innerHTML = '<div class="spinner"></div>';
 
 				jsonData = JSON.stringify({'csrf':csrfToken, 'action':'fetch', 'category':'poster'})
@@ -1047,9 +1045,9 @@ if ($edition && !$artData) {
 		}
 
 		function fileUpdateSelection(event) {
-				overlayChoose.childs('.file-element').forEach(tag => {tag.unset('selected')})
+				Overlay('filepicker').childs('.file-element').forEach(tag => {tag.unset('selected')})
 				target = event.target;
-				preview = overlayChoose.child('.file-preview')
+				preview = Overlay('filepicker').child('.file-preview')
 
 				target.set('selected')
 				preview.firstElementChild.src = target.dataset.url
@@ -1057,10 +1055,10 @@ if ($edition && !$artData) {
 		}
 
 		// file metadata submission
-		overlayData.child('form').onsubmit = e => {e.preventDefault();overlayData.toggle()}
+		Overlay('metadata').child('form').onsubmit = e => {e.preventDefault(); e.container().toggle()}
 		
 		// filename input
-		overlayData.input('filename').oninput = e => {
+		Overlay('metadata').input('filename').oninput = e => {
 				pos = e.target.selectionStart
 				e.target.value = e.target.value.filenameForm()
 				e.target.setSelectionRange(pos,pos)

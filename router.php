@@ -3,20 +3,21 @@ session_start();
 // Server is started with 'public' as root directory.
 // Therefore, all direct user-made url requests to files outside public will fail.
 // These files can only be reached from server/fetch requests.
+// `require` peut uniquement appeler une url de fichier sans paramètres.
+// Cependant, require un fichier ne change pas l'URL courante - donc les paramètres sont tjrs accessibles dans le fichier appelé via $_GET
 
 // Define a global constant to detect calls going through router.php :
     // files that exist are rendered directly by the server w/o handling by router.php
     // So APP_ENTRY undefined and allow to force php requests through router
 define('APP_ENTRY', true);  
 
-// import global variables
+
+// Import global variables
 require_once "config/config.php";
 
+// Parse URL
 $raw_request_url = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH); // extrait le chemin de l'URL d'accès à ce fichier (redirigé vers le routeur) SANS paramètres GET
 parse_str(parse_url($_SERVER['REQUEST_URI'], PHP_URL_QUERY), $url_parameters); // extrait les paramètres de requêtes GET (post '?')
-
-// require peut uniquement appeler une url de fichier sans paramètres.
-// Cependant, require un fichier ne change pas l'URL courante - donc les paramètres sont tjrs accessibles dans le fichier appelé via $_GET
 
 // remove poential string-ending '/'
 $request_url = preg_match('#.+/$#', $raw_request_url) ? substr($raw_request_url, 0, -1):$raw_request_url;
@@ -47,6 +48,7 @@ if (preg_match('#^/files/#', $request_url, $match)) {
 // ADMIN ACTIONS
 if (preg_match('#^/admin/#', $request_url)) {
     
+    // general tools
     if (preg_match('#/tools/.+#', $request_url)) {
         // SQL client
         if (preg_match('#/sql$#', $request_url)) {
@@ -90,7 +92,7 @@ if (preg_match('#^/admin/#', $request_url)) {
             exit;
         
         // public pages edition
-        } elseif (preg_match('#/editor/(documents|ressources)$#', $request_url, $matches)) {
+        } elseif (preg_match('#/edit/(documents|ressources)$#', $request_url, $matches)) {
             $request = $matches[1];
             
             // fetch manager script
@@ -99,7 +101,7 @@ if (preg_match('#^/admin/#', $request_url)) {
             exit;
 
         // private pages edition
-        } elseif (preg_match('#/editor/(article)/(.+)#', $request_url, $matches)) {
+        } elseif (preg_match('#/edit/(article)/(.+)#', $request_url, $matches)) {
             $request = $matches[1];
             $slug = rawurldecode($matches[2]);
             
@@ -154,6 +156,7 @@ if (preg_match('#^/api/.+#', $request_url)) {
     if (preg_match('#/(helloasso|paheko)/(.+)$#', $request_url, $matches)) {
         $slug = end(explode('/', $request_url));
         
+        // API data files
         if (preg_match('#/get#', $request_url)) {
             $file = $root . '/app/api/'.$matches[1].'/data/' . $slug . '.json';
             
@@ -162,6 +165,7 @@ if (preg_match('#^/api/.+#', $request_url)) {
                 exit;
             }
         
+        // API actions
         } else {
             if (in_array($slug, $matches[1] === 'helloasso' ? ['edit', 'fetch']:['fetch', 'download'])) {
                 $action = $slug;
@@ -174,14 +178,14 @@ if (preg_match('#^/api/.+#', $request_url)) {
 }
 
 // TEMPORARY FILES
-if (preg_match('#^/tmp/#', $request_url)) { // pattern(?!patternbis) is a "negative lookahead": matches 'pattern' NOT followed by 'patternbis'
+if (preg_match('#^/tmp/#', $request_url)) {
     $file = end(explode('/', $request_url));
     require $root . "/.temp/$file";
     exit;
 }
 
 // ARTICLE PAGE GENERATOR
-if (preg_match('#^/articles/#', $request_url)) { // pattern(?!patternbis) is a "negative lookahead": matches 'pattern' NOT followed by 'patternbis'
+if (preg_match('#^/articles/#', $request_url)) {
     if (preg_match('#/.+$#', $request_url)) {
         $slug = urldecode(end(explode('/', $request_url)));
         $status = 'published';
@@ -194,7 +198,7 @@ if (preg_match('#^/articles/#', $request_url)) { // pattern(?!patternbis) is a "
 }
 
 // GENERAL BACKEND ACTIONS
-if (preg_match('#^/engine/#', $request_url)) { // pattern(?!patternbis) is a "negative lookahead": matches 'pattern' NOT followed by 'patternbis'
+if (preg_match('#^/engine/#', $request_url)) {
     $slug = end(explode('/', $request_url));
     
     if (in_array($slug, ['news', 'contact', 'search'])) {
@@ -204,7 +208,7 @@ if (preg_match('#^/engine/#', $request_url)) { // pattern(?!patternbis) is a "ne
 }
 
 // USER ACTIONS
-if (preg_match('#^/user/#', $request_url)) { // pattern(?!patternbis) is a "negative lookahead": matches 'pattern' NOT followed by 'patternbis'
+if (preg_match('#^/user/#', $request_url)) {
     if (preg_match('#/engine/.+#', $request_url)) {
         $slug = end(explode('/', $request_url));
         if (in_array($slug, ['bookmarks'])) {
@@ -216,7 +220,7 @@ if (preg_match('#^/user/#', $request_url)) { // pattern(?!patternbis) is a "nega
 }
 
 // SEARCH ACTIONS
-if (preg_match('#^/search/#', $request_url)) { // pattern(?!patternbis) is a "negative lookahead": matches 'pattern' NOT followed by 'patternbis'
+if (preg_match('#^/search/#', $request_url)) {
     if (!preg_match('#/search/.+/;+#', $request_url)) {
         $query_slug = urldecode(end(explode('/', $request_url)));
         require $root . "/app/pages/search.php";
@@ -225,7 +229,7 @@ if (preg_match('#^/search/#', $request_url)) { // pattern(?!patternbis) is a "ne
 }
 
 // CREDENTIAL ACTIONS
-if (preg_match('#^/auth/#', $request_url)) { // pattern(?!patternbis) is a "negative lookahead": matches 'pattern' NOT followed by 'patternbis'
+if (preg_match('#^/auth/#', $request_url)) {
     if (preg_match('#/loginCAS$#', $request_url)) {
         $method = 'CAS';
         require $root . '/app/auth/authentification.php';
@@ -305,7 +309,7 @@ switch ($request_url) {
         header("Location: /admin/dashboard"); 
         break;
     
-	// ADMIN - dashboard
+	// >> ADMIN - dashboard
     case '/admin/dashboard':
         require $root . '/app/admin/dashboard.php';
         break;
@@ -313,6 +317,11 @@ switch ($request_url) {
     // USER - dashboard
     case '/user':
         header("Location: /user/dashboard");
+        break;
+    
+    // >> USER - dashboard
+    case '/user/dashboard':
+        require $root . '/app/user/dashboard.php';
         break;
     
     // USER - dashboard
@@ -328,11 +337,6 @@ switch ($request_url) {
     // USER - account info
     case '/user/myaccount':
         require $root . '/app/user/account.php';
-        break;
-
-    // USER - dashboard
-    case '/user/dashboard':
-        require $root . '/app/user/dashboard.php';
         break;
     
     default:

@@ -103,8 +103,8 @@ async function fetchFiles(target) {
 					viewFile(data.url)
 				
 				} else if (e.target.findParent('.icon.delete').nodeName !== 'BODY') {
-					overlay = document.querySelector("#overlay-valid")
-					captionTag = overlay.querySelector('.header span')
+					overlay = Overlay('validate')
+					captionTag = overlay.querySelector('.header').child('span')
 					wrap = overlay.querySelector('.use-warning')
 					listTag = wrap.querySelector('ul')
 					
@@ -198,7 +198,7 @@ async function fetchTags(target) {
 			if (e.target.findParent('.icon.delete').nodeName !== 'BODY') {
 					pendingAction.function = deleter;
 					pendingAction.link = [e, cell];
-					document.querySelector('#overlay-auth').toggle()
+					Overlay('auth').toggle()
 				}
 			})
 
@@ -271,7 +271,7 @@ async function fetchTypes(target) {
 			if (e.target.findParent('.icon.delete').nodeName !== 'BODY') {
 					pendingAction.function = deleter;
 					pendingAction.link = [e, cell];
-					document.querySelector('#overlay-auth').toggle()
+					Overlay('auth').toggle()
 				}
 			})
 
@@ -346,7 +346,7 @@ async function fetchArticles(target) {
 					if (!activeTable.integrity) {
 						pendingAction.function = redirect;
 						pendingAction.link = `/articles/${cell.getValue()}`;
-						document.querySelector('#overlay-valid').toggle()
+						Overlay('validate').toggle()
 					} else {
 						redirect(`/articles/${cell.getValue()}`)
 					}
@@ -354,7 +354,7 @@ async function fetchArticles(target) {
 					if (!activeTable.integrity) {
 						pendingAction.function = redirect;
 						pendingAction.link = `/admin/tools/article/preview/${cell.getValue()}`;
-						document.querySelector('#overlay-valid').toggle()
+						Overlay('validate').toggle()
 					} else {
 						redirect(`/admin/tools/article/preview/${cell.getValue()}`)
 					}
@@ -362,19 +362,19 @@ async function fetchArticles(target) {
 					if (!activeTable.integrity) {
 						pendingAction.function = redirect;
 						pendingAction.link = `/admin/tools/article/draft/${cell.getValue()}`;
-						document.querySelector('#overlay-valid').toggle()
+						Overlay('validate').toggle()
 					} else {
 						redirect(`/admin/tools/article/draft/${cell.getValue()}`)
 					}
 				} else if (e.target.findParent('.icon.delete').nodeName !== 'BODY') {
 						pendingAction.function = deleter;
 						pendingAction.link = [e, cell];
-						document.querySelector('#overlay-auth').toggle()
+						Overlay('auth').toggle()
 				} else if (e.target.findParent('.icon.modify.edit').nodeName !== 'BODY') {
 					if (!activeTable.integrity) {
 						pendingAction.function = redirect;
 						pendingAction.link = `/admin/tools/editor/article/${cell.getValue()}`;
-						document.querySelector('#overlay-valid').toggle()
+						Overlay('validate').toggle()
 					} else {
 						redirect(`/admin/tools/editor/article/${cell.getValue()}`)
 					}

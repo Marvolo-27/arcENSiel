@@ -142,7 +142,7 @@ $artTags = getTags();
 							// fetch new results
 							await flowBuilder(received, 4, script, params)
 
-							// document.querySelector('.spinner').removeAttribute('active')
+							Spinner().hide()
 							lock = false
 						}
 				}

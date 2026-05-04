@@ -133,13 +133,14 @@ if ($_SESSION['role'] !== 'admin') {
 		
 		async function logUpdater(e) {
 			notify('Synchronisation des logs.', 'orange')
-			e.target.findParent('.icon').show();
-			e.target.findParent('.icon').setAttribute('title','Syncing logs');
+			icon = e.target.findParent('.icon')
+			icon.show();
+			icon.setAttribute('title','Synchronisation des logs');
 
 			await fetchLogs('#logs')
 			
-			e.target.findParent('.icon').hide();
-			e.target.findParent('.icon').setAttribute('title','Synchroniser les logs');
+			icon.hide();
+			icon.setAttribute('title','Synchroniser les logs');
 			notify('Synchronisation terminée', 'green')
 			}
 		</script>

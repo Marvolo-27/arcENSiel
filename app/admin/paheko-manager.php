@@ -118,7 +118,7 @@ if ($_SESSION['role'] !== 'admin') {
 			<div class='table' id='stocks'></div>
 		</div>
 		
-		<div class="body-overlay" id="overlay-valid">
+		<div class="body-overlay" id="overlay-validate">
 			<div class="inner-overlay">
 				<div class="header">
 					<h4 class="title">
@@ -154,9 +154,7 @@ if ($_SESSION['role'] !== 'admin') {
 		
 		<?php include($root . '/app/templates/footer.html') ?>
 		
-		<script>
-		const overlayValid = document.querySelector('#overlay-valid')
-			
+		<script>			
 		// on-load logic
 		window.addEventListener('load', loader)
 		async function loader()  {
@@ -190,23 +188,24 @@ if ($_SESSION['role'] !== 'admin') {
 		
 		// download backup file
 		Input('download-type').onchange = e => {
-			tag = overlayValid.button('validate');
-			wrap = overlayValid.child('.mode-wrap')
-			e.target.value === '' ? tag.set('disabled'):tag.unset('disabled')
+			tag = Overlay('validate').button('validate')
+			wrap = Overlay('validate').child('.mode-wrap')
+			e.target.value === '' ? tag.disable():tag.enable()
 
 			if (e.target.value !== '') ['database', 'archive'].includes(e.target.value) ? wrap.show():wrap.hide();
 		};
-		Icon('download').onclick = e => overlayValid.toggle();
+		Icon('download').onclick = e => Overlay('validate').toggle();
 		
-		overlayValid.button('cancel').onclick = e => {
-			if (e.target.findParent('.action-btn').getAttribute('disabled') === null) {
-				overlayValid.toggle();
-				overlayValid.button('validate').set('disabled');
+		Overlay('validate').button('cancel').onclick = e => {
+			if (e.target.getAttribute('disabled') === null) {
+				e.container().toggle();
+				e.container().button('validate').disable();
+				e.container().child('.mode-wrap').hide();
 				Input('download-type').firstElementChild.selected = true;
 			}
 		}
 		
-		overlayValid.button('validate').onclick = e => {
+		Overlay('validate').button('validate').onclick = e => {
 			if (e.target.findParent('.action-btn').getAttribute('disabled') === null) {
 				pahekoDownload(e)
 			}
@@ -249,7 +248,7 @@ if ($_SESSION['role'] !== 'admin') {
 					notify('Téléchargement sur le serveur terminé', 'green')
 				}
 
-				overlayValid.hide();
+				Overlay('validate').hide();
 
 				// download text file
 				download(blob, filename)

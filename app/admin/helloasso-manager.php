@@ -91,8 +91,6 @@ if ($_SESSION['role'] !== 'admin') {
 		<?php include($root . '/app/templates/footer.html') ?>
 		
 		<script>
-		const overlayValid = document.querySelector('#overlay-valid')
-
 		// on-load logic
 		window.addEventListener('load', loader)
 		async function loader()  {
@@ -167,14 +165,14 @@ if ($_SESSION['role'] !== 'admin') {
 		}
 
 		// Cancel pending action
-		overlayValid.button('cancel').onclick = e => {
-				overlayValid.hide();
+		Overlay('validate').button('cancel').onclick = e => {
+				e.container().hide();
 				pendingAction = {};
 		}
 
 		// go on with requested action
-		overlayValid.button('validate').onclick = e => {
-				overlayValid.hide();
+		Overlay('validate').button('validate').onclick = e => {
+				e.container().hide();
 				pendingAction.link ? pendingAction.function(pendingAction.link):pendingAction.function();
 				pendingAction = {};
 		}
@@ -182,13 +180,13 @@ if ($_SESSION['role'] !== 'admin') {
 		// show panel to save changes
 		Button('save').onclick = e => {
 				pendingAction.function = saveEdits;
-				overlayValid.toggle()
+				Overlay('validate').toggle()
 		}
 
 		// reset edits
 		Button('reset').onclick = e => {
 				pendingAction.function = resetTabledata;
-				overlayValid.toggle()
+				Overlay('validate').toggle()
 		}
 		</script>
 	</body>

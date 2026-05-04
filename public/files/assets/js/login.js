@@ -1,4 +1,4 @@
-function paswdRequirementsCheck() {
+function pswdRequirementsCheck() {
 			// check new psswd validity
 				ptag = Box('password').error('password');
 				pswd = Input('pswd').value;
@@ -33,7 +33,7 @@ function paswdRequirementsCheck() {
 		}
 
 // Password match check
-function psswdCheck() {
+function pswdCheck() {
 		pswd = Input('pswd').value;
 		pswdConf = Input('pswd-confirm').value;
 		

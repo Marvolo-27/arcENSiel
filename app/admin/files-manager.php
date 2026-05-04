@@ -201,7 +201,7 @@ if ($_SESSION['role'] !== 'admin') {
 		</div>
 		
 
-		<div class="body-overlay" id="overlay-view">
+		<div class="body-overlay" id="overlay-preview">
 			<div class="inner-overlay">
 				<div class="file-preview" active><img></div>
 
@@ -213,7 +213,7 @@ if ($_SESSION['role'] !== 'admin') {
 			</div>
 		</div>
 		
-		<div class="body-overlay" id="overlay-valid">
+		<div class="body-overlay" id="overlay-validate">
 			<div class="inner-overlay">
 				<div class="header">
 					<h4 class="title">
@@ -248,8 +248,8 @@ if ($_SESSION['role'] !== 'admin') {
 			</div>
 		</div>
 
-		<?php include($root . '/app/templates/overlay_choose.html') ?>
-		<?php include($root . '/app/templates/overlay_new-file.html') ?>
+		<?php include($root . '/app/templates/overlay_file-picker.html') ?>
+		<?php include($root . '/app/templates/overlay_file-uploader.html') ?>
 		<?php include($root . '/app/templates/overlay_authentification.html') ?>
 
 		<?php include($root . '/app/templates/footer.html') ?>
@@ -258,29 +258,25 @@ if ($_SESSION['role'] !== 'admin') {
 			let filesList;				// array containing data about registered files
 			let pendingFiles;			// array containing data about unregistered files
 			
-			const overlayAdd = document.querySelector('#overlay-add')
-			const overlayAuth = document.querySelector('#overlay-auth')
-			const overlayChoose = document.querySelector('#overlay-choose')
-			const overlayValid = document.querySelector('#overlay-valid')
-			const overlayView = document.querySelector('#overlay-view')
 			
 		/// GENERAL ACTION
 			// On-load logic
 			window.addEventListener('load', loader);
 			async function loader()  {
 										// configure overlay
-										overlayAdd.toggle('strict')			
-										overlayAdd.querySelector('.exist-file').parentElement.style.display = 'none';			
-										overlayAdd.querySelector('.file-maxsize').firstElementChild.innerText = 'Taille maximale: 10 Mo';			
-										overlayAdd.querySelector('.file-formats').firstElementChild.innerText = 'Formats supportés: image, .pdf, .sqlite, .zip';			
-										overlayAdd.input('file').setAttribute('accept', 'application/zip,application/pdf,application/vnd.sqlite3,image/*')			
+										overlay = Overlay('uploader')
+										overlay.toggle('strict')			
+										overlay.querySelector('.exist-file').parentElement.style.display = 'none';			
+										overlay.querySelector('.file-maxsize').firstElementChild.innerText = 'Taille maximale: 10 Mo';			
+										overlay.querySelector('.file-formats').firstElementChild.innerText = 'Formats supportés: image, .pdf, .sqlite, .zip';			
+										overlay.input('file').setAttribute('accept', 'application/zip,application/pdf,application/vnd.sqlite3,image/*')			
 										
 										div = document.createElement('div')
 										div.classList.toggle('checkbox-wrap')
 										div.innerHTML = `<div class='input-container'>
 															<input class='checkbox' type='checkbox' name='admin-check' id='admin-check' autocomplete=off title="Restreindre l'accès aux administrateurs"><label class='label' for='admin-check'>Restreindre l'accès aux administrateurs</label>
 														</div>`
-										overlayAdd.child('form').insertBefore(div, overlayAdd.querySelector('.external.form-action-wrap'))
+										overlay.child('form').insertBefore(div, overlay.querySelector('.external.form-action-wrap'))
 
 										// fetch all required data
 										await fetchFiles('#files');
@@ -299,20 +295,20 @@ if ($_SESSION['role'] !== 'admin') {
 										}
 
 			// Auth validation before redirection
-			overlayAuth.child('form').onsubmit = e => {e.preventDefault();};
-			overlayAuth.button('validate').onclick = async e => {
+			Overlay('auth').child('form').onsubmit = e => {e.preventDefault();};
+			Overlay('auth').button('validate').onclick = async e => {
 					validity = await passwordChecker();
 					if (validity) {
-						overlayAuth.hide();	
+						e.container().hide();	
 						pendingAction.link ? pendingAction.function(pendingAction.link):pendingAction.function();
 					}
 			}
 		
 			// confirm deletion
-			overlayValid.button('validate').onclick = e => {
-					overlayValid.toggle();
-					overlayAuth.toggle();
-					pendingAction['mode'] = overlayValid.input('deletion-mode').checked
+			Overlay('validate').button('validate').onclick = e => {
+					e.container().toggle();
+					Overlay('auth').toggle();
+					pendingAction['mode'] = Overlay('validate').input('deletion-mode').checked
 			}
 			
 			// close scan message
@@ -443,13 +439,12 @@ if ($_SESSION['role'] !== 'admin') {
 	
 			function viewFile(url, activeOverlay=null) {
 				url = url.replace(/admin:\/\//, '/admin')
-				
 				ext = url.extension();
 				
 				if (ext === 'pdf') {
 					open(url)
 				} else {
-					overlay = overlayView;
+					overlay = Overlay('preview');
 					overlay.toggle();
 					overlay.querySelector('.file-preview img').src = url
 
@@ -571,12 +566,11 @@ if ($_SESSION['role'] !== 'admin') {
 			async function filesInserter(elements) {
 					notify((pendingAction.action === 'insert' ? 'Insertion':'Suppression')+' en cours', 'orange')
 					
-					overlay = overlayChoose
 					selectedFiles = Array.from(elements).map(elm => {elm.unset('selected'); return elm.dataset.url})
 					action = pendingAction.action;
 					document.querySelector('.files-wrap.unregistered').hide();
 
-					wrapper = overlay.querySelector('.files-list-container')
+					wrapper = Overlay('filepicker').querySelector('.files-list-container')
 					wrapper.innerHTML = '';
 					pendingAction = {}
 
@@ -595,7 +589,7 @@ if ($_SESSION['role'] !== 'admin') {
 					notify('Operation started', 'orange')
 					mode = pendingAction.mode ? 'force':'keep';
 					pendingAction = {};
-					overlayValid.input('deletion-mode').checked = false;
+					Overlay('validate').input('deletion-mode').checked = false;
 
 					// update data on server
 					jsonData = JSON.stringify({'csrf':csrfToken, 'action':'remove', 'mode':mode, 'url':data.url, 'status':data.status})
@@ -627,7 +621,7 @@ if ($_SESSION['role'] !== 'admin') {
 			}
 
 			function selectionGenerator() {
-					wrapper = overlayChoose.querySelector('.files-list-container')
+					wrapper = Overlay('filepicker').querySelector('.files-list-container')
 					files = pendingFiles
 
 					files.forEach(file => {
@@ -648,46 +642,47 @@ if ($_SESSION['role'] !== 'admin') {
 						wrapper.append(div)
 					})
 
-					overlayChoose.toggle()
+					Overlay('filepicker').toggle()
 			}
 
-			overlayChoose.button('validate').onclick = e => {
-					tags = overlayChoose.querySelectorAll('.file-element[selected]')
-					error = overlayChoose.error('file-choice')
+			Overlay('filepicker').button('validate').onclick = e => {
+					tags = e.container().querySelectorAll('.file-element[selected]')
+					error = e.container().error('file-choice')
 
 					if (tags.length === 0) {
 						error.innerText = 'Sélectionnez au moins un fichier pour continuer';
 						error.show();
 					} else {
 						error.hide();
-						overlayChoose.hide();
+						e.container().hide();
 
 						filesInserter(tags)
 					}
 			}
 		
 		//// FILE UPLOAD
-			Icon('upload').onclick = e => overlayAdd.toggle()
+			Icon('upload').onclick = e => Overlay('uploader').toggle()
 			
-			overlayAdd.button('cancel').onclick = e => {
-				overlayAdd.hide();
-				overlayAdd.child('form').reset();
-				overlayAdd.child('.selected-file').innerText = '';
-				overlayAdd.child('.frame').hide();
-				overlayAdd.input('file').required = true;
+			Overlay('uploader').button('cancel').onclick = e => {
+				overlay = e.container()
+				overlay.hide();
+				overlay.child('form').reset();
+				overlay.child('.selected-file').innerText = '';
+				overlay.child('.frame').hide();
+				overlay.input('file').required = true;
 			}
 
-			overlayAdd.icon('delete').onclick = e => {
-				overlayAdd.child('.frame').hide();
-				overlayAdd.child('.selected-file').innerText = '';
-				overlayAdd.input('file').value = '';
+			Overlay('uploader').icon('delete').onclick = e => {
+				Overlay('uploader').child('.frame').hide();
+				Overlay('uploader').child('.selected-file').innerText = '';
+				Overlay('uploader').input('file').value = '';
 			}
 
 			document.querySelector('#file').onchange = e => handlePassedFile(e.target)
 
-			overlayAdd.child('form').onsubmit = e => {
+			Overlay('uploader').child('form').onsubmit = e => {
 				e.preventDefault();
-				overlayAdd.hide();
+				e.container().hide();
 				
 				uploader(e.target)
 			}
@@ -707,17 +702,17 @@ if ($_SESSION['role'] !== 'admin') {
 			function handlePassedFile(input) {
 						upload = fileUploadManage(input, /(application\/(pdf|zip|x-zip-compressed|vnd\.sqlite3)|image\/.*)/, 10)
 							if (upload) {
-								overlayAdd.input('filename').value = file.name.filename();
-								overlayAdd.input('filename').dataset.name = file.name;
-								overlayAdd.input('fileextension').value = file.name.extension();
+								Overlay('uploader').input('filename').value = file.name.filename();
+								Overlay('uploader').input('filename').dataset.name = file.name;
+								Overlay('uploader').input('fileextension').value = file.name.extension();
 								}
 			}
 
 			// update new file
 			async function uploader(form) {
 						notify('Uploading file', 'orange')
-						fileTag = overlayAdd.child('.fileentry')
-						adminCheck = overlayAdd.input('admin-check').checked
+						fileTag = Overlay('uploader').child('.fileentry')
+						adminCheck = Overlay('uploader').input('admin-check').checked
 						file = fileTag.files[0];
 						
 						// category congif
@@ -774,15 +769,15 @@ if ($_SESSION['role'] !== 'admin') {
 						}
 
 						form.reset()
-						overlayAdd.child('.selected-file').innerText = ''
-						overlayAdd.child('.frame').hide()
+						Overlay('uploader').child('.selected-file').innerText = ''
+						Overlay('uploader').child('.frame').hide()
 						await updateData()
 					}
 		
 			// close file viewer
-			overlayView.button('close').onclick = e => {
-					overlayView.toggle();
-					overlayView.child('.file-preview img').src = '';
+			Overlay('preview').button('close').onclick = e => {
+					e.container().toggle();
+					e.container().child('.file-preview img').src = '';
 
 					activeOverlay = pendingAction.overlay;
 					activeOverlay ? document.querySelector(`$#overlay-${activeOverlay}`).toggle():null;
@@ -790,25 +785,25 @@ if ($_SESSION['role'] !== 'admin') {
 			}
 
 			// close unregistered files selector
-			overlayChoose.button('cancel').onclick = e => {
-					wrapper = overlayChoose.querySelector('.files-list-container')
+			Overlay('filepicker').button('cancel').onclick = e => {
+					wrapper = e.container().querySelector('.files-list-container')
 					document.error('file-choice').hide();
-					overlayChoose.toggle();
+					e.container().toggle();
 					wrapper.innerHTML = '';
 					pendingAction = {}
 			}
 
 			// close deletion control
-			overlayValid.button('cancel').onclick = e => {
-					overlayValid.input('deletion-mode').checked = false;
-					overlayValid.hide()
+			Overlay('validate').button('cancel').onclick = e => {
+					Overlay('validate').input('deletion-mode').checked = false;
+					e.container().hide()
 					pendingAction = {}
 			}
 
 			// close deletion control
-			overlayAuth.button('cancel').onclick = e => {
-					overlayValid.input('deletion-mode').checked = false;
-					overlayAuth.hide()
+			Overlay('auth').button('cancel').onclick = e => {
+					Overlay('validate').input('deletion-mode').checked = false;
+					e.conatiner().hide()
 					pendingAction = {}
 			}
 		</script>

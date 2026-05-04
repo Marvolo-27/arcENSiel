@@ -1,7 +1,8 @@
 async function syncerAPI(e, api) {
         notify(`Synchronisation depuis ${api}`, 'orange')
-		e.target.findParent('.icon').show();
-		e.target.findParent('.icon').setAttribute('title',`Fetching data from ${api}`);
+		icon = e.target.findParent('.icon')
+		icon.show();
+		icon.setAttribute('title',`Récupération des données depuis ${api}`);
 
 		jsonData = JSON.stringify({'csrf':csrfToken})
 
@@ -11,8 +12,8 @@ async function syncerAPI(e, api) {
 								headers: { 'Content-Type': 'application/json' }
 								})
 		
-		e.target.findParent('.icon').hide();
-		e.target.findParent('.icon').setAttribute('title','Synchroniser les données');
+		icon.hide();
+		icon.setAttribute('title','Synchroniser les données');
 		
 		if (!response.ok) {
 			json = await response.json();

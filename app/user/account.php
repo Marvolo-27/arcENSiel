@@ -194,10 +194,10 @@ if (isset($_SESSION['message'])) {
 	
 	// Regsiter section logic //
 		// Password match check
-		Input('pswd-confirm').addEventListener('input', psswdCheck)
+		Input('pswd-confirm').addEventListener('input', pswdCheck)
 		
 		// Password validity check
-		Input('pswd').addEventListener('input', paswdRequirementsCheck)
+		Input('pswd').addEventListener('input', pswdRequirementsCheck)
 		
 		
 		// (in)activate button

@@ -24,11 +24,6 @@ window.addEventListener('load', config);
 function config()  {
 			body = document.body
 
-			// overlayAdd = document.querySelector('#overlay-add')
-			// overlayAuth = document.querySelector('#overlay-auth')
-			// overlayChoose = document.querySelector('#overlay-choose')
-			// overlayValid = document.querySelector('#overlay-valid')
-
 			csrfToken = Input('csrf')?.dataset.csrf
 		}
 
@@ -119,10 +114,12 @@ Element.prototype.toggle = function(attr='active') {this.toggleAttribute(attr)}
 Element.prototype.show = function() {this.set('active')}
 Element.prototype.hide = function() {this.unset('active')}
 
-Element.prototype.enable = function() {this.removeAttribute('disabled')}
-Element.prototype.disable = function() {this.setAttribute('disabled')}
+Element.prototype.enable = function() {this.unset('disabled')}
+Element.prototype.disable = function() {this.set('disabled')}
 
 // Shortcut to find common tags
+function Overlay(selector, parent=document) {return parent.querySelector(`.body-overlay${selector ? '#overlay-':''}${selector}`)}
+
 function Button(selector, parent=document) {return parent.querySelector(`.action-btn${selector ? '.':''}${selector}`)}
 Element.prototype.button = function(selector='') { 
 											return Button(selector, this)
@@ -153,6 +150,17 @@ Element.prototype.spinner = function() {
 										return Spinner(this)
 										}
 
+// Find closest 'special' parent node (Box, Overlay), or itself if there is no upper container layer
+Element.prototype.container = function() { 
+											if (this.findParent('.box').nodeName !== 'BODY') {
+												return this.findParent('.box')
+											} else if (this.findParent('.body-overlay').nodeName !== 'BODY') {
+												return this.findParent('.body-overlay')
+											} else {
+												return this
+											}
+										}
+Event.prototype.container = function() {return this.target.container()}
 
 //// FUNCTIONS ////
 // LAYOUT //
@@ -239,11 +247,6 @@ async function bannerManage()  {
 
 // banner movement
 async function logoWaveToggleToFlat() {
-							/*while (inlocked) {// waiting loop
-								null
-							}*/
-							outlocked = true;
-							
 							banner = document.querySelector('.banner-logo');
 							banner.className = 'banner-logo flat'
 								
@@ -259,11 +262,6 @@ async function logoWaveToggleToFlat() {
 						}
 
 async function logoWaveToggleToWave() {
-							/*while (outlocked) {// waiting loop
-								null
-							}*/
-							inlocked = true;
-							
 							banner = document.querySelector('.banner-logo');
 							banner.className = 'banner-logo flat'
 								
@@ -276,14 +274,10 @@ async function logoWaveToggleToWave() {
 							}
 							
 							banner.className = banner.className.replace(' wave', '')
-							
-							inlocked = false;
 							}
 
 // GENENRAL CONFIG //
 window.onload = () => {
-	inlocked = false;
-	outlocked = false;
 	document.querySelector('.banner-logo').onmouseenter = logoWaveToggleToFlat;
 	document.querySelector('.banner-logo').onmouseleave = logoWaveToggleToWave;
 	
@@ -465,10 +459,10 @@ async function passwordChecker(selector='input#overlay-pswd') {
 					error = tag.findParent('.box').error();
 					
 					// action buttons
-					btn = document.querySelector('#overlay-auth').button('validate');
-					btnbis = document.querySelector('#overlay-auth').button('cancel');
+					btn = Overlay('auth').button('validate');
+					btnbis = Overlay('auth').button('cancel');
 					btn.disabled = true;
-					btnbis.disabled = true;
+					btnbis.disable();
 					btn.toggle()
 					
 					// reset state
@@ -484,7 +478,7 @@ async function passwordChecker(selector='input#overlay-pswd') {
 					tag.value = '';
 					btn.toggle();
 					btn.disabled = false;
-					btnbis.disabled = false;
+					btnbis.enable();
 					
 					if (!response.ok) {
 						tag.set('invalid');

@@ -99,7 +99,7 @@ if ($method === 'CAS') {
 	$password = null;
 	logger('/log/users.log', "User $username: logged in with CAS successfully.", 'Login');
 	$action = 'login';
-} else if ($method === 'local') {// local auth
+} else if ($method === 'local') {
 	$username = $_POST['username'] ?? null;
 	$password = $_POST['password'] ?? null;
 	$email = $_POST['email'] ?? null;
@@ -207,7 +207,7 @@ if ($status === 'pending-check') {
 					$response = ['logged_in' => true, 'username' => $username];
 					$dest = "/";
 				} else {
-					$_SESSION['error'] = ['code' => 'invalid-credentials', 'username' => $username, 'email' => $user['email']];
+					$_SESSION['error'] = ['code' => 'invalid-credentials', 'username' => $username];
 					
 					http_response_code(400);
 					$response = ['error' => "Mot de passe ou nom d'utilisateur incorrect"];
@@ -250,7 +250,7 @@ if ($status === 'pending-check') {
 			// extract new values
 			$new_username = $_POST['new-username'] ?? null;
 			$new_password = $_POST['new-password'] ?? null;
-			$new_email = $_POST['new-email'] ?? null;
+			$new_email    = $_POST['new-email']    ?? null;
 
 			if ($username !== $new_username) {// username update
 					if ($username === 'admin') {
@@ -272,7 +272,7 @@ if ($status === 'pending-check') {
 					logger('/log/users.log', "User $username renamed to $new_username.", "Credentials update");
 					$username = $new_username;
 			
-			} if ($email !== $new_email) {// username update
+			} if ($email !== $new_email) {// email update
 					if ($username === 'admin') {
 							$_SESSION['error'] = ['code' => 'locked-email'];
 							
@@ -291,7 +291,7 @@ if ($status === 'pending-check') {
 					logger('/log/users.log', "Mail changed from $email to $new_email for $username", "Credentials update");
 					$mail = $new_email;
 			
-			} if ($password !== $new_password) {
+			} if ($password !== $new_password) {// password update
 					if (password_verify($password_token . $password, $user['password_hash'])) {// existing user  - validated credentials
 						// Hash new password with default php algo
 						$hash = password_hash($password_token . $new_password, PASSWORD_DEFAULT);
@@ -607,10 +607,10 @@ unset($_SESSION['message']);
 	<?php if ($action === 'register' || ($action === 'reset-credential' && ($resetToken && !$resetstatus))): ?>
 	// Regsiter section logic //
 		// Password match check
-		Input('pswd-confirm').addEventListener('input', psswdCheck)
+		Input('pswd-confirm').addEventListener('input', pswdCheck)
 
 		// Password validity check
-		Input('pswd').addEventListener('input', paswdRequirementsCheck)
+		Input('pswd').addEventListener('input', pswdRequirementsCheck)
 		
 		// (in)activate button
 		function submitAllower() {

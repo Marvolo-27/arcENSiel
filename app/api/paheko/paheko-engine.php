@@ -30,7 +30,7 @@ $logfile = fopen($root.'/log/paheko-curl.log', 'a+');
 // Init curl
 $ch = curl_init();
 curl_setopt($ch, CURLOPT_STDERR, $logfile);								            // file to receive request errors output.
-curl_setopt($ch, CURLOPT_VERBOSE, true);												// output détaillé.
+curl_setopt($ch, CURLOPT_VERBOSE, true);											// output détaillé.
 curl_setopt($ch, CURLOPT_USERPWD, "$paheko_client_id:$paheko_client_secret");		// api credentials
 curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);	                                    // maximum allowed connection time
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);	                                    // gives response output as return content, instead of printing directly - oveerides the default booolean output
@@ -65,11 +65,11 @@ function curlQuery($slug, $file_object=false, $postData=false) {
     }
 
     if (curl_errno($ch)) {
-        curl_close($ch);
+        //curl_close($ch);
 		return ['succes' => false, 'error' => '[ERROR] HTTP code: '.curl_getinfo($ch, CURLINFO_HTTP_CODE), 'code' => curl_getinfo($ch, CURLINFO_HTTP_CODE)];
 	}
 
-    curl_close($ch);
+    //curl_close($ch);
     return ['success' => true, 'data' => json_decode($response, true)];
 }
 
