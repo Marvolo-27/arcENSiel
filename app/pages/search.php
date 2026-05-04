@@ -140,7 +140,7 @@ $arguments = ($type || $author || $from || $to || $tags !== [null] || $query);
 					<div class='icon filters inline large hoverable dynamic' <?= ($type || $author || $from || $to || $tags !== [null]) ? 'active':'' ?>><span class='img'></span></div>
 					<div class='input-container'>
 						<div class='icon search left medium'><span class='img'></span></div>
-						<input class='lineentry decorated' type='search' name='query' value="<?= $search ?>" id='textsearch' value="<?= $query_slug ?>" autocomplete=on <?= $arguments ? '':'required' ?> placeholder="Recherche...">
+						<input class='lineentry decorated' type='search' name='query' value="<?= $search ?>" id='textsearch' value="<?= $query_slug ?>" autocomplete=on <?= ($type || $author || $from || $to || $tags !== [null]) ? '':'required' ?> placeholder="Recherche...">
 					</div>
 					<button class='icon send large inline dynamic hoverable' type='submit'><span class='img'></span></button>
 				</div>
@@ -263,12 +263,10 @@ $arguments = ($type || $author || $from || $to || $tags !== [null] || $query);
 				
 				if (condition) {
 					lock = true
-					Spinner().show()
-				
+					
 					// fetch new results
 					await triggerSearch()
 
-					Spinner().hide()
 					lock = false
 				}
 		}
@@ -309,9 +307,11 @@ $arguments = ($type || $author || $from || $to || $tags !== [null] || $query);
 				queries = window.location.search.slice(1) // GET query, w/o ?
 
 				// fetch most recent arfticles matching given parameters
+				Spinner().show()
 				queries !== '' ? await newsBuilder(received, 3 * nGridItems, '/engine/search', queries):null;
-
-				text = `${total} Résultat${total>1?'s':''}`;
+				Spinner().hide()
+				
+				text = queries !== '' ? `${total} Résultat${total>1?'s':''}` : 'Faites une requête pour effectuer une recherche';
 				update ? document.querySelector('.news-header h2').textContent = text:null;
 
 				return null
