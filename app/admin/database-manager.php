@@ -98,7 +98,7 @@ $artTypes = getTypes();
 				<div class='table' id='types'></div>
 			</div>
 
-			<div class="form-action-wrap linear responsive">
+			<div class="form-action-wrap data-actions linear responsive">
 				<div class='form-action'>
 					<button class='action-btn save'>Sauvegarder</button>
 				</div>

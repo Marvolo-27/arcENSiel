@@ -75,7 +75,7 @@ if ($_SESSION['role'] !== 'admin') {
 			<div class='table no-bound' id='goodies'></div>
 			<div class='table no-bound' id='dq7'></div>
 			
-			<div class="form-action-wrap linear responsive">
+			<div class="form-action-wrap data-actions linear responsive">
 				<div class='form-action'>
 					<button class='action-btn save'>Sauvegarder</button>
 				</div>
