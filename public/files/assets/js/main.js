@@ -33,8 +33,13 @@ String.prototype.strForm = function () {return this.trimStart().trimEnd().toLowe
 
 // url/path utils
 String.prototype.filename = function (extension=false) {
-														result = extension ? this.split('/').slice(-1)[0] : this.split('/').slice(-1)[0].split('.').slice(0,-1).join('.');
-														return result
+														result = this.split('/').slice(-1)[0];
+														
+														if (extension) {
+															return result
+														} else {
+															return result.split('.').length > 1 ? result.split('.').slice(0,-1).join('.') : result
+														}
 														}
 String.prototype.extension = function () {return this.split('.').slice(-1)[0]}
 
