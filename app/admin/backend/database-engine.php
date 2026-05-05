@@ -165,9 +165,10 @@ if ($action === 'update') {
 	// request extract
 	$raw_data = $input['data'];
 	$section = $type === 'users' ? 'users':'articles';
-
-	try {
-		foreach ($raw_data as $row) {
+	$failure = false;
+	
+	foreach ($raw_data as $row) {
+		try {
 			if ($type === 'users') {
 				$sql = "UPDATE users SET username = :username, role = :role WHERE id = :id;";
 				$params =  [
@@ -225,13 +226,18 @@ if ($action === 'update') {
 				$query->execute();
 			}
 			logger('\/log\/'.$section.'.log', queryMaker($sql, $params), 'Update data');
-		}
+		
 		http_response_code(200);
 		$message = 'queries completed successfully';
-	} catch (PDOException $e) {
-		http_response_code(500); // access authorized so success but failed to ouput sql
-		echo json_encode(['error' => $e]);
-		logger('\/log\/'.$section.'.log', 'Source: '.queryMaker($sql, $params).';'.PHP_EOL.json_encode($e), '[ERROR] Failed: Update data');
+		} catch (PDOException $e) {
+			$failure = $failure && true;
+			logger('\/log\/'.$section.'.log', 'Source: '.queryMaker($sql, $params).';'.PHP_EOL.json_encode($e), '[ERROR] Failed: Update data');
+		}
+	}
+
+	if ($failure) {
+		http_response_code(500);
+		echo json_encode(['error' => 'Some errors occured when updating data. Check logs.']);
 		exit;
 	}
 
