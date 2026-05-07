@@ -43,10 +43,10 @@ function dataChecker(data) {
 			main = document.querySelector('#main')
 
 			if (JSON.stringify(data) === activeTable.source) {
-				main.child('.form-action-wrap').hide()
+				main.child('.data-actions').hide()
 				activeTable.integrity = true;
 			} else {
-				main.child('.form-action-wrap').show()
+				main.child('.data-actions').show()
 				activeTable.integrity = false;
 			}
 		}
@@ -55,8 +55,9 @@ function dataChecker(data) {
 // Files table
 async function fetchFiles(target) {
 			sourcedata = await dataFetcher('files');
-			filesList = sourcedata['sql-data'];
+			users = await dataFetcher('users').then(response => response['sql-data'].reduce((list, user) => {list[user.username] = user.username; return list}, {}));
 
+			filesList = sourcedata['sql-data'];
 			statusMatch = {'published': 'Publié', 'archived': 'Archivé', 'draft': 'Brouillon'}
 
 			filesTable = new Tabulator(target, {
@@ -84,13 +85,14 @@ async function fetchFiles(target) {
 										<div class='icon inline medium ${rowdata.status ? 'download dynamic':''}' title="Télécharger le fichier">
 											<span class='img'></span>
 										</div>`}, resizable: false, frozen: true},
-					{ title: "Nom du fichier", field: "name", vertAlign: 'middle'},
+					{ title: "Nom du fichier", field: "name", mutator: function(value){return value.filename()}, formatter: function(cell) {return cell.getValue() + '.' + cell.getRow().getData().extension}, editor: 'input', validator: 'unique', vertAlign: 'middle'},
+					{ title: "Extension", field: "extension", visible: false, mutator: function(value, data) {return data.url.extension()}},
 					{ title: "Localisation", field: "url", vertAlign: 'middle'},
 					{ title: "Taille du fichier", field: "size", formatter: function(cell) {return formatBytes(cell.getValue())}, vertAlign: 'middle', hozAlign: 'center'},
 					{ title: "Type", field: "type", hozAlign: 'center'},
 					{ title: "Utilisations", field: "used_by", hozAlign: 'center'},	
-					{ title: "Alias", field: "description", hozAlign: 'center'},
-					{ title: "Propriétaire", field: "uploader", hozAlign: 'center'},
+					{ title: "Alias", field: "description", editor: "input", mutator: function(value){return value === null ? '':value}, hozAlign: 'center'},
+					{ title: "Propriétaire", field: "uploader", editor: "list", editorParams: {values:users}, hozAlign: 'center'},
 					{ title: "Date de création", field: "created_at", hozAlign: 'center'},
 					{ title: "Date de modification", field: "updated_at", hozAlign: 'center'},
 					{ title: "Accessible", field: "status", mutator: function(value) {return value === 1 ? true:false}, formatter: function(cell) {return cell.getValue() ? 'OUI':'NON';}, hozAlign: 'center'},
@@ -103,7 +105,7 @@ async function fetchFiles(target) {
 					viewFile(data.url)
 				
 				} else if (e.target.findParent('.icon.delete').nodeName !== 'BODY') {
-					overlay = Overlay('validate')
+					overlay = Overlay('deletion')
 					captionTag = overlay.querySelector('.header').child('span')
 					wrap = overlay.querySelector('.use-warning')
 					listTag = wrap.querySelector('ul')

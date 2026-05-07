@@ -196,6 +196,16 @@ if ($_SESSION['role'] !== 'admin') {
 						</div>
 					</div>
 				</div>
+
+				<div class="form-action-wrap data-actions linear responsive">
+					<div class='form-action'>
+						<button class='action-btn save'>Sauvegarder</button>
+					</div>
+					<div class='form-action'>
+						<button class='action-btn reset'>Réinitialiser</button>
+					</div>
+				</div>
+
 			</div>
 			<input id='csrf' name='csrf-token' value=<?= $_SESSION['CSRF'] ?> data-csrf=<?= $_SESSION['CSRF'] ?> required hidden readonly>
 		</div>
@@ -213,7 +223,7 @@ if ($_SESSION['role'] !== 'admin') {
 			</div>
 		</div>
 		
-		<div class="body-overlay" id="overlay-validate">
+		<div class="body-overlay" id="overlay-deletion">
 			<div class="inner-overlay">
 				<div class="header">
 					<h4 class="title">
@@ -251,6 +261,7 @@ if ($_SESSION['role'] !== 'admin') {
 		<?php include($root . '/app/templates/overlay_file-picker.html') ?>
 		<?php include($root . '/app/templates/overlay_file-uploader.html') ?>
 		<?php include($root . '/app/templates/overlay_authentification.html') ?>
+		<?php include($root . '/app/templates/overlay_validation.html') ?>
 
 		<?php include($root . '/app/templates/footer.html') ?>
 		
@@ -287,6 +298,7 @@ if ($_SESSION['role'] !== 'admin') {
 										tableMatch = {
 													'files': {'table': filesTable, 'source': JSON.stringify(filesTable.getData()), 'call': fetchFiles, 'selector': '#files', 'type': 'files'},
 													}
+										activeTable = tableMatch['files']
 										
 										tablesSwitcher()
 										
@@ -295,7 +307,7 @@ if ($_SESSION['role'] !== 'admin') {
 										}
 
 			// Auth validation before redirection
-			Overlay('auth').child('form').onsubmit = e => {e.preventDefault();};
+			Overlay('auth').child('form').onsubmit = e => e.preventDefault();
 			Overlay('auth').button('validate').onclick = async e => {
 					validity = await passwordChecker();
 					if (validity) {
@@ -305,10 +317,10 @@ if ($_SESSION['role'] !== 'admin') {
 			}
 		
 			// confirm deletion
-			Overlay('validate').button('validate').onclick = e => {
+			Overlay('deletion').button('validate').onclick = e => {
 					e.container().toggle();
 					Overlay('auth').toggle();
-					pendingAction['mode'] = Overlay('validate').input('deletion-mode').checked
+					pendingAction['mode'] = Overlay('deletion').input('deletion-mode').checked
 			}
 			
 			// close scan message
@@ -589,7 +601,7 @@ if ($_SESSION['role'] !== 'admin') {
 					notify('Operation started', 'orange')
 					mode = pendingAction.mode ? 'force':'keep';
 					pendingAction = {};
-					Overlay('validate').input('deletion-mode').checked = false;
+					Overlay('deletion').input('deletion-mode').checked = false;
 
 					// update data on server
 					jsonData = JSON.stringify({'csrf':csrfToken, 'action':'remove', 'mode':mode, 'url':data.url, 'status':data.status})
@@ -794,18 +806,72 @@ if ($_SESSION['role'] !== 'admin') {
 			}
 
 			// close deletion control
-			Overlay('validate').button('cancel').onclick = e => {
-					Overlay('validate').input('deletion-mode').checked = false;
+			Overlay('deletion').button('cancel').onclick = e => {
+					e.container().input('deletion-mode').checked = false;
 					e.container().hide()
 					pendingAction = {}
 			}
 
 			// close deletion control
 			Overlay('auth').button('cancel').onclick = e => {
-					Overlay('validate').input('deletion-mode').checked = false;
-					e.conatiner().hide()
+					Overlay('deletion').input('deletion-mode').checked = false;
+					e.container().hide()
 					pendingAction = {}
 			}
+
+			// cancel requested action
+			Overlay('validate').button('cancel').onclick = e => {
+					e.container().hide();
+					pendingAction = {};
+			}
+
+			// go on with requested action
+			Overlay('validate').button('validate').onclick = e => {
+					e.container().hide();	
+					pendingAction.link ? pendingAction.function(pendingAction.link):pendingAction.function();
+					pendingAction = {};
+			}
+		
+		//// DATA EDITION
+			Button('reset').onclick = e => {
+					pendingAction.function = resetTabledata;
+					Overlay('validate').show();
+			}
+
+			// show overlay save changes
+			Button('save').onclick = e => {
+					pendingAction.function = saveCurrentData;
+					Overlay('auth').show();
+			}
+
+			async function saveCurrentData() {
+				// active table
+				table = activeTable.table;
+
+				// select edited rows, with values different from original
+				modifiedRows = Array.from(table.getEditedCells().concat(Object.values(autoEditedCells))).map(c => {return c.getValue() !== c.getInitialValue() ? c.getRow().getData():null}).filter((item, index, arr) => (item !== null && arr.indexOf(item) === index));
+
+				// update fetch
+				jsonData = JSON.stringify({'action':'placeholder', 'type':activeTable.type, 'csrf':csrfToken, 'data':modifiedRows})
+				response = await fetchAPI('/admin/engine/files', jsonData)
+
+				if (!response.ok) {
+					notify('Échec de la mise à jour', 'red')
+					return
+				} else {
+					document.querySelector('#main').child('.form-action-wrap').hide()
+					
+					activeTable.source = JSON.stringify(activeTable.table.getData())
+					resetState(activeTable)
+
+					if (activeTable.type === 'tags') {
+						null
+						// UPDATE TAGS MATCH TABLE
+					}
+
+					notify('Données mises à jour', 'green')
+				}
+				}
 		</script>
 	</body>
 </html>
