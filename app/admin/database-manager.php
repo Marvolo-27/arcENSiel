@@ -289,13 +289,13 @@ $artTypes = getTypes();
 		// show overlay save changes
 		Button('save').onclick = e => {
 				pendingAction.function = saveCurrentData;
-				e.container().show();
+				Overlay('auth').show();
 		}
 
 		// show overlay to reset edits
 		Button('reset').onclick = e => {
 				pendingAction.function = resetTabledata;
-				e.container().show()
+				Overlay('validate').show()
 		}
 
 		</script>
