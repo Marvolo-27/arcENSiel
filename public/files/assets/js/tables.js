@@ -54,14 +54,13 @@ function dataChecker(data) {
 //// TABULATOR GENERATORS
 // Files table
 async function fetchFiles(target) {
-			sourcedata = await dataFetcher('files');
+			sourcedata = await dataFetcher('files').then(response => response['sql-data']);
 			users = await dataFetcher('users').then(response => response['sql-data'].reduce((list, user) => {list[user.username] = user.username; return list}, {}));
 
-			filesList = sourcedata['sql-data'];
 			statusMatch = {'published': 'Publié', 'archived': 'Archivé', 'draft': 'Brouillon'}
 
 			filesTable = new Tabulator(target, {
-				data: sourcedata['sql-data'],
+				data: sourcedata,
 				layout: "fitDataStretch",
 				rowHeight: 36,
 				pagination:true,
@@ -147,15 +146,15 @@ async function fetchFiles(target) {
 				statusWizard()
 			})
 
-			return
+			return sourcedata
 			}
 
 // Users table
 async function fetchUsers(target) {
-			sourcedata = await dataFetcher('users');
+			sourcedata = await dataFetcher('users').then(response => response['sql-data']);
 			
 			usersTable = new Tabulator(target, {
-				  data: sourcedata['sql-data'],
+				  data: sourcedata,
 				  layout: "fitDataTable",
 				  rowHeight: 36,
 				  columns: [
@@ -174,15 +173,15 @@ async function fetchUsers(target) {
 				return (rowData.id === data.user.id && rowData.username !== 'admin');
 				}
 			
-			return
+			return sourcedata
 			}
 
 // Tags table
 async function fetchTags(target) {
-			sourcedata = await dataFetcher('tags');
+			sourcedata = await dataFetcher('tags').then(response => response['sql-data']);
 			
 			tagsTable = new Tabulator(target, {
-				data: sourcedata['sql-data'],
+				data: sourcedata,
 				layout: "fitDataStretch",
 				rowHeight: 36,
 				columns: [
@@ -216,18 +215,19 @@ async function fetchTags(target) {
 			tagsTable.on('cellEdited', cell => {
 						cell.getRow().getCell('slug').setValue(cell.getValue().urlForm())
 				})
-			return
+			
+			return sourcedata
 			}
 	
 // Tags table
 async function fetchTypes(target) {
-			sourcedata = await dataFetcher('types');
+			sourcedata = await dataFetcher('types').then(response => response['sql-data']);
 			
 			colorMatchTable = {}
 			colorCount = 0;
 
 			typesTable = new Tabulator(target, {
-				  data: sourcedata['sql-data'],
+				  data: sourcedata,
 				  layout: "fitDataStretch",
 				  rowHeight: 36,
 				  columns: [
@@ -293,7 +293,8 @@ async function fetchTypes(target) {
 						autoEditedCells[cell.getRow().getData().id] = cell
 					}
 				})
-			return
+			
+			return sourcedata
 			}
 
 // Articles table
@@ -388,10 +389,10 @@ async function fetchArticles(target) {
 
 // Logs table
 async function fetchLogs(target) {
-			sourcedata = await dataFetcher('logs');
+			sourcedata = await dataFetcher('logs').then(response => response['sql-data']);
 			
 			logsTable = new Tabulator(target, {
-				data: sourcedata['sql-data'],
+				data: sourcedata,
 				layout: "fitDataFill",
 				pagination:true,
 				paginationSize:20,
@@ -409,7 +410,7 @@ async function fetchLogs(target) {
 					],
 				});
             
-            return
+            return sourcedata
 			}
 
 // HelloAsso main table
@@ -484,7 +485,7 @@ async function fetchHA(target) {
 				},
 			]});
             
-			return
+			return sourcedata
 			}
 
 // HelloAsso Goodies table
@@ -540,7 +541,7 @@ async function fetchGoodies(target) {
 				}
 			})
 			
-			return
+			return sourcedata
 			}
 
 // DQ7 Table
@@ -585,7 +586,7 @@ async function fetchDQ7(target) {
 				{ title: "Étudiant·e ?", field: "student", headerFilter: 'list', headerFilter:'list', headerFilterParams:{'values': {'Oui':'Oui','Non':'Non'}}, hozAlign: 'center'}
 				]});
 			
-			return
+			return sourcedata
 			}
 
 // Paheko categories table
@@ -647,6 +648,8 @@ async function fetchCategories(target) {
 					{ title: "Première adhésion", field: "date_inscription", mutator: function(value) {return value !== null ? value.split(' ')[0]:null}}
 					],
 				});
+			
+			return sourcedata
 			}
 
 // Subscriptions table
@@ -701,6 +704,8 @@ async function fetchSubscriptions(target) {
 					{ title: "Expiration", field: "expiry_date", resizable: false}
 					],
 				});
+			
+			return sourcedata
 			}
 
 async function fetchStocks(target) {
@@ -723,6 +728,8 @@ async function fetchStocks(target) {
 					{ title: "Description", field: "description", resizable: false}
 					],
 				});
+			
+			return sourcedata
 			}
 
 //// UTILS FUNCTIONS

@@ -290,8 +290,7 @@ if ($_SESSION['role'] !== 'admin') {
 										overlay.child('form').insertBefore(div, overlay.querySelector('.external.form-action-wrap'))
 
 										// fetch all required data
-										await fetchFiles('#files');
-										total = filesList.length;
+										total = await fetchFiles('#files').then(response => response.length);
 										fileScanner()
 										
 										// easy match table with their type
