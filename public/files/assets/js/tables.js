@@ -191,7 +191,7 @@ async function fetchTags(target) {
 											<span class='img'></span>
 										</div>`}, resizable: false},
 					{ title: "Identifiant", field: "slug", editor: 'input', validator: ['unique', 'required']},
-					{ title: "Nom", field: "name", editor: "input", mutator: function (value, data) {return value.trim()}, validator: tagUniqueness},
+					{ title: "Nom", field: "name", editor: "input", mutator: function (value, data) {return value.trim()}, validator: [tagUniqueness, 'required']},
 				  ],
 				});
 			
@@ -237,7 +237,7 @@ async function fetchTypes(target) {
 											<span class='img'></span>
 										</div>`}, resizable: false},
 					{ title: "Identifiant", field: "slug", editor: 'input', editable: cell => cell.getRow().getData().slug !== 'undefined', validator: ['unique', 'required']},
-					{ title: "Nom", field: "name", editor: "input", editable: cell => cell.getRow().getData().slug !== 'undefined', mutator: function (value, data) {return value.trim()}, validator: typeUniqueness},
+					{ title: "Nom", field: "name", editor: "input", editable: cell => cell.getRow().getData().slug !== 'undefined', mutator: function (value, data) {return value.trim()}, validator: [typeUniqueness, 'required']},
 					{ title: "Couleur", field: "color", formatter: function(cell) {
 																				// remove broken bonds
 																				Object.entries(colorMatchTable).forEach(([k, v]) => {if (!v.getElement()) delete colorMatchTable[k]})
