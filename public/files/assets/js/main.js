@@ -41,7 +41,10 @@ String.prototype.filename = function (extension=false) {
 															return result.split('.').length > 1 ? result.split('.').slice(0,-1).join('.') : result
 														}
 														}
-String.prototype.extension = function () {return this.split('.').slice(-1)[0]}
+String.prototype.extension = function () {
+										filename = this.split('/').slice(-1)[0];
+										return filename.split('.').length > 1 ? filename.split('.').slice(-1)[0] : ''
+										}
 
 // method to convert string to compatible Link
 	// normalise separate accentuated letters in {accent + base letter}
