@@ -304,6 +304,9 @@ async function fetchArticles(target) {
 			
 			statusMatch = {'published': 'Publié', 'archived': 'Archivé', 'draft': 'Brouillon'}
 
+			// Extract authors list
+			authors = sourcedata.reduce((list, article) => {list.push(article.author); return list}, []).filter((item, index, arr) => (item !== null && arr.indexOf(item) === index))
+			console.log(authors)
 			articlesTable = new Tabulator(target, {
 				  data: sourcedata,
 				  layout: "fitDataFill",
@@ -327,7 +330,7 @@ async function fetchArticles(target) {
 					{ title: "Statut", field: "status", formatter: function(cell) {cell.getElement().classList.toggle(cell.getValue()); return statusMatch[cell.getValue()]}, vertAlign: 'middle'},
 					{ title: "URL", field: "url", editor:"input", validator: ['unique', 'required']},
 					{ title: "Titre", field: "title", editor:"input", validator: "required"},
-					{ title: "Auteur", field: "author", editor:"input"},
+					{ title: "Auteur", field: "author", editor:"list", editorParams: {autocomplete: true, values: authors, freetext: true}},
 					{ title: "Date", field: "date", editor:"date", resizable: false},
 					{ title: "Date (fin)", field: "end_date", editor:"date", resizable: false},
 					{ title: "Type", field: "type", mutator: function (value, data) {return value === '' ? '0':value}, formatter: function(cell) {return cell.getValue() === '0' ? 'Indéfini' : typesCounter[cell.getValue()]}, editor:"list", editorParams: {values:typesCounter}},
