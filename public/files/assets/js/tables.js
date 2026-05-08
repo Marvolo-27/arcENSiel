@@ -305,8 +305,8 @@ async function fetchArticles(target) {
 			statusMatch = {'published': 'Publié', 'archived': 'Archivé', 'draft': 'Brouillon'}
 
 			// Extract authors list
-			authors = sourcedata.reduce((list, article) => {list.push(article.author); return list}, []).filter((item, index, arr) => (item !== null && arr.indexOf(item) === index))
-			console.log(authors)
+			authors = sourcedata.reduce((list, article) => {list.push(article.author); return list}, []).filterUnique()
+			
 			articlesTable = new Tabulator(target, {
 				  data: sourcedata,
 				  layout: "fitDataFill",

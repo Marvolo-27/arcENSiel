@@ -28,6 +28,10 @@ function config()  {
 		}
 
 //// METHODS /////
+// Alias to filter arrays to unique values
+Array.prototype.filterUnique = function () {return this.filter((item, index, arr) => (item !== null && arr.indexOf(item) === index))}
+
+
 // Add wrap method to str to shorten str formatting
 String.prototype.strForm = function () {return this.trimStart().trimEnd().toLowerCase()}
 
@@ -540,7 +544,7 @@ function usageUpdate(name, rawlist, action='remove') {
 		list = rawlist.split(',');
 
 		if (action === 'remove') {
-			newlist = list.filter(e => {return e === name ? null:name})
+			newlist = list.filter(e => e === name ? null:name)
 		} else {
 			newlist = list;
 			newlist.push(name)

@@ -848,7 +848,7 @@ if ($_SESSION['role'] !== 'admin') {
 				table = activeTable.table;
 
 				// select edited rows, with values different from original
-				modifiedRows = Array.from(table.getEditedCells().concat(Object.values(autoEditedCells))).map(c => {return c.getValue() !== c.getInitialValue() ? c.getRow().getData():null}).filter((item, index, arr) => (item !== null && arr.indexOf(item) === index));
+				modifiedRows = Array.from(table.getEditedCells().concat(Object.values(autoEditedCells))).map(c => {return c.getValue() !== c.getInitialValue() ? c.getRow().getData():null}).filterUnique();
 
 				// update fetch
 				jsonData = JSON.stringify({'action':'placeholder', 'type':activeTable.type, 'csrf':csrfToken, 'data':modifiedRows})
