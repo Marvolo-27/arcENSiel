@@ -151,8 +151,9 @@ async function fetchFiles(target) {
 
 // Users table
 async function fetchUsers(target) {
-			sourcedata = await dataFetcher('users').then(response => response['sql-data']);
-			
+			data = await dataFetcher('users');
+			sourcedata = data['sql-data']
+
 			usersTable = new Tabulator(target, {
 				  data: sourcedata,
 				  layout: "fitDataTable",
@@ -299,12 +300,12 @@ async function fetchTypes(target) {
 
 // Articles table
 async function fetchArticles(target) {
-			sourcedata = await dataFetcher('articles');
+			sourcedata = await dataFetcher('articles').then(response => response['sql-data']);
 			
 			statusMatch = {'published': 'Publié', 'archived': 'Archivé', 'draft': 'Brouillon'}
 
 			articlesTable = new Tabulator(target, {
-				  data: sourcedata['sql-data'],
+				  data: sourcedata,
 				  layout: "fitDataFill",
 				  rowHeight: 36,
 				  columns: [
@@ -384,7 +385,7 @@ async function fetchArticles(target) {
 				}
 			})
 
-			return
+			return sourcedata
 			}
 
 // Logs table
