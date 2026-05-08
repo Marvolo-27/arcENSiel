@@ -111,7 +111,7 @@ try {
 	$query->execute();
 	$total = $query->fetch(PDO::FETCH_ASSOC);
 
-	logger('/log/queries.log', queryMaker($fetchcore.$sql.$amount, $params), 'Search articles');
+	//logger('/log/queries.log', queryMaker($fetchcore.$sql.$amount, $params), 'Search articles');
 } catch (PDOException $e) {
 	http_response_code(500); // access authorized so success but failed to ouput sql
 	echo json_encode(['error' => $e]);
