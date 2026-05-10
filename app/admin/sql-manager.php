@@ -74,7 +74,7 @@ if ($_SESSION['username'] !== 'admin') {
 					
 					<div class='form-action-wrap'>
 						<div class='form-action'>
-							<button class='action-btn spinnable' type='submit' id='submit'><span class='text'>Soumettre</span><span class="spinner"></span></button>
+							<button class='action-btn submit spinnable' type='submit'><span class='text'>Soumettre</span><span class="spinner"></span></button>
 						</div>
 						
 						<div class='form-action'>
@@ -100,31 +100,23 @@ if ($_SESSION['username'] !== 'admin') {
 		<?php include($root . '/app/templates/footer.html') ?>
 		
 		<script>
-		document.querySelector('form#sql-form').onsubmit = (e) => {sqlSend(e)};
+		document.querySelector('form#sql-form').onsubmit = e => sqlSend(e);
 		async function sqlSend(e) {
 						e.preventDefault();
 						
 						// spinner in submit button
-						btn = document.querySelector('#submit');
+						btn = Button('submit')
 						btn.disabled = true;
-						btn.toggleAttribute('active');
+						btn.toggle();
 						
 						// extract form information
 						formData = new FormData(e.target);
 					    
 						// Response object
-						response = await fetch("/admin/engine/sql", {
-									method: "POST",
-									body: formData
-									});
-						
-						// Response body content
-						data = await response.json(); // dict parsed response data
+						response = await fetchAPI('/admin/engine/sql', formData)
 						
 						if (!response.ok) {// http code 400-500 reuturn false
-										alert(`Error: HTTP ${response.status}: ${data.error}`);
-										console.log(data);
-										console.log(data.error);
+										alert(`Error: HTTP ${response.httpcode}: ${response.body.error}`);
 										return null
 										}
 						
@@ -133,25 +125,25 @@ if ($_SESSION['username'] !== 'admin') {
 						
 						output.innerHTML = '';
 						raw.innerHTML = '';
-						output.removeAttribute('error');
+						output.unset('error');
 						
 						raw.parentNode.style.display = 'none';
 						
 						if (response.status === 250) {// failed sql request
 							// PDOException outputs a dict with key 'errorInfo' whose value is a (3-tuple)
 							// Data structure is response [Response object] => .json() [body content] => .error [key of dict sent by php script] => .errorInfo [key of dict paired with key 'error'] => [2] [third value of array paired with 'errorInfo' key]
-							errorData = data.error.errorInfo[2];
-							errorCode = data.error.errorInfo[0];
+							errorData = response.body.error.errorInfo[2];
+							errorCode = response.body.error.errorInfo[0];
 							
 							output.innerHTML = `SQL Error [${errorCode}]: ${errorData}.`;
-							output.setAttribute('error','');
+							output.set('error');
 							
 							btn.disabled = false;
-							btn.toggleAttribute('active');;
+							btn.toggle();
 						
 							return
 						} else {// correct sql response
-							sqlData = data['sql-data'];
+							sqlData = response.body['sql-data'];
 						}
 						
 						raw.innerText = JSON.stringify(sqlData);
@@ -161,17 +153,16 @@ if ($_SESSION['username'] !== 'admin') {
 						raw.parentNode.style.display = 'initial';
 						
 						btn.disabled = false;
-						btn.toggleAttribute('active');;
+						btn.toggle();;
 					}
 		
-		document.querySelector('.action-btn.reset').onclick = () => {
+		Button('reset').onclick = () => {
 						output = document.querySelector('.output .output-text.clean');
 						raw = document.querySelector('.output .output-text.raw');
-						input = document.querySelector('#sql-query');
 						
 						output.innerHTML = '';
 						raw.innerHTML = '';
-						input.value = '';
+						Input('sql-query').value = '';
 						}
 		</script>
 	</body>
