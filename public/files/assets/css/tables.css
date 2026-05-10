@@ -17,6 +17,8 @@
                 &[altered] {background-color: #ffe5d3;}
 		
                 & .tabulator-cell {
+                        &:not(.tabulator-editable) {cursor: default;}
+
                         &.edited {background: #f5acac;}
 
                         &[changed] {background: #f8f688a6;}

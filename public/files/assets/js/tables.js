@@ -75,13 +75,13 @@ async function fetchFiles(target) {
 							rowdata = cell.getRow().getData();
 							v_type = rowdata.type.match(/(application\/pdf|image\/.*)/)
 							return `<span>
-										<div class='icon view inline medium ${rowdata.status && v_type ? 'visualize dynamic':''}' title="Voir le fichier">
+										<div class='icon view inline medium ${rowdata.status && v_type ? 'visualize dynamic hoverable':''}' ${rowdata.status && v_type ? 'title="Voir le fichier"':''}>
 											<span class='img'></span>
 										</div>
-										<div class='icon delete inline medium dynamic' title="Supprimer ${rowdata.status ? 'le fichier':"l'entrée"}">
+										<div class='icon delete inline medium dynamic hoverable' title="Supprimer ${rowdata.status ? 'le fichier':"l'entrée"}">
 											<span class='img'></span>
 										</div>
-										<div class='icon inline medium ${rowdata.status ? 'download dynamic':''}' title="Télécharger le fichier">
+										<div class='icon inline medium ${rowdata.status ? 'download dynamic hoverable':''}' title="Télécharger le fichier">
 											<span class='img'></span>
 										</div>`}, resizable: false, frozen: true},
 					{ title: "Nom du fichier", field: "name", mutator: function(value){return value.filename()}, formatter: function(cell) {return cell.getValue() + '.' + cell.getRow().getData().extension}, editor: 'input', validator: 'unique', vertAlign: 'middle'},
@@ -188,7 +188,7 @@ async function fetchTags(target) {
 				columns: [
 					{ title: "", field: "actions", mutator: function (value, data) {return data.slug}, formatter: function (cell) {
 							return `<span>
-										<div class='icon delete inline medium dynamic' title="Supprimer l'étiquette">
+										<div class='icon delete inline medium dynamic hoverable' title="Supprimer l'étiquette">
 											<span class='img'></span>
 										</div>`}, resizable: false},
 					{ title: "Identifiant", field: "slug", editor: 'input', validator: ['unique', 'required']},
@@ -234,7 +234,7 @@ async function fetchTypes(target) {
 				  columns: [
 					{ title: "", field: "actions", mutator: function (value, data) {return data.slug}, formatter: function (cell) {
 							return `<span>
-										<div class='icon ${cell.getRow().getData().slug !== 'undefined' ? 'delete dynamic' : ''} inline medium ' ${cell.getRow().getData().slug !== 'undefined' ?'title="Supprimer la catégorie"':''}>
+										<div class='icon ${cell.getRow().getData().slug !== 'undefined' ? 'delete dynamic hoverable' : ''} inline medium ' ${cell.getRow().getData().slug !== 'undefined' ?'title="Supprimer la catégorie"':''}>
 											<span class='img'></span>
 										</div>`}, resizable: false},
 					{ title: "Identifiant", field: "slug", editor: 'input', editable: cell => cell.getRow().getData().slug !== 'undefined', validator: ['unique', 'required']},
@@ -315,16 +315,16 @@ async function fetchArticles(target) {
 					{ title: "", field: "actions", mutator: function (value, data) {return data.url}, formatter: function (cell) {
 							const value = cell.getRow().getData().status;
 							return `<span>
-										<div class='icon modify ${value !== 'published' ? 'edit dynamic':''} inline medium' title="Modifier l'article">
+										<div class='icon modify ${value !== 'published' ? 'edit dynamic hoverable':''} inline medium' title="Modifier l'article">
 											<span class='img'></span>
 										</div>
-										<div class='icon delete inline medium dynamic' title="Supprimer l'article">
+										<div class='icon delete inline medium dynamic hoverable' title="Supprimer l'article">
 											<span class='img'></span>
 										</div>
-										<div class='icon visualize ${value === 'published' ? 'view':(value === 'archived' ? 'preview':'draft')} inline medium dynamic' title="Voir l'article">
+										<div class='icon visualize ${value === 'published' ? 'view':(value === 'archived' ? 'preview':'draft')} inline medium dynamic hoverable' title="Voir l'article">
 											<span class='img'></span>
 										</div>
-										<div class='icon ${value === 'published' ? 'archive':(value === 'archived' ? 'unarchive':'paper')} inline medium dynamic' title="${value === 'published' ? "Archiver l'article":(value === 'archived' ? "Désarchiver l'article":"Publier l'article")}">
+										<div class='icon ${value === 'published' ? 'archive':(value === 'archived' ? 'unarchive':'paper')} inline medium dynamic hoverable' title="${value === 'published' ? "Archiver l'article":(value === 'archived' ? "Désarchiver l'article":"Publier l'article")}">
 											<span class='img'></span>
 										</div>`}, resizable: false},
 					{ title: "Statut", field: "status", formatter: function(cell) {cell.getElement().classList.toggle(cell.getValue()); return statusMatch[cell.getValue()]}, vertAlign: 'middle'},
