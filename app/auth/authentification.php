@@ -598,7 +598,7 @@ unset($_SESSION['message']);
 										Error('password').style.display='';
 									}
 									if (body.dataset.message === 'registered') {
-										notify('Compte créé');
+										notify('Bienvenue !', 'Compte créé avec succès.', 'green');
 									}
 									
 									}

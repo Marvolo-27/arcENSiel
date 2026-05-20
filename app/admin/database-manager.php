@@ -140,9 +140,7 @@ $artTypes = getTypes();
 									tablesListener(true)
 									}
 
-		async function archiveArticle(event, cell, toarchive) {
-				notify('Mise à jour du statut', 'orange')
-				
+		async function archiveArticle(event, cell, toarchive) {				
 				// dom objects
 				const btn = event.target.findParent('.icon')
 				const row = cell.getRow();
@@ -155,6 +153,8 @@ $artTypes = getTypes();
 				const state = toarchive ? 'archived':'published';
 				const slug = cell.getRow().getData().url;
 
+				notify("Mise à jour du statut d'un article", `${toarchive ? 'Archivage':'Publication'} de l'article ${slug}.`, 'orange')
+
 				await sleep(500);
 				
 				jsonData = JSON.stringify({'action':'archive','type':'articles','csrf':csrfToken, 'slug':slug, 'status':state})
@@ -163,7 +163,7 @@ $artTypes = getTypes();
 				response = await fetchAPI('/admin/engine/database', jsonData)
 				
 				if (!response.ok) {
-					notify("Échec", 'red')
+					notify("Erreur lors de la mise à jour du statut", `${toarchive ? "L'archivage":'La publication'} de l'article ${slug} a échoué. Veuillez réessayer.`, 'red')
 					return
 				}
 
@@ -177,15 +177,13 @@ $artTypes = getTypes();
 				modifyIcon.classList.toggle('edit')
 				modifyIcon.classList.toggle('dynamic')
 
-				notify('Statut mis à jour avec succès', 'green')
+				notify("Succès de la mise à jour du statut", `L'article ${slug} a été ${toarchive ? 'archivé':'publié'} avec succès.`, 'green')
 				
 				activeTable.source = JSON.stringify(activeTable.table.getData())
 				resetState(activeTable)
 		}
 		
-		async function deleter(kwargs) {
-				notify('Suppression en cours')
-				
+		async function deleter(kwargs) {				
 				[event, cell] = kwargs;
 
 				// dom objects
@@ -197,6 +195,8 @@ $artTypes = getTypes();
 				slug = type === 'articles' ? row.getData().url:row.getData().slug;
 				value = cell.getValue();
 
+				notify("Suppression en cours", `La suppression de '${slug}' de la liste des ${type} est en cours.`, 'orange')
+
 				await sleep(500);
 				
 				jsonData = JSON.stringify({'action':'delete', 'type':type, 'csrf':csrfToken, 'slug':slug, 'value':value})
@@ -205,7 +205,7 @@ $artTypes = getTypes();
 				response = await fetchAPI('/admin/engine/database', jsonData)
 
 				if (!response.ok) {
-					notify("Échec de la suppression", 'red')
+					notify("Erreur", `La suppression de '${slug}' de la liste des ${type} a échoué. Veuillez réessayer.`, 'red')
 					return
 				}
 
@@ -220,7 +220,7 @@ $artTypes = getTypes();
 					await resetTabledata(tableMatch.articles)
 				}
 
-				notify(type === 'articles' ? 'Article supprimé.':'Étiquette supprimée.')
+				notify("Suppression effectuée", `'${slug}' a été supprimé de la liste des ${type}.`, 'green')
 		}
 
 		// actions that require authentification
@@ -237,7 +237,7 @@ $artTypes = getTypes();
 				response = await fetchAPI('/admin/engine/database', jsonData)
 
 				if (!response.ok) {
-					notify('Échec de la mise à jour', 'red')
+					notify("Échec de la mise à jour", `Des erreurs sont survenues lors de la mise à jour des données de la table '${activeTable.type}'. Consultez les logs pour plus d'informations.`, 'red')
 					return
 				} else {
 					document.querySelector('#main').child('.form-action-wrap').hide()
@@ -250,7 +250,7 @@ $artTypes = getTypes();
 						// UPDATE TAGS MATCH TABLE
 					}
 
-					notify('Données mises à jour', 'green')
+					notify("Succès", `Les données de la table '${activeTable.type}' ont été mises à jour.`, 'green')
 				}
 				}
 		

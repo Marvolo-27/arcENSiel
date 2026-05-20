@@ -132,7 +132,7 @@ if ($_SESSION['role'] !== 'admin') {
 		Icon('refresh').onclick = logUpdater;
 		
 		async function logUpdater(e) {
-			notify('Synchronisation des logs.', 'orange')
+			notify("Synchronisation en cours", "Récupération des logs depuis la base de données.", 'orange')
 			icon = e.target.findParent('.icon')
 			icon.show();
 			icon.setAttribute('title','Synchronisation des logs');
@@ -141,7 +141,7 @@ if ($_SESSION['role'] !== 'admin') {
 			
 			icon.hide();
 			icon.setAttribute('title','Synchroniser les logs');
-			notify('Synchronisation terminée', 'green')
+			notify("Synchronisation terminée", "Les logs ont correctement été synchronisés.", 'green')
 			}
 		</script>
 	</body>

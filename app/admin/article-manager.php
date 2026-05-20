@@ -562,7 +562,7 @@ if ($edition && !$artData) {
 						response = await fetchAPI('/admin/engine/article', formData)
 
 						if (!response.ok) {// http code 400-500 reuturn false
-										alert(`Error: HTTP ${response.httpcode}: ${response.body.error}`);
+										notify("Erreur lors du téléversement", `Une erreur est survenue lors de l'ajout du fichier sélectionné sur le serveur. [Erreur HTTP ${response.httpcode}] ${response.body.error}`, 'red');
 										
 										buttonsToggler(e, false)
 										btn.toggle()
@@ -585,11 +585,11 @@ if ($edition && !$artData) {
 							output.innerHTML = `Error [${errorCode}]: ${errorData}`;
 							output.set('error');
 							urlIn.set('invalid');
-							urlIn.setAttribute('oldvalue',urlIn.value);
+							urlIn.setAttribute('oldvalue', urlIn.value);
 							
 							buttonsToggler(e, false)
 							btn.toggle()
-							notify(`Error [${errorCode}]: ${errorData}`, 'red')
+							notify("Échec de la mise à jour", `La mise à jour de l'article dans la base de données a échoué. [Error ${errorCode}]: ${errorData}`, 'red')
 							
 							return
 						} else {// correct sql response
@@ -609,10 +609,10 @@ if ($edition && !$artData) {
 																				})
 
 						output.set('success');
-						output.innerHTML = `Success: article created successfully at url ${artData.url}`;
+						output.innerHTML = `Success: article created at url ${artData.url}`;
 						resetEditsHistory()
 
-						notify('Modifications enregistrées', 'green');
+						notify("Modifications enregistrées", "Les données de l'article ont été mises à jour.", 'green');
 
 						buttonsToggler(e, true)
 						btn.toggle();
@@ -871,7 +871,7 @@ if ($edition && !$artData) {
 					error.hide();
 					spin.show();
 					
-					// termiante if no url
+					// terminate if no url
 					if (url === '') return;
 					
 					// edit mode

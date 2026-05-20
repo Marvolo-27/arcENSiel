@@ -1,5 +1,5 @@
 async function syncerAPI(e, api) {
-        notify(`Synchronisation depuis ${api}`, 'orange')
+        notify("Synchronisation en cours",  `Les données sont en cours de synchronisation depuis le serveur ${api}.`, 'orange')
 		icon = e.target.findParent('.icon')
 		icon.show();
 		icon.setAttribute('title',`Récupération des données depuis ${api}`);
@@ -18,7 +18,7 @@ async function syncerAPI(e, api) {
 		if (!response.ok) {
 			json = await response.json();
 
-			notify('Erreur lors de la syncronisation : '+json.error, 'red')
+			notify("Erreur lors de la syncronisation", json.error, 'red')
             return false
 		}
 

@@ -196,10 +196,10 @@ $artTags = $query->fetchAll(PDO::FETCH_ASSOC) ?? null;
 		async function loader()  {
 									// PHP sent notifications
 									if (body.dataset.message === 'login') {
-										notify(`Utilisateurice <?= $message ? $_SESSION['username']:'' ?> connecté·e`, 'green');
+										notify('Bon retour !', `Connecté·e en tant que <?= $message ? $_SESSION['username']:'' ?>.`, 'green');
 										}
 									if (body.dataset.message === 'logged-out') {
-										notify(`Utilisateurice déconnecté·e`, 'green');
+										notify('À bientôt !', `Utilisateurice déconnecté·e.`, 'green');
 										}
 									
 									// fetch most recent article

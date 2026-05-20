@@ -179,15 +179,15 @@ if (isset($_SESSION['message'])) {
 									}
 									
 									if (body.dataset.error === 'locked-username') {
-										notify("login non modifiable pour admin", 'red');
+										notify("Opération interdite", "Le login n'est pas modifiable pour le compte admin", 'red');
 									}
 
 									if (body.dataset.error === 'locked-email') {
-										notify("email non modifiable pour admin", 'red');
+										notify("Opération interdite", "L'adresse email n'est pas modifiable pour le compte admin", 'red');
 									}
 
 									if (body.dataset.message === 'updated') {
-										notify(`Informations mises à jour`, 'green');
+										notify("Succès", "Informations de connexion mises à jour.", 'green');
 										}
 									}
 		

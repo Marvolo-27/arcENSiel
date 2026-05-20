@@ -112,9 +112,9 @@ unset($_SESSION['contact-message']);
 										if (body.dataset.error === 'bad-mail') {
 											Error('mail').show();
 										} else if (body.dataset.error === 'send-failed') {
-											notify("Échec de l'envoi du mail", 'red')
+											notify("Erreur", "Échec de l'envoi du mail. Veuillez réessayer.", 'red')
 										} else if (body.dataset.message === 'sent') {
-											notify("Message envoyé !", 'green')
+											notify("Message envoyé !", "Votre message nous a bien été envoyé et sera traité dans les plus brefs délais.", 'green')
 										}
 									}
 		</script>

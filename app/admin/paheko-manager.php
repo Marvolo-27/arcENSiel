@@ -183,7 +183,7 @@ if ($_SESSION['role'] !== 'admin') {
 				await fetchSubscriptions('#subscriptions');
 				await fetchStocks('#stocks');
 				
-				notify('Synchronisation terminée', 'green')
+				notify("Synchronisation terminée", "Les données ont été mises à jour depuis le serveur Paheko.", 'green')
 				}
 		
 		// download backup file
@@ -224,7 +224,7 @@ if ($_SESSION['role'] !== 'admin') {
 					filename = 'paheko-output_'+date+'.json'
 				
 				} else {// paheko file download
-					notify('Téléchargement depuis Paheko depuis Paheko', 'orange')
+					notify("Téléchargement en cours", "Le fichier demandé est en cours de téléchargement depuis Paheko.", 'orange')
 					tag.toggle('disabled')
 					cncl.toggle('disabled')
 					
@@ -232,7 +232,7 @@ if ($_SESSION['role'] !== 'admin') {
 					response = await fetchAPI('/api/paheko/download', jsonData)
 
 					if (!response.ok) {
-						notify('Erreur lors de la synchronisation : '+ response.body.error, 'red')
+						notify("Erreur lors de la synchronisation", response.body.error, 'red')
 
 						if (!response.body.available) return
 					}
@@ -245,7 +245,7 @@ if ($_SESSION['role'] !== 'admin') {
  
 					tag.toggle('disabled')
 					cncl.toggle('disabled')
-					notify('Téléchargement sur le serveur terminé', 'green')
+					notify("Téléversement terminé", "Le fichier a bien été ajouté sur le serveur d'arcENSiel.", 'green')
 				}
 
 				Overlay('validate').hide();

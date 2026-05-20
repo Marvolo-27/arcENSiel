@@ -466,7 +466,7 @@ if ($_SESSION['role'] !== 'admin') {
 		/// SCAN
 			Icon('refresh').onclick = fileScanner;
 			async function fileScanner(e = null) {
-						notify('Scan initiated', 'orange')
+						notify("Scan en cours", "Analyse en cours des fichiers stockés sur le serveur et enregistrés dans la base de données.", 'orange')
 						e ? e.target.findParent('.icon').show():null;
 						
 						document.querySelector('.files-wrap.invalid').hide();
@@ -551,7 +551,7 @@ if ($_SESSION['role'] !== 'admin') {
 						}
 
 						e ? e.target.findParent('.icon').hide():null;
-						notify('Scan complete', 'green')
+						notify("Scan terminé", "L'analyse des fichiers est terminée.", 'green')
 			}
 
 
@@ -575,7 +575,7 @@ if ($_SESSION['role'] !== 'admin') {
 
 			// Manage unregistered files
 			async function filesInserter(elements) {
-					notify((pendingAction.action === 'insert' ? 'Insertion':'Suppression')+' en cours', 'orange')
+					notify(`${pendingAction.action === 'insert' ? 'Ajout':'Suppression'} en cours`, `Les fichiers détectés sur le serveur n'existant pas sur la base de données sont en cours ${pendingAction.action === 'insert' ? "d'enregistrement":'de suppression'}.`, 'orange')
 					
 					selectedFiles = Array.from(elements).map(elm => {elm.unset('selected'); return elm.dataset.url})
 					action = pendingAction.action;
@@ -590,27 +590,28 @@ if ($_SESSION['role'] !== 'admin') {
 					response = await fetchAPI('/admin/engine/files', jsonData)
 
 					if (!response.ok) {
-						notify(response.body.error, 'red')
+						notify("Erreur lors de l'opération", response.body.error, 'red')
 					} else {
-						notify(response.body.content, 'green')
+						notify("Succès de l'opération", response.body.content, 'green')
 					}
 			}
 			
 			async function deleter(data) {
-					notify('Operation started', 'orange')
 					mode = pendingAction.mode ? 'force':'keep';
 					pendingAction = {};
 					Overlay('deletion').input('deletion-mode').checked = false;
+
+					notify("Suppression en cours", `La suppression du fichier '${data.url}' du serveur est en cours.${mode === 'force' ? " L'entrée correspondante dans la base de données sera supprimée.":''}`, 'orange')
 
 					// update data on server
 					jsonData = JSON.stringify({'csrf':csrfToken, 'action':'remove', 'mode':mode, 'url':data.url, 'status':data.status})
 					response = await fetchAPI('/admin/engine/files', jsonData)
 
 					if (!response.ok) {
-						notify(response.body.error, 'red')
+						notify("Erreur lors de la suppression", `Le fichier '${data.url}' n'a pas pu être retiré du serveur. Veuillez réessayer.`, 'red')
 					} else {
 						await updateData()
-						notify('Operation succeeded', 'green')
+						notify("Suppression réussie", `Le fichier '${data.url}' a été retiré du serveur${mode === 'force' ? " et de la base de données.":'.'}`, 'green')
 					}
 			}
 
@@ -721,7 +722,7 @@ if ($_SESSION['role'] !== 'admin') {
 
 			// update new file
 			async function uploader(form) {
-						notify('Uploading file', 'orange')
+						notify("Téléversement en cours", "Le fichier sélectionné est en cours d'ajour sur le serveur.", 'orange')
 						fileTag = Overlay('uploader').child('.fileentry')
 						adminCheck = Overlay('uploader').input('admin-check').checked
 						file = fileTag.files[0];
@@ -764,8 +765,8 @@ if ($_SESSION['role'] !== 'admin') {
 						// Response object
 						response = await fetchAPI('/admin/engine/files', formData)
 
-						if (!response.ok) {// http code 400-500 reuturn false
-								alert(`Error: HTTP ${response.httpcode}: ${response.body.error}`);
+						if (!response.ok) {// http code 400-500 return false
+								notify("Échec du téléversement", `[Erreur HTTP ${response.httpcode}] ${response.body.error}`, 'red');
 								return null
 								}
 						
@@ -773,10 +774,10 @@ if ($_SESSION['role'] !== 'admin') {
 							errorData = response.body.error;
 							errorCode = response.body.code;
 							
-							notify(`Error [${errorCode}]: ${errorData}`, 'red');							
+							notify("Erreur lors du téléversement", `L'ajot à la base de données a échoué. [Error ${errorCode}]: ${errorData}`, 'red');							
 							return
 						} else {// correct sql response
-							notify('File uploaded', 'green')
+							notify("Succès du téléversement", `Le fichier ${response.body.data.path} a été ajouté au serveur et à la base de données`, 'green')
 						}
 
 						form.reset()
@@ -855,7 +856,7 @@ if ($_SESSION['role'] !== 'admin') {
 				response = await fetchAPI('/admin/engine/files', jsonData)
 
 				if (!response.ok) {
-					notify('Échec de la mise à jour', 'red')
+					notify("Échec de la mise à jour", `Des erreurs sont survenues lors de la mise à jour des métadonnées des fichiers. Consultez les logs pour plus d'informations.`, 'red')
 					return
 				} else {
 					document.querySelector('#main').child('.form-action-wrap').hide()
@@ -868,7 +869,7 @@ if ($_SESSION['role'] !== 'admin') {
 						// UPDATE TAGS MATCH TABLE
 					}
 
-					notify('Données mises à jour', 'green')
+					notify("Succès", "Les métadonnées des fichiers ont été mises à jour.", 'green')
 				}
 				}
 		</script>

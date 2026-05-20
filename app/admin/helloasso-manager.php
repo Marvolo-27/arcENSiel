@@ -119,11 +119,11 @@ if ($_SESSION['role'] !== 'admin') {
 			await fetchGoodies('#goodies')
 			await fetchDQ7('#dq7')
 			
-			notify('Synchronisation terminée', 'green')
+			notify("Synchronisation terminée", "Les données ont été mises à jour depuis le serveur HelloAsso.", 'green')
 			}
 
 		async function saveEdits() {
-					notify('Sauvegarde en cours', 'orange')
+					notify("Sauvegarde en cours", "Les modifications effectuées sont en train d'être sauvegardées. Veillez à ne pas quitter la page.", 'orange')
 
 					// fetch active table
 					type = activeTable.type;
@@ -138,11 +138,11 @@ if ($_SESSION['role'] !== 'admin') {
 					response = await fetchAPI('/api/helloasso/edit', jsonData)
 					
 					if (!response.ok) {
-						notify('Erreur lors de la mise à jour des données', 'red')
+						notify("Erreur lors de la mise à jour des données", response.body.error, 'red')
 						return
 					}
 					
-					notify('Données mises à jour', 'green')
+					notify("Données mises à jour", "Les modifications ont été enregistrées sur le serveur.", 'green')
 					
 					// Reset table state
 					activeTable.source = JSON.stringify(activeTable.table.getData())
@@ -153,7 +153,7 @@ if ($_SESSION['role'] !== 'admin') {
 		Icon('download').onclick = helloassoDownload;
 		function helloassoDownload() {
 				if (activeTable === undefined) {
-					notify('Sélectionner une table pour télécharger les données', 'red')
+					notify("Choix invalide", "Veuillez sélectionner une table pour en télécharger les données.", 'red')
 					return
 				}
 				

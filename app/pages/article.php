@@ -221,18 +221,16 @@ if ($status === 'preview' && $edition) {
 				data = await response.json()
 
 				if (!response.ok) {
-					notify('Erreur lors de la mise à jour des favoris.', 'red')
+					notify("Échec de la mise à jour", `Une erreur est survenue lors de ${mode === 'mark' ? "l'ajout":'la suppression'} de l'article ${mode === 'mark' ? 'à':'de'} vos favoris.`, 'red')
 					tag.toggle() // reset attribute status
 				} else {
-					notify('Favoris mis à jour', 'green')
+					notify("Favoris mis à jour", `L'article '${url}' a été ${mode === 'mark' ? 'ajouté à':'retiré de'} la liste de vos favoris.`, 'green')
 				}
 		}
 		<?php endif; ?>
 
 		// handle article archiving
-		async function archiveArticle(event) {
-				notify('Mise à jour du statut', 'orange')
-				
+		async function archiveArticle(event) {				
 				// dom objects
 				btn = event.target.findParent('.icon')
 				toarchive = Array.from(btn.classList).includes('archive');
@@ -241,6 +239,8 @@ if ($status === 'preview' && $edition) {
 				state = toarchive ? 'archived':'published';
 				slug = btn.dataset.url;
 
+				notify(`${toarchive ? 'Archivage':'Publication'} en cours`, `Le statut de l'article ${slug} est en cours de mise à jour.`, 'orange')
+
 				await sleep(500);
 				
 				// check password
@@ -248,7 +248,7 @@ if ($status === 'preview' && $edition) {
 				response = await fetchAPI('/admin/engine/database', jsonData)
 
 				if (!response.ok) {
-					notify("Action failed.", 'red')
+					notify("Échec de la mise à jour", `Une erreur est survenue lors de ${toarchive ? "l'archivage":'la publication'} de l'article. Veuillez réessayer.`, 'red')
 					return
 				}
 
@@ -256,7 +256,7 @@ if ($status === 'preview' && $edition) {
 				btn.classList.toggle('archive')
 				btn.classList.toggle('unarchive')
 
-				notify('Statut mis à jour avec succès', 'green')
+				notify("Statut mis à jour", `L'article ${slug} a été ${toarchive ? 'archivé':'publié'}.`, 'green')
 		}
 		<?php if($status !== 'preview' && $_SESSION['role'] === 'admin'): ?>
 			document.querySelector('#admin-actions').icon('chg-status').onclick = archiveArticle;
