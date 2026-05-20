@@ -27,13 +27,14 @@ if ($_SESSION['CSRF'] !== $csrf || !$csrf) {
 	exit;
 }
 
+$output = [];
 foreach ($queries as $query_text) {
 	try {
 		if ($query_text !== '') {
 			$query = $pdo->prepare($query_text);
 			$query->execute();
 			logger('/log/queries.log', $query_text, 'SQL request');
-			$output = $query->fetchALL(PDO::FETCH_ASSOC);
+			$output[] = $query->fetchALL(PDO::FETCH_ASSOC);
 		}
 		
 		http_response_code(200);
@@ -45,6 +46,7 @@ foreach ($queries as $query_text) {
 		exit;
 	}
 }
+if (count($queries) === 1) $output = $output[0]; // reduce array if only one query
 
 $sendback = ['message' => $message, 'sql-data' => $output];
 echo json_encode($sendback);
