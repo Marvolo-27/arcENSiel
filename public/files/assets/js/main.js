@@ -502,7 +502,7 @@ async function passwordChecker(selector='input#overlay-pswd') {
 
 // NOTIFICATIONS //
 // handle notifications
-async function notify(text, color='black', duration=3000) {
+async function notify(header, text, color='orange', duration=4000) {
 					// force local variables to prevent overwrite between simultaneous function calls
 					const notifTag = document.createElement('div');
 					const notifWrap = document.querySelector('#notifications');
@@ -510,31 +510,63 @@ async function notify(text, color='black', duration=3000) {
 					// HTML of notification
 					notifTag.innerHTML = `
 						<div class='notification-panel'></div>
-						<div class='notification-content'>${text}</div>
+						<div class='notification-content'>
+							<div class="notification-title">${header}</div>
+							<div class="notification-body">${text}</div>
+						</div>
+						<div class='notification-timer'>
+							<div class="notification-close icon cross small inline hoverable" forced>
+								<span class="img">
+								<svg class="timer" viewbox="0 0 1000 1000">
+									<circle cx="500" cy="500" r="450" stroke="silver" fill="none" stroke-width="75"></circle>
+									<circle class="timer-stroke" cx="500" cy="500" r="450"></circle>
+								</svg>
+								</span>
+							</div>
+							
+						</div>
+						
 						`
 					notifTag.className = 'item'
-					notifWrap.appendChild(notifTag)
+					notifWrap.prepend(notifTag)
 
 					// apply style
 					notifTag.querySelector('.notification-panel').style.background = `${color}`
 					notifTag.querySelector('.notification-content').style.borderColor = `${color}`
+					notifTag.querySelector('.notification-timer').style.borderColor = `${color}`
+					notifTag.querySelector('.timer-stroke').style.stroke = `${color}`
+					notifTag.querySelector('.timer-stroke').style.transitionDuration = `${duration/1000}s`
 					
+					// closer
+					notifTag.icon('cross').onclick = async e => {
+						const tag = e.target.findParent('.item')
+						
+						tag.style.transform = `translateX(20px)`	
+						tag.style.opacity = 0
+						
+						await sleep(300);
+						tag.remove()
+					}
+
 					// display
-					notifTag.style.visibility = 'hidden'
-					width = notifTag.offsetWidth // fetch width
-					notifTag.style.width = 0
-					await sleep(10);
-					notifTag.style.removeProperty('visibility')
-					notifTag.style.width = `${1.1 * width}px`
+					notifTag.style.transform = `translateX(-20px)`	
+					notifTag.style.opacity = 0
+
+					// show
+					await sleep(300)
+					notifTag.style.removeProperty('transform')
+					notifTag.style.removeProperty('opacity')
+					notifTag.querySelector('.timer-stroke').style.strokeDashoffset = `calc(-1 * var(--p))`
 
 					// notification lifetime
 					await sleep(duration);
 
 					// hide
-					notifTag.style.width = 0;
-					await sleep(300);
-
+					notifTag.style.transform = `translateX(20px)`	
+					notifTag.style.opacity = 0
+					
 					// destroy
+					await sleep(300);
 					notifTag.remove();
 					}
 
