@@ -29,7 +29,10 @@ function config()  {
 
 //// METHODS /////
 // Alias to filter arrays to unique values
-Array.prototype.filterUnique = function () {return this.filter((item, index, arr) => (item !== null && arr.indexOf(item) === index))}
+Object.defineProperty(Array.prototype, 'filterUnique', {
+  value: function() {return this.filter((item, index, arr) => (item !== null && arr.indexOf(item) === index))},
+  enumerable: false,
+})
 
 
 // Add wrap method to str to shorten str formatting
