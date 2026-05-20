@@ -211,14 +211,14 @@ if ($status === 'preview' && $edition) {
 		async function markArticle(e) {
 				tag = e.target.findParent('.icon');
 				
-				mode = tag.getAttribute('active') !== null ? 'unmark':'mark';
+				const mode = tag.getAttribute('active') !== null ? 'unmark':'mark';
 				url = window.location.pathname.split('/').slice(-1)[0];
 				tag.toggle()
 			
-				response = await fetch(`/user/engine/bookmarks?action=update&mode=${mode}&url=${url}`, {
+				const response = await fetch(`/user/engine/bookmarks?action=update&mode=${mode}&url=${url}`, {
 						headers: { 'X-Requested-With': 'fetch' },
 						})
-				data = await response.json()
+				const data = await response.json()
 
 				if (!response.ok) {
 					notify("Échec de la mise à jour", `Une erreur est survenue lors de ${mode === 'mark' ? "l'ajout":'la suppression'} de l'article ${mode === 'mark' ? 'à':'de'} vos favoris.`, 'red')
@@ -231,12 +231,16 @@ if ($status === 'preview' && $edition) {
 
 		// handle article archiving
 		async function archiveArticle(event) {				
-				// dom objects
+				// DOM objects
 				btn = event.target.findParent('.icon')
-				toarchive = Array.from(btn.classList).includes('archive');
+				const toarchive = Array.from(btn.classList).includes('archive');
+
+				// Update DOM
+				btn.classList.toggle('archive')
+				btn.classList.toggle('unarchive')
 
 				// extract data
-				state = toarchive ? 'archived':'published';
+				const state = toarchive ? 'archived':'published';
 				slug = btn.dataset.url;
 
 				notify(`${toarchive ? 'Archivage':'Publication'} en cours`, `Le statut de l'article ${slug} est en cours de mise à jour.`, 'orange')
@@ -244,17 +248,13 @@ if ($status === 'preview' && $edition) {
 				await sleep(500);
 				
 				// check password
-				jsonData = JSON.stringify({'action':'archive','type':'articles','csrf':csrfToken, 'slug':slug, 'status':state})
-				response = await fetchAPI('/admin/engine/database', jsonData)
+				const jsonData = JSON.stringify({'action':'archive','type':'articles','csrf':csrfToken, 'slug':slug, 'status':state})
+				const response = await fetchAPI('/admin/engine/database', jsonData)
 
 				if (!response.ok) {
 					notify("Échec de la mise à jour", `Une erreur est survenue lors de ${toarchive ? "l'archivage":'la publication'} de l'article. Veuillez réessayer.`, 'red')
 					return
 				}
-
-				// Update DOM and table data
-				btn.classList.toggle('archive')
-				btn.classList.toggle('unarchive')
 
 				notify("Statut mis à jour", `L'article ${slug} a été ${toarchive ? 'archivé':'publié'}.`, 'green')
 		}
