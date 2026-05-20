@@ -87,7 +87,7 @@ Element.prototype.toSelector = function(conc) {
 											!conc && elId !== '' ? (selector.push(elId)):null;
 											
 											// add class
-											this.className.split(' ').forEach((c) => {
+											this.getAttribute('class')?.split(' ').forEach((c) => {
 																						c = c !== '' ? '.'+c:'';
 																						conc ? selector += c:null;
 																						!conc && c ? selector.push(c):null;
