@@ -48,7 +48,7 @@ if ($action === 'fetch') {
 					tags_list AS (
 						SELECT article_id, GROUP_CONCAT(tag_id SEPARATOR ',') AS tags
 						FROM articles_tags GROUP BY article_id)
-				SELECT articles.status AS status, articles.slug AS url, title, COALESCE(files.url, '/files/placeholder.png') AS picture_path, summary, tags_list.tags AS tags, articles.type AS type, author, date, end_date, color, content
+				SELECT articles.id AS id, articles.status AS status, articles.slug AS url, title, COALESCE(files.url, '/files/placeholder.png') AS picture_path, summary, tags_list.tags AS tags, articles.type AS type, author, date, end_date, color, content
 				FROM articles
 					LEFT JOIN types ON types.id = articles.type
 					LEFT JOIN tags_list ON articles.id = tags_list.article_id
