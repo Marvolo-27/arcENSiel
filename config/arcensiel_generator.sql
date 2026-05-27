@@ -16,19 +16,19 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
--- Table structure for table `article_tags`
+-- Table structure for table `articles_tags`
 --
 
-DROP TABLE IF EXISTS `article_tags`;
+DROP TABLE IF EXISTS `articles_tags`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `article_tags` (
+CREATE TABLE `articles_tags` (
   `article_id` int NOT NULL,
   `tag_id` int NOT NULL,
   PRIMARY KEY (`article_id`,`tag_id`),
   KEY `tag_id` (`tag_id`),
-  CONSTRAINT `article_tags_ibfk_1` FOREIGN KEY (`article_id`) REFERENCES `articles` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `article_tags_ibfk_2` FOREIGN KEY (`tag_id`) REFERENCES `tags` (`id`) ON DELETE CASCADE
+  CONSTRAINT `articles_tags_ibfk_1` FOREIGN KEY (`article_id`) REFERENCES `articles` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `articles_tags_ibfk_2` FOREIGN KEY (`tag_id`) REFERENCES `tags` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -41,22 +41,38 @@ DROP TABLE IF EXISTS `articles`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `articles` (
   `id` int NOT NULL AUTO_INCREMENT,
-  `url` varchar(255) NOT NULL,
-  `picture_path` varchar(255) DEFAULT NULL,
+  `slug` varchar(255) NOT NULL,
   `title` varchar(255) NOT NULL,
   `author` varchar(100) NOT NULL,
-  `published_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `date` date DEFAULT NULL,
   `end_date` date DEFAULT NULL,
   `description` text,
   `content` mediumtext NOT NULL,
-  `tags` varchar(255) DEFAULT NULL,
-  `type` varchar(255) DEFAULT NULL,
+  `type` int DEFAULT 0,
   `status` varchar(255) NOT NULL DEFAULT 'published',
+  `published_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `url` (`url`)
+  CONSTRAINT `articles_ibfk_1` FOREIGN KEY (`type`) REFERENCES `types` (`id`) ON DELETE SET DEFAULT,
 ) ENGINE=InnoDB AUTO_INCREMENT=84 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `articles_covers`
+--
+
+DROP TABLE IF EXISTS `articles_covers`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `articles_covers` (
+  `file_id` int NOT NULL,
+  `article_id` int NOT NULL,
+  KEY `article_id` (`article_id`),
+  UNIQUE KEY (`file_id`,`article_id`),
+  CONSTRAINT `articles_covers_ibfk_1` FOREIGN KEY (`file_id`) REFERENCES `files` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `articles_covers_ibfk_2` FOREIGN KEY (`article_id`) REFERENCES `articles` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=347 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -75,6 +91,25 @@ CREATE TABLE `bookmarks` (
   CONSTRAINT `bookmarks_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   CONSTRAINT `bookmarks_ibfk_2` FOREIGN KEY (`article_id`) REFERENCES `articles` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `categories`
+--
+
+DROP TABLE IF EXISTS `categories`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `categories` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `slug` varchar(255) NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `section_id` int NOT NULL,
+  `removable` tinyint(1) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `slug` (`slug`),
+  CONSTRAINT `categories_ibfk_1` FOREIGN KEY (`section_id`) REFERENCES `sections` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=347 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -107,16 +142,29 @@ CREATE TABLE `files` (
   `description` text,
   `size` bigint NOT NULL,
   `type` varchar(255) DEFAULT NULL,
-  `used_by` text,
-  `category` varchar(255) DEFAULT NULL,
-  `subcategory` varchar(255) DEFAULT NULL,
-  `status` tinyint(1) DEFAULT NULL,
   `uploader` varchar(255) DEFAULT NULL,
+  `status` tinyint(1) DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `url` (`url`)
 ) ENGINE=InnoDB AUTO_INCREMENT=63 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `files_categories`
+--
+
+DROP TABLE IF EXISTS `files_categories`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `files_categories` (
+  `file_id` int NOT NULL,
+  `category_id` int NOT NULL,
+  KEY `category_id` (`category_id`),
+  CONSTRAINT `files_categories_ibfk_1` FOREIGN KEY (`file_id`) REFERENCES `files` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `files_categories_ibfk_2` FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=347 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -137,6 +185,22 @@ CREATE TABLE `logs` (
   `user` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=980 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `sections`
+--
+
+DROP TABLE IF EXISTS `sections`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `sections` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `slug` varchar(255) DEFAULT NULL,
+  `path` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `slug` (`slug`)
+) ENGINE=InnoDB AUTO_INCREMENT=347 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -200,8 +264,8 @@ DROP TABLE IF EXISTS `users`;
 CREATE TABLE `users` (
   `id` int NOT NULL AUTO_INCREMENT,
   `username` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
-  `auth_type` enum('CAS','local') COLLATE utf8mb4_general_ci NOT NULL,
   `email` varchar(255) COLLATE utf8mb4_general_ci NOT NULL DEFAULT (`username`),
+  `auth_type` enum('CAS','local') COLLATE utf8mb4_general_ci NOT NULL,
   `password_hash` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
   `role` enum('user','admin') COLLATE utf8mb4_general_ci DEFAULT 'user',
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,

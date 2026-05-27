@@ -10,14 +10,14 @@ if ($_SERVER['HTTP_X_REQUESTED_WITH'] !== 'fetch') {
 // Passed filtering queries
 $search = $_GET['query'] ?? null; // text request
 $author = $_GET['author'] ?? null; // author filtering (not exact)
-$type = $_GET['type'] ?? null; // type filttering (extact)
+$type = $_GET['type'] ?? null; // type filtering (exact)
 $from = $_GET['from'] ?? null; // low-limit date
 $to = $_GET['to'] ?? null; // high-limit date
 $rawtags = $_GET['tags'] ?? null;
 if ($rawtags) {
 	$rawtags = explode(',', $rawtags);
 	$tags = [];
-	for ($i=0;$i<count($rawtags);$i++)  {$tags[":$i"] = $rawtags[$i];}
+	for ($i=0;$i<count($rawtags);$i++) {$tags[":$i"] = $rawtags[$i];}
 } else {
 	$tags = false;
 }
@@ -29,7 +29,7 @@ $n = (int) $_GET['n'] ?? 0;
 $start = (int) $_GET['start'] ?? 0;
 
 // base of SQL request
-$fetchcore = "SELECT url, title, picture_path, description, tags, types.name AS type, author, date, end_date, color FROM articles JOIN types ON types.id = CAST(articles.type AS SIGNED INTEGER) WHERE";
+$fetchcore = "WITH tags_list AS (SELECT article_id, GROUP_CONCAT(tag_id SEPARATOR ',') AS tags FROM articles_tags GROUP BY article_id) SELECT articles.slug AS url, title, COALESCE(files.url, '/files/placeholder.png') AS picture_path, summary, tags_list.tags AS tags, COALESCE(types.name, 'Indéfini') AS type, author, date, end_date, color FROM articles LEFT JOIN types ON types.id = articles.type LEFT JOIN tags_list ON articles.id = tags_list.article_id LEFT JOIN articles_covers ON articles.id = articles_covers.article_id LEFT JOIN files ON file_id = files.id WHERE";
 $countcore = "SELECT COUNT(*) FROM articles JOIN types ON types.id = articles.type WHERE";
 $params = [];
 
@@ -37,7 +37,7 @@ $params = [];
 // search filters
 $sql = '';
 if ($search) {
-	$sql = $sql." (LOCATE(:query, description) > 0 OR LOCATE(:query, title) > 0)";
+	$sql = $sql." (LOCATE(:query, summary) > 0 OR LOCATE(:query, title) > 0)";
 	$params[':query'] = $search;
 } else {// placeholder to have other filters get correct syntax
 	$sql = $sql." 1 = 1";
@@ -59,17 +59,17 @@ if ($to) {
 	$params[':end'] = $to;
 }
 if ($tags) {
-	$tagsql = "SELECT article_id FROM article_tags JOIN tags ON tag_id = tags.id WHERE tags.slug IN (";
+	$tagsql = "SELECT article_id FROM articles_tags JOIN tags ON tag_id = tags.id WHERE tags.slug IN (";
 	foreach ($tags as $code => $tag) {
-		$tagsql = $tagsql."$code, ";
+		$tagsql = $tagsql."$code,";
 		$params[$code] = $tag;
 		}
-	$tagsql = substr($tagsql, 0, -2).") GROUP BY article_id HAVING COUNT(article_id) = :nbtags";
+	$tagsql = substr($tagsql, 0, -1).") GROUP BY article_id HAVING COUNT(article_id) = :nbtags";
 	$sql = $sql." AND articles.id IN ($tagsql)";
 }
 
 // sorting
-$sql = $sql." AND status = 'published' ORDER BY date DESC";
+$sql = $sql." AND articles.status = 'published' ORDER BY date DESC";
 
 // number of results
 $amount = '';
@@ -85,8 +85,6 @@ if ($n === 0) {
 		$amount = $amount." LIMIT :n OFFSET :start"; // reduces entries from offset
 	}
 }
-// $start > 0 ? $params[':start'] = $start:null;
-// $n > 0 ? $params[':n'] = $n:null;
 
 // select coresponding articles
 try {
@@ -100,7 +98,6 @@ try {
 	
 	// bind parameters
 	foreach ($params as $param => $value) {$query->bindValue($param, $value);}
-	// logger('/log/queries.log', json_encode($params), 'error');
 	$query->execute();
 	$output = $query->fetchALL(PDO::FETCH_ASSOC);
 

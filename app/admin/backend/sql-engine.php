@@ -48,7 +48,7 @@ foreach ($queries as $query_text) {
 }
 if (count($queries) === 1) $output = $output[0]; // reduce array if only one query
 
-$sendback = ['message' => $message, 'sql-data' => $output];
+$sendback = ['message' => $message, 'output' => $output];
 echo json_encode($sendback);
 exit;
 

@@ -28,48 +28,46 @@ if ($_SESSION['CSRF'] !== $csrf || !$csrf) {
 $folder = $serverroot . DIRECTORY_SEPARATOR . 'files' . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR;
 $rootpath = '/files/uploads/';
 
+// General variables
+$action = $_POST['action'] ?? $_GET['action'] ?? null;
 
 //// Save on server draft data
-$action = $_POST['action'] ?? null;
 if ($action === 'draft') {
 	$_SESSION['post-data'] = $_POST;
 	echo json_encode(['message' => 'Draft generated']);
 	exit;
 }
 
-//// url livecheck: passed with GET
-$base_url = $_GET['url'] ?? null;
-$mode = $_GET['mode'] ?? null;
+//// url availability checkbox
+if ($action === 'check') {
+	$base_url = $_GET['url'] ?? null;
+	$mode = $_GET['mode'] ?? null;
 
-if ($base_url) {// test url validity
-	$query = $pdo->prepare("SELECT id FROM articles WHERE url = ?");
-	$query->execute([$base_url]);
-	
-	if ($mode == 'locked') {
-		$count = 1;
-		$url = $base_url;
-		while ($query->fetch()) {//find first valid url
-			$url = $base_url . '-' . $count;
+	if ($base_url) {// test url validity
+		$query = $pdo->prepare("SELECT id FROM articles WHERE slug = ?");
+		$query->execute([$base_url]);
+		
+		if ($mode === 'locked') {// find first available url
+			$count = 1;
+			$url = $base_url;
+			while ($query->fetch()) {//find first valid url
+				$url = $base_url . '-' . $count;
+				$query->execute([$url]);
+				$count++;
+			}
 			
-			$query = $pdo->prepare("SELECT id FROM articles WHERE url = ?");
-			$query->execute([$url]);
-		}
-		
-		http_response_code(200);
-		echo json_encode(['url' => $url]);
-		exit;
-	} else {
-		if ($query->fetch()) {
-			http_response_code(400);
-			echo json_encode(['error' => 'URL indisponible']);
-			exit;
-		} else {
 			http_response_code(200);
-			echo json_encode(['url' => $base_url]);
-			exit;
+			echo json_encode(['message' => 'URL disponible.', 'url' => $url]);
+		} else {
+			if ($query->fetch()) {
+				http_response_code(400);
+				echo json_encode(['error' => 'URL indisponible.']);
+			} else {
+				http_response_code(200);
+				echo json_encode(['message' => 'URL valide générée', 'url' => $base_url]);
+			}
 		}
-		
-		
+		exit;
 	}
 }
 
@@ -79,159 +77,163 @@ $url = str_replace('https://arcensiel.org/articles/', '', $_POST['art-url']);
 $title = $_POST['art-title'];
 $author = $_POST['art-author'];
 $date = $_POST['art-date'] ?? null;
-$enddate = $_POST['art-end-date'] ?? null;
+$enddate = $_POST['art-end-date'] !== '' ? $_POST['art-end-date'] : null;
 $desc = $_POST['art-desc'];
 $content = $_POST['art-content'];
-$tags_list = json_decode($_POST['art-tags'], true); // format : [{'slug': slug, 'name':name'}, ]
-$typeRaw = json_decode($_POST['type'], true); // id of type
+$tags_list = json_decode($_POST['art-tags'], true); // format : [{'slug': slug, 'name':name}, ]
+$type_raw = json_decode($_POST['type'], true); // format : {'slug': slug, 'name':name', 'color':color, 'new':bool}
 $updated = date("Y-m-d H:i:s", time());
-$fileDesc = $_POST['file-description'];
+$file_desc = $_POST['file-description'];
 $file_uploaded = $_FILES['art-pic']['error'] !== 4;
 $file_updated = $_POST['pic-updated'] == 'true';
 
-// Handle tags
-$tags = []; // create list of ids for article tags
-$sqlTagsMatch = "INSERT INTO article_tags (article_id, tag_id) VALUES "; // to add into tagsmatching afterwards
-// Insert article tags
-foreach ($tags_list as $tag) {
-	// extract id of tag in tags table
-	$sql = "INSERT INTO tags (slug, name) VALUES (:slug, :name)
-			ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id);";
-	$params = [':slug' => $tag['slug'], ':name' => $tag['name']];
-	$query = $pdo->prepare($sql);
-	$query->execute($params);
-	$tag_id = (int) $pdo->lastInsertId(); // get the id of the tag (either new or already existing)
-
-	logger('/log/articles.log', queryMaker($sql, $params).'; Insert ID: '.$tag_id, 'Extract tag id');
-
-	$tags[] = $tag_id;
-
-	// pairs tag with article in article_tags
-	$sqlTagsMatch = $sqlTagsMatch . "(:article, $tag_id),";
-		// get the id of the tag (either new or already existing)
-	}
-$sqlTagsMatch = substr($sqlTagsMatch, 0, -1) . " ON DUPLICATE KEY UPDATE article_id=article_id;"; // inserts all non-existing pairs : works with update and creation
-
-// Handle type
-$sql = "INSERT INTO types (slug, name, color) VALUES (:slug, :name, :color)
-		ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id);";
-$params = [':slug' => $typeRaw['slug'], ':name' => $typeRaw['name'], ':color' => $typeRaw['color'] ?? '#cccccc'];
-$query = $pdo->prepare($sql);
-$query->execute($params);
-$type = $pdo->lastInsertId();
-
-
 // test url uniqueness
-$query = $pdo->prepare("SELECT id FROM articles WHERE url = ?");
+$query = $pdo->prepare("SELECT id FROM articles WHERE slug = ?");
 $query->execute([$url]);
 
 if ($query->fetch() && $status === 'creation') {
 	http_response_code(250);
-	echo json_encode(['code' => '400', 'error' => "L'URL spécifiée - $url - est déjà attribuée."]);
+	echo json_encode(['code' => '400', 'error' => "L'URL spécifiée '$url' est déjà attribuée."]);
 	exit;
 }
 
-// picture data
+/// Handle tags
+$tags = []; // list of IDs of article tags
+$sqlTagsMatch = "INSERT INTO articles_tags (article_id, tag_id) VALUES ";
+// Insert article's tags
+foreach ($tags_list as $tag) {
+	// extract id of tag in tags table
+	$sql = "INSERT INTO tags (slug, name) VALUES (:slug, :name) ON DUPLICATE KEY UPDATE id = LAST_INSERT_ID(id);";
+	$params = [
+			':slug' => $tag['slug'],
+			':name' => $tag['name']
+			];
+	$query = $pdo->prepare($sql);
+	$query->execute($params);
+	$tag_id = (int) $pdo->lastInsertId(); // get the id of the tag (either new or already existing)
+	$tags[] = $tag_id;
+	$sqlTagsMatch = $sqlTagsMatch . "(:article, $tag_id),"; // pairs tag with article in articles_tags
+
+	logger('/log/articles.log', queryMaker($sql, $params).' Insert ID: '.$tag_id, 'Extract tag id');
+	}
+$sqlTagsMatch = substr($sqlTagsMatch, 0, -1) . " ON DUPLICATE KEY UPDATE article_id = article_id"; // inserts all non-existing pairs : works with update and creation
+
+/// Handle type
+$sql = "INSERT INTO types (slug, name, color) VALUES (:slug, :name, :color) ON DUPLICATE KEY UPDATE id = LAST_INSERT_ID(id);";
+$params = [
+		':slug' => $type_raw['slug'],
+		':name' => $type_raw['name'],
+		':color' => $type_raw['color'] ?? '#cccccc'
+		];
+$query = $pdo->prepare($sql);
+$query->execute($params);
+$type = (int) $pdo->lastInsertId();
+
+/// Handle picture path
 if ($file_uploaded) {// File object passed = image uploaded
 	$picture = $_FILES['art-pic']; // array containing file info : name, type, tmp localization, error, size
 
 		// filename data
 	$src_filename = $file_uploaded ? $_POST['filename'] : $picture['name']; // prevent abusive file renaming for on-server files
 	$extension = '.' . strtolower(pathinfo($src_filename, PATHINFO_EXTENSION));		// file extension
-	$raw_filename = pathinfo($src_filename, PATHINFO_FILENAME);							// raw filename
+	$raw_filename = pathinfo($src_filename, PATHINFO_FILENAME);						// raw filename
 
-	$flat_filename = transliterator_transliterate('Any-Latin; Latin-ASCII', $raw_filename); 					// convert all characters to Latin ASCII alphabet
-	$filename = preg_replace("/[^a-zA-Z0-9._-]/", "_", $flat_filename); 	// proofed filename w/o extension
-	$raw_path = $rootpath . $filename . $extension; // absolute path
-
-	// change to relative path
-	$path = str_replace($root, '', $raw_path);
-	$path = str_replace("\\", '/', $path);
+	$flat_filename = transliterator_transliterate('Any-Latin; Latin-ASCII', $raw_filename); // convert all characters to Latin ASCII alphabet
+	$filename = preg_replace("/[^a-zA-Z0-9._-]/", "_", $flat_filename); 					// proofed filename w/o extension
+	$path = $rootpath . $filename . $extension; // absolute path
 
 		// find first unique path for picture
-	$query = $pdo->prepare("SELECT id from files WHERE url = ?");	// prepare SQL request with placeholder - check user presence
+	$query = $pdo->prepare("SELECT id from files WHERE url = ?");
 	$query->execute([$path]);
 
 	$count = 1;
 	while ($query->fetch()) {
-		$raw_path = $rootpath . $filename . "_" . $count . $extension;
-		
-		$path = str_replace($root, '', $raw_path);
-		$path = str_replace("\\", '/', $path); // relative path
-
-		$query = $pdo->prepare("SELECT id from files WHERE url = ?");	// prepare SQL request with placeholder - check user presence
+		$path = $rootpath . $filename . "_" . $count . $extension;
 		$query->execute([$path]);
-
 		$count++;
 	}
 
 	// stores picture in files
-	if (move_uploaded_file($picture['tmp_name'], str_replace($rootpath, $folder, $raw_path))) {
-		logger('/log/files.log', "New file loaded at: $path", 'Upload new file');;
-		//echo "File stored at: $dest";
+	if (move_uploaded_file($picture['tmp_name'], str_replace($rootpath, $folder, $path))) {
+		logger('/log/files.log', "New file loaded at: $path", 'Upload new file');
 	} else {
 		http_response_code(500);
 		echo json_encode(['error' => "Upload failed for file '".$raw_filename."'".PHP_EOL."Check file size."]);
-		// echo json_encode(['error' => "Échec de la récupération du fichier $filename from {$picture['tmp_name']} to $path"]);
-		logger('/log/files.log', "New file could not be uploaded to $path", 'Failed: upload new file');
+		logger('/log/files.log', "New file could not be uploaded to $path", '[ERROR] Failed: upload new file');
 		exit;
 	}
-} else {// No File Object = image unchanged on file upload
+} else {// No File Object = image unchanged
 	$path = $_POST['picture-path'];
+}
+
+
+// Insert article
+// CHANGE LOGIC : YOU CAN'T RESET END_DATE TO NULL (UNDEFINED)
+$sql = "INSERT INTO articles (slug, title, author, date, ".($enddate ? "end_date, ":'')."summary, content, type, updated_at)
+		VALUES (:url, :title, :author, CAST(:date AS DATE), ".($enddate ? "CAST(:enddate AS DATE), ":"").":desc, :content, CAST(:type AS UNSIGNED), CAST(:updated AS DATETIME))
+		ON DUPLICATE KEY UPDATE 
+			title = VALUES(title),
+			author = VALUES(author),
+			date = VALUES(date),".PHP_EOL.
+			($enddate ? "end_date = VALUES(end_date),".PHP_EOL:'').
+			"summary = VALUES(summary),
+			content = VALUES(content),
+			type = VALUES(type),
+			updated_at = VALUES(updated_at),
+			id=LAST_INSERT_ID(id);";
+$params = [
+			':url' => $url,
+			':title' => $title,
+			':author' => $author,
+			':date' => $date,
+			':desc' => $desc,
+			':content' => $content,
+			':type' => $type,
+			':updated' => $updated
+			];
+$enddate ? $params[':enddate'] = $enddate:null;
+
+$query = $pdo->prepare($sql);
+try {
+	$query->execute($params);
+	$article_id = (int) $pdo->lastInsertID(); // lastInsertId is a PDO method - id of added or updated article
+	logger('/log/articles.log', queryMaker($sql, $params).'; Insert ID: '.$article_id, 'Add/Update article');
+} catch (PDOException $e) {
+	http_response_code(250); // access authorized so success but failed to ouput sql
+	echo json_encode( ['code' => 500, 'error' => json_encode($e), 'query'=>$query, 'data'=>$_POST]);
+	logger('/log/articles.log', 'Source: '.queryMaker($sql, $params).PHP_EOL.json_encode($e), '[ERROR] Failed: add/update article');
+	exit;
 }
 
 
 // Insert file
 if ($file_uploaded) {
-	$sql = "INSERT INTO files (name, url, used_by, size, description, type, status, uploader, category, subcategory) VALUES (:name, :url, :reference, :size, :desc, :type, TRUE, :user, 'poster', 'article')";
+	$sql = "INSERT INTO files (name, url, size, description, type, status, uploader) VALUES (:name, :url, CAST(:size AS UNSIGNED), :desc, :type, TRUE, :user)";
 	$params = [
 			':name' => end(explode('/', $path)),
 			':url' => $path,
-			':reference' => 'articles/'.$url,
 			':size' => $picture['size'],
-			':desc' => $fileDesc,
+			':desc' => $file_desc,
 			':type' => $picture['type'],
 			':user' => $_SESSION['username'],
 		];
 
-	$query = $pdo->prepare($sql);
-	foreach ($params as $param => $value) {
-		$query->bindValue($param, $value, $param === ':size' ? PDO::PARAM_INT:PDO::PARAM_STR);
-	}
 	try {
-		$query->execute();
+		$query->execute($params);
+		$file_id = (int) $pdo->lastInsertID();
 		logger('/log/files.log', queryMaker($sql, $params), 'Insert file in db');
 	} catch (PDOException $e) {
 		http_response_code(250); // access authorized so success but failed to ouput sql
-		echo json_encode( ['code' => 500, 'error' => json_encode($e), 'que'=>$query, 'data'=>$_POST]);
-		logger('/log/files.log', json_encode($e), '[ERROR] Failed: insert file in db');
+		echo json_encode( ['code' => 500, 'error' => json_encode($e), 'query'=>$query, 'data'=>$_POST]);
+		logger('/log/files.log', 'Source: '.queryMaker($sql, $params).';'.PHP_EOL.json_encode($e), '[ERROR] Failed: insert file in db');
 		exit;
 	}
 
-	if ($status === 'edition') {// deref old file
-		$old_url = $_POST['og-pic-path']; // url of file up to now linked to an entry
-		
-		// fetch current use status
-		$query = $pdo->prepare("SELECT used_by from files WHERE url = :url");
-		$query->execute([':url' => $old_url]);
-		$result = $query->fetch();
-
-		$sql = "UPDATE files SET used_by = :reference, updated_at = :time WHERE url = :url";
-		$params = [
-			':reference' => preg_replace("#articles/$url,?#", '', $result['used_by']),
-			':url' => $old_url,
-			':time' => date('Y-m-d H:i:s', time())
-			];
-
-		$query = $pdo->prepare($sql);
-		$query->execute($params);
-		logger('/log/files.log', queryMaker($sql, $params), 'Update references (add article)');
-	}
 } else {// handle referencing when used file is already on server
 	// update description
 	$sql = "UPDATE files SET description = :description, updated_at = :time WHERE url = :url";
 	$params = [
-			':description' => $fileDesc,
+			':description' => $file_desc,
 			':url' => $path,
 			':time' => date('Y-m-d H:i:s', time())
 			];
@@ -239,117 +241,75 @@ if ($file_uploaded) {
 	$query = $pdo->prepare($sql);
 	$query->execute($params);
 	logger('/log/files.log', queryMaker($sql, $params), 'Update file description');
+}
 
-	// reference new image
-	if ($file_updated || $status === 'creation') {
-		// fetch current use status
-		$query = $pdo->prepare("SELECT used_by from files WHERE url = :url");
-		$query->execute([':url' => $path]);
-		$result = $query->fetch();
-		$ref = $result['used_by'];
-		$comma = $ref ? ',':'';
-
-		$sql = "UPDATE files SET used_by = :reference, updated_at = :time WHERE url = :url";
-		$params = [
-					':reference' => $ref.$comma."articles/$url",
-					':url' => $path,
-					':time' => date('Y-m-d H:i:s', time())
-					];
-
-		$query = $pdo->prepare($sql);
-		$query->execute($params);
-		logger('/log/files.log', queryMaker($sql, $params), 'Update references (add article)');
-	}
-
-	// derefence
-	if ($file_updated) {
-		$old_url = $_POST['og-pic-path']; // url of file up to now linked to an entry
-		
-		// fetch current use status
-		$query = $pdo->prepare("SELECT used_by from files WHERE url = :url");
-		$query->execute([':url' => $old_url]);
-		$result = $query->fetch();
-
-		$sql = "UPDATE files SET used_by = :reference, updated_at = :time WHERE url = :url";
-		$params = [
-			':reference' => preg_replace("#articles/$url,?#", '', $result['used_by']),
+// Handle cover references
+if ($file_updated) {
+	// dereference old file
+	$old_url = $_POST['og-pic-path']; // url of file until now linked to an entry
+	
+	// fetch current use status
+	$sql = "DELETE articles_covers FROM articles_covers JOIN files ON file_id = files.id WHERE url = :url AND article_id = :artid";
+	$params = [
 			':url' => $old_url,
-			':time' => date('Y-m-d H:i:s', time())
+			':artid' => $article_id
 			];
-
-		$query = $pdo->prepare($sql);
-		$query->execute($params);
-		logger('/log/files.log', queryMaker($sql, $params), 'Update references (remove article)');
-	}
-}
-
-// Insert article
-// CHANGE LOGIC : YOU CAN'T RESET END_DATE TO NULL (UNDEFINED)
-$sql = "INSERT INTO articles (url, picture_path, title, author, date, ".(!$enddate ? "end_date, ":"")."description, content, tags, type, updated_at)
-		VALUES (:url, :path, :title, :author, :date, ".(!$enddate ? ":enddate, ":"").":desc, :content, :tags, :type, :updated)
-		ON DUPLICATE KEY UPDATE 
-			picture_path = VALUES(picture_path),
-			title = VALUES(title),
-			author = VALUES(author),
-			date = VALUES(date),".PHP_EOL."			".
-			(!$enddate ? "end_date = VALUES(end_date),".PHP_EOL."			":"").
-			"description = VALUES(description),
-			content = VALUES(content),
-			tags = VALUES(tags),
-			type = VALUES(type),
-			updated_at = VALUES(updated_at),
-			id=LAST_INSERT_ID(id);";
-$params = [
-			':url' => $url,
-			':path' => $path,
-			':title' => $title,
-			':author' => $author,
-			':date' => $date,
-			':desc' => $desc,
-			':content' => $content,
-			':tags' => json_encode($tags),
-			':type' => $type,
-			':updated' => $updated
-];
-!$enddate ? $params[':enddate'] = $enddate:null;
-
-$query = $pdo->prepare($sql);
-try {
+	$query = $pdo->prepare($sql);
 	$query->execute($params);
-	$art_id = (int) $pdo->lastInsertID(); // lastInsertId is a PDO method - id of added or updated article
-	logger('/log/articles.log', queryMaker($sql, $params).'; Insert ID: '.$art_id, 'Add/Update article');
-} catch (PDOException $e) {
-	http_response_code(250); // access authorized so success but failed to ouput sql
-	echo json_encode( ['code' => 500, 'error' => json_encode($e), 'que'=>$query, 'data'=>$_POST]);
-	logger('/log/articles.log', 'Source: '.queryMaker($sql, $params).';'.PHP_EOL.json_encode($e), '[ERROR] Failed: add/update article');
-	exit;
+	
+	logger('/log/files.log', queryMaker($sql, $params), 'Update file references');
+
 }
+
+if ($file_updated || $status === 'creation') {
+	// reference new image
+	$sql = "INSERT INTO articles_covers (file_id, article_id) SELECT (SELECT id FROM files WHERE url = :url), :artid ON DUPLICATE KEY UPDATE file_id = file_id";
+	$params = [
+				':url' => $path,
+				':artid' => $article_id,
+				];
+	
+	$query = $pdo->prepare($sql);
+	$query->execute($params);
+	logger('/log/files.log', queryMaker($sql, $params), 'Update file references');
+}
+
 
 // ! pdo prepare can only run one instruction at a time - if several are passed, nothing is done
 
 // Insert all new pairs in match table
-try {
-	logger('/log/articles.log', queryMaker($sqlTagsMatch, [':article' => $art_id]), 'Set article/tags cross-references');
-	$query = $pdo->prepare($sqlTagsMatch);
-	$query->execute([':article' => $art_id]);
-} catch (PDOException $e) {
-	logger('/log/articles.log', 'Source: '.queryMaker($sqlTagsMatch, [':article' => $art_id]).';'.PHP_EOL.json_encode($e), '[ERROR] Failed: Set article/tags cross-references');
+if (!empty($tags_list)) {
+	try {
+		$query = $pdo->prepare($sqlTagsMatch);
+		$query->execute([':article' => $article_id]);
+		logger('/log/articles.log', queryMaker($sqlTagsMatch, [':article' => $article_id]), 'Set article/tags cross-references');
+	} catch (PDOException $e) {
+		logger('/log/articles.log', 'Source: '.queryMaker($sqlTagsMatch, [':article' => $article_id]).PHP_EOL.json_encode($e), '[ERROR] Failed: Set article/tags cross-references');
+	}
 }
 
 if ($status === 'edition') {// remove pairs linked with deleted tags
-	$query = $pdo->prepare("SELECT tag_id FROM article_tags WHERE article_id = :id");
-	$query->bindValue(':id', $art_id, PDO::PARAM_INT);
+	$query = $pdo->prepare("SELECT tag_id FROM articles_tags WHERE article_id = :id");
+	$query->bindValue(':id', $article_id, PDO::PARAM_INT);
 	$query->execute();
 	$id_list_raw = $query->fetchAll(PDO::FETCH_ASSOC);
-	
-	$id_list = array_map(function($item) {return $item["tag_id"];}, $id_list_raw);
-	
-	foreach ($id_list as $id) {// lop through all registered tags - if not in updated list, delete row
-		if (!in_array($id, $tags)) {
-			$sql = "DELETE FROM article_tags WHERE article_id = :id AND tag_id = :tag_id";
-			$query = $pdo->prepare($sql);
-			$query->execute([':id' => $art_id, ':tag_id' => $id]);
-			logger('/log/articles.log', queryMaker($sql, [':id' => $art_id, ':tag_id' => $id]), 'Update article/tags cross-references');
+
+	// extract deleted tags id
+	$id_list = array_reduce($id_list_raw, function($carry, $item) use ($tags) {if (!in_array($item["tag_id"], $tags)) $carry[] = $item["tag_id"]; return $carry;}, []);
+
+	if (!empty($id_list)) {
+		$sql = "DELETE FROM articles_tags WHERE article_id = CAST(:id AS UNSIGNED) AND tag_id IN(";
+		foreach ($id_list as $id) {// loop through all registered tags - if not in updated list, delete row
+			$sql = $sql.$id.','; // with this syntax $id is directly seen as integer when sql is interpreted
+			}
+		$sql = substr($sql, 0, -1) . ")";
+		$query = $pdo->prepare($sql);
+		
+		try {
+			$query->execute([':id' => $article_id]);
+			logger('/log/articles.log', queryMaker($sql, [':id' => $article_id]), 'Update article/tags cross-references');
+		} catch(PDOException $e) {
+			logger('/log/articles.log', 'Source: '.queryMaker($sql, [':id' => $article_id]).PHP_EOL.json_encode($e), '[ERROR] Failed: Update article/tags cross-references');
 		}
 	}
 }

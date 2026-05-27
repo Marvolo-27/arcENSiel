@@ -70,7 +70,7 @@ if ($_SESSION['username'] !== 'admin') {
 						</div>
 					</div>
 					
-					<input name='csrf-token' data-csrf=<?= $_SESSION['CSRF'] ?> value=<?= $_SESSION['CSRF'] ?> hidden>
+					<input name='csrf-token' id='csrf' data-csrf='<?= $_SESSION['CSRF'] ?>' value='<?= $_SESSION['CSRF'] ?>' required hidden readonly>
 					
 					<div class='form-action-wrap'>
 						<div class='form-action'>
@@ -129,7 +129,7 @@ if ($_SESSION['username'] !== 'admin') {
 						
 						raw.parentNode.style.display = 'none';
 						
-						if (response.status === 250) {// failed sql request
+						if (response.httpcode === 250) {// failed sql request
 							// PDOException outputs a dict with key 'errorInfo' whose value is a (3-tuple)
 							// Data structure is response [Response object] => .json() [body content] => .error [key of dict sent by php script] => .errorInfo [key of dict paired with key 'error'] => [2] [third value of array paired with 'errorInfo' key]
 							errorData = response.body.error.errorInfo[2];
@@ -143,12 +143,12 @@ if ($_SESSION['username'] !== 'admin') {
 						
 							return
 						} else {// correct sql response
-							sqlData = response.body['sql-data'];
+							result = response.body.output;
 						}
 						
-						raw.innerText = JSON.stringify(sqlData);
+						raw.innerText = JSON.stringify(result);
 						
-						jsonview.renderJSON(JSON.stringify(sqlData), output)
+						jsonview.renderJSON(JSON.stringify(result.filter(item => item.length !== 0)), output)
 
 						raw.parentNode.style.display = 'initial';
 						

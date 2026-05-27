@@ -487,7 +487,7 @@ async function passwordChecker(selector='input#overlay-pswd') {
 					await sleep(500);
 					
 					// update data
-					jsonData = JSON.stringify({'action':'check', 'csrf':csrfToken, 'password':pswd})
+					jsonData = JSON.stringify({'action':'auth', 'csrf':csrfToken, 'password':pswd})
 					response = await fetchAPI('/admin/engine/database', jsonData)
 
 					tag.value = '';
@@ -572,19 +572,3 @@ async function notify(header, text, color='orange', duration=4000) {
 					await sleep(300);
 					notifTag.remove();
 					}
-
-// FILE MANAGEMENTS
-// update the 'used_by' entry based on client actions
-function usageUpdate(name, rawlist, action='remove') {
-		list = rawlist.split(',');
-
-		if (action === 'remove') {
-			newlist = list.filter(e => e === name ? null:name)
-		} else {
-			newlist = list;
-			newlist.push(name)
-		}
-		
-		newlist = newlist.join(',')
-		return newlist == '' ? null:newlist.replace(/,+/, ',').replace(/(^,|,$)/, '')
-	}

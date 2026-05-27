@@ -54,12 +54,16 @@ async function fetchArticles(start=0, n=0, script='/engine/news', params='') {
 				parsed_data = await raw_data.json(); // parse response json into array
 				spin.hide();
 			} catch (e) {
-				console.log('Error', e);
-				parsed_data = null;
-				spin.hide();
+				return null
 			}
+			spin.hide()
 			
-			return parsed_data
+			if (!raw_data.ok) {
+				notify("Erreur", "La requête a échoué.", 'red');
+				return null
+			} else {
+				return parsed_data
+			}			
 		}
 
 // auto fetcher - triggered with scroll
@@ -83,6 +87,8 @@ async function fetchControl(script='/engine/news', params='') {
 async function newsBuilder(start=0, n=5, script='/engine/news', params='') {
 		newsList = await fetchArticles(start, n, script, params);
 		
+		if (!newsList) {return}
+		
 		// extract general data
 		received += newsList.metadata.sent;
 		appended = newsList.metadata.sent;
@@ -92,11 +98,11 @@ async function newsBuilder(start=0, n=5, script='/engine/news', params='') {
 		newsList.data.forEach((article) => {
 				// article data
 				url  = article.url;
-				desc = article.description;
+				desc = article.summary;
 				time = article.date != null ? article.date.split(' ')[1]:null;
 				day  = article.date != null ? article.date.split(' ')[0]:null;
 				auth = article.author;
-				tags = JSON.parse(article.tags);
+				tags = article.tags?.split(',');
 					tagsHTML = '';
 					tags?.forEach(tag => {
 						tagsHTML += `<span class="tag-item">

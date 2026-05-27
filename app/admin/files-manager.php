@@ -328,8 +328,7 @@ if ($_SESSION['role'] !== 'admin') {
 			}
 
 			async function updateData() {
-					data = await dataFetcher('files');
-					filesList = data['sql-data'];
+					filesList = await dataFetcher('files', null, 'files');
 					filesTable.setData(filesList).then(statusWizard)
 					gridContainer.innerHTML = '';
 					
@@ -588,7 +587,7 @@ if ($_SESSION['role'] !== 'admin') {
 					// update data on server
 					jsonData = JSON.stringify({'csrf':csrfToken, 'action':action, 'files':selectedFiles})
 					response = await fetchAPI('/admin/engine/files', jsonData)
-
+					
 					if (!response.ok) {
 						notify("Erreur lors de l'opération", response.body.error, 'red')
 					} else {
@@ -726,21 +725,6 @@ if ($_SESSION['role'] !== 'admin') {
 						fileTag = Overlay('uploader').child('.fileentry')
 						adminCheck = Overlay('uploader').input('admin-check').checked
 						file = fileTag.files[0];
-						
-						// category congif
-						if (file.type.match(/image\/.*/)) {
-							category = 'poster'
-							subcategory = null
-						} else if (file.type.match(/application\/zip/)) {
-							category = null
-							subcategory = 'archive'
-						} else if (file.type.match(/application\/vnd\.sqlite3/)) {
-							category = null
-							subcategory = 'database'
-						}else if (file.type.match(/application\/pdf/)) {
-							category = 'document'
-							subcategory = null
-						}
 
 						// url config
 						if (adminCheck) {
@@ -752,8 +736,6 @@ if ($_SESSION['role'] !== 'admin') {
 						formData = new FormData(form);
 						formData.set('mode', 'add')
 						formData.set('action', 'update')
-						formData.set('subcategory', subcategory)	
-						formData.set('category', category)	
 						formData.set('og-url', url)
 						formData.set('url', url)
 						formData.set('filename', formData.get('filename')+'.'+Input('fileextension').value)

@@ -159,13 +159,13 @@ if ($_SESSION['role'] !== 'admin') {
 		window.addEventListener('load', loader)
 		async function loader()  {
 									// fetch all required data
-									await fetchCategories('#categories');
+									await fetchGroups('#categories');
 									await fetchSubscriptions('#subscriptions');
 									await fetchStocks('#stocks');
 									
 									// easy match table with their type
 									tableMatch = {
-												'categories': {'table': categoriesTable, 'source': JSON.stringify(categoriesTable.getData()), 'call': fetchCategories, 'selector': '#categories', 'type': 'categories'},
+												'categories': {'table': groupsTable, 'source': JSON.stringify(groupsTable.getData()), 'call': fetchGroups, 'selector': '#categories', 'type': 'categories'},
 												'subscriptions': {'table': subscriptionsTable, 'source': JSON.stringify(subscriptionsTable.getData()), 'call': fetchSubscriptions, 'selector': '#subscriptions', 'type': 'subscriptions'},
 												'stocks': {'table': stocksTable, 'source': JSON.stringify(stocksTable.getData()), 'call': fetchStocks, 'selector': '#stocks', 'type': 'stocks'},
 												}
@@ -179,7 +179,7 @@ if ($_SESSION['role'] !== 'admin') {
 		async function pahekoUpdater(e) {
 				if (!syncerAPI(e, 'Paheko')) return
 
-				await fetchCategories('#categories');
+				await fetchGroups('#categories');
 				await fetchSubscriptions('#subscriptions');
 				await fetchStocks('#stocks');
 				

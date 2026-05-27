@@ -11,7 +11,18 @@ if ($_SERVER['HTTP_X_REQUESTED_WITH'] !== 'fetch') {
 $n = (int) $_GET['n'] ?? 0;
 $start = (int) $_GET['start'] ?? 0;
 
-$sql = "SELECT url, title, picture_path, description, tags, types.name AS type, types.slug AS typeslug, author, date, end_date, color FROM articles JOIN types ON types.id = CAST(articles.type AS SIGNED INTEGER) WHERE status = 'published' ORDER BY date DESC";
+$sql = "WITH tags_list AS (
+			SELECT article_id, GROUP_CONCAT(tag_id SEPARATOR ',') AS tags
+			FROM articles_tags GROUP BY article_id)
+	SELECT articles.slug AS url, title, COALESCE(files.url, '/files/placeholder.png') AS picture_path, summary, tags_list.tags AS tags, types.name AS type, types.slug AS typeslug, author, date, end_date, color
+	FROM articles
+		JOIN types ON types.id = articles.type
+		LEFT JOIN tags_list ON articles.id = tags_list.article_id
+		LEFT JOIN articles_covers ON articles.id = articles_covers.article_id
+		LEFT JOIN files ON file_id = files.id
+	WHERE articles.status = 'published'
+	ORDER BY date DESC";
+
 if ($n === 0) {
 	if ($start !== 0) {
 		$extension = " LIMIT 2000000000 OFFSET :start"; // all entries from offset

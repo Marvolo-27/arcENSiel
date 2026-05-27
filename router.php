@@ -56,6 +56,12 @@ if (preg_match('#^/admin/#', $request_url)) {
             require $root . '/app/admin/sql-manager.php';
             exit;
         
+        // PHP sandbox file
+        } elseif (preg_match('#/sandbox$#', $request_url)) {
+            // editmode = edit keyword + any slug
+            require $root . '/app/admin/sandbox.php';
+            exit;
+        
         // Article tools
         } elseif (preg_match('#/(create)/(article)#', $request_url, $matches)) {
             $mode = $matches[1];

@@ -44,20 +44,26 @@ if ($_SESSION['CSRF'] !== $csrf || !$csrf) {
 if ($action === 'fetch') {
 	$params = null;
 	if ($type === 'articles') {
-		$sql = "SELECT url, title, picture_path, description, tags, type, author, date, end_date, color, status FROM articles JOIN types ON types.id = CAST(articles.type AS SIGNED INTEGER)";
+		$sql = "WITH
+					tags_list AS (
+						SELECT article_id, GROUP_CONCAT(tag_id SEPARATOR ',') AS tags
+						FROM articles_tags GROUP BY article_id)
+				SELECT articles.status AS status, articles.slug AS url, title, COALESCE(files.url, '/files/placeholder.png') AS picture_path, summary, tags_list.tags AS tags, articles.type AS type, author, date, end_date, color, content
+				FROM articles
+					LEFT JOIN types ON types.id = articles.type
+					LEFT JOIN tags_list ON articles.id = tags_list.article_id
+					LEFT JOIN articles_covers ON articles.id = articles_covers.article_id
+					LEFT JOIN files ON file_id = files.id";
 	} elseif ($type === 'users') {
-		$sql = "SELECT id, username, role FROM users";
+		$sql = "SELECT id, username, role, CASE WHEN id = ".$_SESSION['user_id']." THEN 1 ELSE 0 END AS active FROM users";
 	} elseif ($type === 'tags') {
-		$sql = "SELECT * FROM tags";
+		$sql = "SELECT id, slug, name FROM tags";
 	} elseif ($type === 'types') {
-		$sql = "SELECT * FROM types";
+		$sql = "SELECT id, slug, name, color FROM types";
+	} elseif ($type === 'categories') {
+		$sql = "SELECT categories.slug AS slug, categories.name AS name, sections.slug AS section, removable, COUNT(file_id) AS files FROM categories JOIN sections ON section_id = sections.id LEFT JOIN files_categories ON categories.id = category_id GROUP BY categories.slug";
 	} elseif ($type === 'logs') {
 		$sql = "SELECT * FROM logs ORDER BY time DESC";
-	} elseif ($type === 'files') {
-		$cat = $input['category'] ?? false;
-	
-		$sql = $cat ? "SELECT url, name, description from files WHERE category = :cat":"SELECT url, name, size, uploader, type, used_by, description, status, created_at, updated_at from files ORDER BY name ASC";
-		$params = $cat ? [':cat' => $cat]:null;
 	}
 	
 	$query = $pdo->prepare($sql);
@@ -67,16 +73,12 @@ if ($action === 'fetch') {
 	// logger('/log/queries.log', queryMaker($sql, $params), 'Fetch entries');
 
 	http_response_code(200);
-	$sendback = ['message' => 'Entries fetched successfully', 'sql-data' => $output];
-
-	isset($_SESSION['user_id']) ? $sendback['user'] = ['id' => $_SESSION['user_id'], 'name' => $_SESSION['username']]:null; 
-
-	echo json_encode($sendback);
+	echo json_encode($output);
 	exit;
 	}
 
 if ($action === 'archive') {
-	$sql = "UPDATE articles SET status = :status WHERE url = :url;";
+	$sql = "UPDATE articles SET status = :status WHERE slug = :url;";
 	$params = [':url' => $input['slug'], ':status' => $input['status']];
 
 	$query = $pdo->prepare($sql);
@@ -90,44 +92,12 @@ if ($action === 'archive') {
 	}
 
 if ($action === 'delete') {
-	preg_match('/^(articles|types|tags)$/',$input['type'], $matches);
+	preg_match('/^(articles|types|tags)$/', $input['type'], $matches);
 	$table = $matches[0] ?? null; // redundant but prevent sql injection
-	$type = preg_match('/^articles$/',$table) ? 'url':'slug';
-
-	// get deleted tag id and update articles tags
-	if ($table === 'tags') {
-		$query = $pdo->prepare('SELECT id FROM tags WHERE slug = :slug');
-		$query->execute([':slug' => $input['slug']]);
-		$id = $query->fetch()['id'];
-		
-		$sql = "WITH query AS (SELECT :id AS query)
-				UPDATE articles JOIN query SET tags = REGEXP_REPLACE(
-				tags, 
-				CONCAT('^(.*)(\\\\[|,)(', query, ')(,|\\\\])(.*)$'),
-				CASE
-					WHEN REGEXP_LIKE(tags, CONCAT('^\\\\[', query, '\\\\]$')) THEN null
-					WHEN REGEXP_LIKE(tags, CONCAT('^\\\\[', query, ',.*$')) THEN '$2$5'
-					WHEN REGEXP_LIKE(tags, CONCAT('^.*,', query, '\\\\]$')) THEN '$1$4'
-					WHEN REGEXP_LIKE(tags, CONCAT('^.*,', query, ',.*$')) THEN '$1$2$5'
-					ELSE '$1$2$3$4$5'
-				END), updated_at = :time";
-				// Assigns deleted tag id to a temp table 'query' conatining one column 'query'
-				// Joins articles with this temp table to access the query (w/o binding with pdo everywhere)
-				// Regex replace, with replacement decided based on structure
-				// $1 : start of text, $2 : first separator, $3 : tag id, $4 : second separator, $5 : end of text
-		$query = $pdo->prepare($sql);
-		$query->execute([':id' => $id, ':time' => date('Y-m-d H:i:s', time())]);
-	}
-
-	// adapt articles type
-	if ($table === 'types') {
-		$query = $pdo->prepare('UPDATE articles SET type = "0" WHERE type = :type');
-		$query->execute([':type' => $input['value']]);
-	}
 
 	// delete entry
-	$sql = "DELETE FROM ".$table." WHERE ".$type." = :url;";
-	$params = [':url' => $input['slug']];
+	$sql = "DELETE FROM ".$table." WHERE slug = :slug;";
+	$params = [':slug' => $input['slug']];
 
 	$query = $pdo->prepare($sql);
 	$query->execute($params);
@@ -139,26 +109,24 @@ if ($action === 'delete') {
 	exit;
 	}
 
-if ($action === 'check') {
+if ($action === 'auth') {
 	$pswd = $input['password'] ?? null;
 	$method = $_SESSION['method'];
 	$username = $_SESSION['username'];
 	
-	$query = $pdo->prepare("SELECT id, password_hash, role FROM users WHERE username = ? AND auth_type = ?");
-	$query->execute([$username, $method]);
+	$query = $pdo->prepare("SELECT id, password_hash, role FROM users WHERE username = :username AND auth_type = :auth");
+	$query->execute([':username' => $username, ':auth' => $method]);
 	$user = $query->fetch();
 	
 	if ($user && password_verify($password_token . $pswd, $user['password_hash'])) {// existing user  - validated credentials
 			http_response_code(200);
 			$response = ['message' => 'valid credentials'];
-			echo json_encode($response);
-			exit;
 	} else {
 			http_response_code(400);
-			$response = ['message' => 'invalid credentials'];
-			echo json_encode($response);
-			exit;
+			$response = ['error' => 'invalid credentials'];		
 	}
+	echo json_encode($response);
+	exit;
 	}
 
 if ($action === 'update') {
@@ -183,10 +151,9 @@ if ($action === 'update') {
 				$row['id'] === $_SESSION['user_id'] ? $_SESSION['username'] = $row['username'] : null;
 			
 			} elseif ($type === 'articles') {
-				$sql = "UPDATE articles SET url = :url, picture_path = :path, title = :title, author = :author, date = :date, end_date = :enddate, type = :type, updated_at = :time WHERE id = :id;"; // extract id of added article
+				$sql = "UPDATE articles SET slug = :url, title = :title, author = :author, date = :date, end_date = :enddate, type = :type, updated_at = :time WHERE id = CAST(:id AS UNSIGNED);"; // extract id of added article
 				$params =  [
 							':url' => $row['url'],
-							':path' => $row['picture_path'],
 							':title' => $row['title'],
 							':author' => $row['author'],
 							':date' => $row['date'],
@@ -199,19 +166,16 @@ if ($action === 'update') {
 				$query->execute($params);
 			
 			} elseif ($type === 'tags') {
-				$sql = "UPDATE tags SET name = :name, slug = :slug WHERE id = :id;"; // extract id of added article
+				$sql = "UPDATE tags SET name = :name, slug = :slug WHERE id = CAST(:id AS UNSIGNED);"; // extract id of added article
 				$params = [
 							':name' => $row['name'],
 							':slug' => $row['slug'],
 							':id' => $row['id']
 							];
 				$query = $pdo->prepare($sql);
-				$query->bindValue(':name', $params[':name']);
-				$query->bindValue(':slug', $params[':slug']);
-				$query->bindValue(':id', $params[':id'], PDO::PARAM_INT);
-				$query->execute();
+				$query->execute($params);
 			} elseif ($type === 'types') {
-				$sql = "UPDATE types SET name = :name, slug = :slug, color = :color WHERE id = :id;"; // extract id of added article
+				$sql = "UPDATE types SET name = :name, slug = :slug, color = :color WHERE id = CAST(:id AS UNSIGNED);"; // extract id of added article
 				$params = [
 							':name' => $row['name'],
 							':slug' => $row['slug'],
@@ -219,11 +183,7 @@ if ($action === 'update') {
 							':id' => $row['id']
 							];
 				$query = $pdo->prepare($sql);
-				$query->bindValue(':name', $params[':name']);
-				$query->bindValue(':slug', $params[':slug']);
-				$query->bindValue(':color', $params[':color']);
-				$query->bindValue(':id', $params[':id'], PDO::PARAM_INT);
-				$query->execute();
+				$query->execute($params);
 			}
 			logger('\/log\/'.$section.'.log', queryMaker($sql, $params), 'Update data');
 		

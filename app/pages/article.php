@@ -10,7 +10,7 @@ $edition ??=  false;
 
 // starred article ?
 if ($status === 'published' && $_SESSION['user_id']) {
-	$query=$pdo->prepare("SELECT user_id FROM bookmarks JOIN articles ON article_id = articles.id WHERE url = :url AND user_id = :user");
+	$query=$pdo->prepare("SELECT user_id FROM bookmarks JOIN articles ON article_id = articles.id WHERE slug = :url AND user_id = :user");
 	$query->execute([':user' => $_SESSION['user_id'], ':url' => $raw_url]);
 	$starred = $query->fetch();
 }
@@ -22,7 +22,17 @@ if ((isset($_SESSION['post-data']) && $_SESSION['post-data']['tmp-url'] === $slu
 	unset($_SESSION['post-data']);
 
 } elseif ($edition || $status === 'published') {// preview new article
-	$sql = "SELECT url, title, picture_path, description, tags, types.name AS type, author, date, end_date, color, content FROM articles JOIN types ON types.id = CAST(articles.type AS SIGNED INTEGER) WHERE url = :url and status = :status";
+	$sql = "WITH
+				tags_list AS (
+					SELECT article_id, GROUP_CONCAT(tag_id SEPARATOR ',') AS tags
+					FROM articles_tags GROUP BY article_id)
+			SELECT articles.slug AS url, title, COALESCE(files.url, '/files/placeholder.png') AS picture_path, summary, tags_list.tags AS tags, types.name AS type, author, date, end_date, color, content
+			FROM articles
+				LEFT JOIN types ON types.id = articles.type
+				LEFT JOIN tags_list ON articles.id = tags_list.article_id
+				LEFT JOIN articles_covers ON articles.id = articles_covers.article_id
+				LEFT JOIN files ON file_id = files.id
+			WHERE articles.slug = :url and articles.status = :status";
 	$query = $pdo->prepare($sql);
 	$query->execute([':url' => $raw_url, ':status' => $edition ? 'archived':'published']);
 	$result = $query->fetch(PDO::FETCH_ASSOC);
@@ -41,25 +51,21 @@ $author = $result['author'] ?? $result['art-author'];
 $picture = $result['picture_path'] ?? $result['picture-path'];
 $date = $result['date'] ?? $result['art-date'] ?? null;
 $enddate = $result['end_date'] ?? $result['art-end-date'] ?? null;
-$desc = $result['description'] ?? $result['art-desc'];
+$desc = $result['summary'] ?? $result['art-desc'];
 $content = $result['content'] ?? $result['art-content'];
-$tagsIdList = json_decode($result['tags'] ?? $result['art-tags'] ?? '[]', true);
+$tagsIdList = json_decode('['.$result['tags'].']' ?? '[]', true);
 $type = $result['type'] ?? $result['art-type'];
 $creation = $result['published_at'] ?? date("Y-m-d H:i:s", time());
 $modification = $result['updated_at'] ?? date("Y-m-d H:i:s", time());
 
 // Fetch tags list
-$query=$pdo->prepare("SELECT id, name, slug FROM tags");
-$query->execute();
-$tagsRaw = $query->fetchAll(PDO::FETCH_ASSOC);
+$tagsRaw = getTags();
 
-$artTags = [];
-if ($status === 'preview' && $edition) {
+$artTags = $result['art-tags'] ?? [];
+if (!empty($tagsIdList)) {
 	foreach ($tagsRaw as $tag) {
 		in_array($tag['id'], $tagsIdList) ? $artTags[] = $tag:null;
 	}
-} else {
-	$artTags  = $tagsIdList;
 }
 ?>
 

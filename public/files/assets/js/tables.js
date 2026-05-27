@@ -9,10 +9,11 @@ let articlesTable;
 let tagsTable;
 let typesTable;
 let filesTable;
+let categoriesTable;
 let haTable;
 let goodiesTable;
 let dq7Table;
-let categoriesTable;
+let groupsTable;
 let subscriptionsTable;
 let stocksTable;
 
@@ -54,10 +55,8 @@ function dataChecker(data) {
 //// TABULATOR GENERATORS
 // Files table
 async function fetchFiles(target) {
-			sourcedata = await dataFetcher('files').then(response => response['sql-data']);
-			users = await dataFetcher('users').then(response => response['sql-data'].reduce((list, user) => {list[user.username] = user.username; return list}, {}));
-
-			statusMatch = {'published': 'Publié', 'archived': 'Archivé', 'draft': 'Brouillon'}
+			sourcedata = await dataFetcher('files', null, 'files');
+			users = await dataFetcher('users').then(response => response.reduce((list, user) => {list[user.username] = user.username; return list}, {}));
 
 			filesTable = new Tabulator(target, {
 				data: sourcedata,
@@ -87,12 +86,12 @@ async function fetchFiles(target) {
 					{ title: "Nom du fichier", field: "name", mutator: function(value){return value.filename()}, formatter: function(cell) {return cell.getValue() + '.' + cell.getRow().getData().extension}, editor: 'input', validator: 'unique', vertAlign: 'middle'},
 					{ title: "Extension", field: "extension", visible: false, mutator: function(value, data) {return data.url.extension()}},
 					{ title: "Localisation", field: "url", vertAlign: 'middle'},
+					{ title: "Description", field: "description", editor: "input", mutator: function(value) {return value === null ? '':value},  hozAlign: 'center'},
 					{ title: "Taille du fichier", field: "size", formatter: function(cell) {return formatBytes(cell.getValue())}, vertAlign: 'middle', hozAlign: 'center'},
 					{ title: "Type", field: "type", hozAlign: 'center'},
-					{ title: "Utilisations", field: "used_by", hozAlign: 'center'},	
-					{ title: "Alias", field: "description", editor: "input", mutator: function(value){return value === null ? '':value}, hozAlign: 'center'},
+					{ title: "Utilisations", field: "usages", hozAlign: 'center'},	
 					{ title: "Propriétaire", field: "uploader", editor: "list", editorParams: {values:users}, hozAlign: 'center'},
-					{ title: "Date de création", field: "created_at", hozAlign: 'center'},
+					{ title: "Date d'ajout", field: "created_at", hozAlign: 'center'},
 					{ title: "Date de modification", field: "updated_at", hozAlign: 'center'},
 					{ title: "Accessible", field: "status", mutator: function(value) {return value === 1 ? true:false}, formatter: function(cell) {return cell.getValue() ? 'OUI':'NON';}, hozAlign: 'center'},
 				]});
@@ -149,29 +148,68 @@ async function fetchFiles(target) {
 			return sourcedata
 			}
 
+// Categories table
+async function fetchCategories(target) {
+			sourcedata = await dataFetcher('categories');
+			
+			categoriesTable = new Tabulator(target, {
+				data: sourcedata,
+				layout: "fitDataStretch",
+				rowHeight: 36,
+				columns: [
+					{ title: "", field: "actions", mutator: function (value, data) {return data.slug}, formatter: function (cell) {
+							return cell.getRow().getData().removable ? `<span>
+										<div class='icon delete inline medium dynamic hoverable' title="Supprimer la catégorie">
+											<span class='img'></span>
+										</div>` : ''}, resizable: false},
+					{ title: "Identifiant", field: "slug", editor: 'input', validator: ['unique', 'required'], editable: cell => cell.getRow().getData().removable},
+					{ title: "Nom", field: "name", editor: "input", mutator: function (value, data) {return value.trim()}, validator: [categoryUniqueness, 'required'], editable: cell => cell.getRow().getData().removable},
+					{ title: "Section", field: "section"},
+					{ title: "Nombre de fichiers", field: "files"},
+				  ],
+				});
+			
+			categoriesTable.on('cellClick', (e, cell) => {
+			if (e.target.findParent('.icon.delete').nodeName !== 'BODY') {
+					pendingAction.function = deleter;
+					pendingAction.link = [e, cell];
+					Overlay('auth').toggle()
+				}
+			})
+
+			function categoryUniqueness(cell, value) {
+				thisVal = cell.getRow().getData().slug;
+				
+				// extract column values
+				data = Array.from(categoriesTable.getColumn('slug').getCells()).map(c => {return c.getValue()}).filter(val => val !== thisVal);
+				
+				return !data.includes(value.urlForm())
+				}
+
+			categoriesTable.on('cellEdited', cell => {
+						cell.getRow().getCell('slug').setValue(cell.getValue().urlForm())
+				})
+			
+			return sourcedata
+			}
+
 // Users table
 async function fetchUsers(target) {
-			data = await dataFetcher('users');
-			sourcedata = data['sql-data']
+			sourcedata = await dataFetcher('users');
 
 			usersTable = new Tabulator(target, {
 				  data: sourcedata,
 				  layout: "fitDataTable",
 				  rowHeight: 36,
 				  columns: [
-					{ title: "Role", field: "role", editor: "list", editorParams: {values:{"user":"user","admin":"admin"}}, editable: adminIntegrity, resizable: false},
-					{ title: "Username", field: "username", editor:"input", validator: ['unique', 'required'], editable: userIntegrity},
+					{ title: "Role", field: "role", editor: "list", editorParams: {values:{"user":"user","admin":"admin"}}, editable: selfIntegrity, resizable: false},
+					{ title: "Username", field: "username", editor:"input", validator: ['unique', 'required'], editable: selfIntegrity},
 				  ],
 				});
 			
-			function adminIntegrity(cell) {
+			function selfIntegrity(cell) {
 				rowData = cell.getRow().getData();
-				return (rowData.username !== 'admin' && rowData.username !== data.user.name);
-				}
-			
-			function userIntegrity(cell) {
-				rowData = cell.getRow().getData();
-				return (rowData.id === data.user.id && rowData.username !== 'admin');
+				return (!rowData.active && rowData.username !== 'admin');
 				}
 			
 			return sourcedata
@@ -179,7 +217,7 @@ async function fetchUsers(target) {
 
 // Tags table
 async function fetchTags(target) {
-			sourcedata = await dataFetcher('tags').then(response => response['sql-data']);
+			sourcedata = await dataFetcher('tags');
 			
 			tagsTable = new Tabulator(target, {
 				data: sourcedata,
@@ -222,7 +260,7 @@ async function fetchTags(target) {
 	
 // Tags table
 async function fetchTypes(target) {
-			sourcedata = await dataFetcher('types').then(response => response['sql-data']);
+			sourcedata = await dataFetcher('types');
 			
 			colorMatchTable = {}
 			colorCount = 0;
@@ -300,7 +338,7 @@ async function fetchTypes(target) {
 
 // Articles table
 async function fetchArticles(target) {
-			sourcedata = await dataFetcher('articles').then(response => response['sql-data']);
+			sourcedata = await dataFetcher('articles');
 			
 			statusMatch = {'published': 'Publié', 'archived': 'Archivé', 'draft': 'Brouillon'}
 
@@ -333,11 +371,11 @@ async function fetchArticles(target) {
 					{ title: "Auteur", field: "author", editor:"list", editorParams: {autocomplete: true, values: authors, freetext: true}},
 					{ title: "Date", field: "date", editor:"date", resizable: false},
 					{ title: "Date (fin)", field: "end_date", editor:"date", resizable: false},
-					{ title: "Type", field: "type", mutator: function (value, data) {return value === '' ? '0':value}, formatter: function(cell) {return cell.getValue() === '0' ? 'Indéfini' : typesCounter[cell.getValue()]}, editor:"list", editorParams: {values:typesCounter}},
+					{ title: "Type", field: "type", mutator: function (value, data) {return value === '' ? 0:value}, formatter: function(cell) {return cell.getValue() === 0 ? 'Indéfini' : typesCounter[cell.getValue()]}, editor:"list", editorParams: {values:typesCounter}},
 					{ title: "Étiquettes", field: "tags", mutator: function(value, data) {return value}, formatter: function(cell) {
 																																	text = '';
 																																	val = cell.getValue();
-																																	val !== null ? JSON.parse(val).forEach(e => {try {text += tagsMatchTable[e].name+', '} catch (e) {null}}): text += ', ';
+																																	val?.split(',').forEach(e => {try {text += tagsMatchTable[e].name+', '} catch (e) {null}});
 																																	return text.slice(0,-2)
 																																	}}
 					// { title: "Image", field: "picture_path", editor:"input", widthShrink:1},
@@ -360,7 +398,7 @@ async function fetchArticles(target) {
 				} else if (e.target.findParent('.icon.visualize.preview').nodeName !== 'BODY') {
 					if (!activeTable.integrity) {
 						pendingAction.function = redirect;
-						pendingAction.link = `/admin/tools/article/preview/${cell.getValue()}`;
+						pendingAction.link = `/admin/tools/preview/article/${cell.getValue()}`;
 						Overlay('validate').toggle()
 					} else {
 						redirect(`/admin/tools/article/preview/${cell.getValue()}`)
@@ -368,10 +406,10 @@ async function fetchArticles(target) {
 				} else if (e.target.findParent('.icon.visualize.draft').nodeName !== 'BODY') {
 					if (!activeTable.integrity) {
 						pendingAction.function = redirect;
-						pendingAction.link = `/admin/tools/article/draft/${cell.getValue()}`;
+						pendingAction.link = `/admin/tools/draft/article/${cell.getValue()}`;
 						Overlay('validate').toggle()
 					} else {
-						redirect(`/admin/tools/article/draft/${cell.getValue()}`)
+						redirect(`/admin/tools/draft/article/${cell.getValue()}`)
 					}
 				} else if (e.target.findParent('.icon.delete').nodeName !== 'BODY') {
 						pendingAction.function = deleter;
@@ -380,10 +418,10 @@ async function fetchArticles(target) {
 				} else if (e.target.findParent('.icon.modify.edit').nodeName !== 'BODY') {
 					if (!activeTable.integrity) {
 						pendingAction.function = redirect;
-						pendingAction.link = `/admin/tools/editor/article/${cell.getValue()}`;
+						pendingAction.link = `/admin/tools/edit/article/${cell.getValue()}`;
 						Overlay('validate').toggle()
 					} else {
-						redirect(`/admin/tools/editor/article/${cell.getValue()}`)
+						redirect(`/admin/tools/edit/article/${cell.getValue()}`)
 					}
 				}
 			})
@@ -393,7 +431,7 @@ async function fetchArticles(target) {
 
 // Logs table
 async function fetchLogs(target) {
-			sourcedata = await dataFetcher('logs').then(response => response['sql-data']);
+			sourcedata = await dataFetcher('logs');
 			
 			logsTable = new Tabulator(target, {
 				data: sourcedata,
@@ -594,7 +632,7 @@ async function fetchDQ7(target) {
 			}
 
 // Paheko categories table
-async function fetchCategories(target) {
+async function fetchGroups(target) {
 			sourcedata = await fetchAPI('/api/paheko/get/composition').then(response => response.body)
 			categories = await fetchAPI('/api/paheko/get/categories').then(response => response.body)
 			
@@ -623,17 +661,17 @@ async function fetchCategories(target) {
 							tkn = e.target.findParent('span').child('input').value;
 										
 							if (tkn === 'all') {
-									categoriesTable.clearFilter()
-									categoriesTable.setSort([{column:"nom", dir:"asc"}]);
+									groupsTable.clearFilter()
+									groupsTable.setSort([{column:"nom", dir:"asc"}]);
 							} else {
-									categoriesTable.setFilter("category", "=", tkn)
-									categoriesTable.setSort([{column:"nom", dir:"asc"}]);
+									groupsTable.setFilter("category", "=", tkn)
+									groupsTable.setSort([{column:"nom", dir:"asc"}]);
 									}
 							})
 					})
 			
 			// create tabulator
-			categoriesTable = new Tabulator(target, {
+			groupsTable = new Tabulator(target, {
 				data: sourcedata,
 				layout: "fitDataFill",
 				pagination:true,
@@ -738,15 +776,15 @@ async function fetchStocks(target) {
 
 //// UTILS FUNCTIONS
 // Fetch SQL data
-async function dataFetcher(type, extra=null) {
+async function dataFetcher(type, extra=null, engine='database') {
             queryData = {'action':'fetch', 'type':type, 'csrf':csrfToken}
 		    
             if (extra) {// extra query arguments
-                Object.fromEntries(extra).forEach(key, val => {queryData[key] = val})
+                Object.keys(extra).forEach(key => {queryData[key] = extra[key]})
             }
 
             jsonData = JSON.stringify(queryData)
-		    data = await fetchAPI('/admin/engine/database', jsonData).then(response => response.body)
+		    data = await fetchAPI(`/admin/engine/${engine}`, jsonData).then(response => response.body)
 
 		    return data
 		}

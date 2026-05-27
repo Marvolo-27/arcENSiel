@@ -88,6 +88,10 @@ $artTypes = getTypes();
 						<input class='checkbox' type='radio' id="types-btn" name="table" value="types">
 						<label class='tag-item option blue' for="types-btn">Catégories</label>
 					</span>
+					<span>
+						<input class='checkbox' type='radio' id="categories-btn" name="table" value="categories">
+						<label class='tag-item option blue' for="categories-btn">Sections</label>
+					</span>
 				</div>
 			</div>
 
@@ -96,6 +100,7 @@ $artTypes = getTypes();
 				<div class='table no-bound' id='articles'></div>
 				<div class='table' id='tags'></div>
 				<div class='table' id='types'></div>
+				<div class='table' id='categories'></div>
 			</div>
 
 			<div class="form-action-wrap data-actions linear responsive">
@@ -121,20 +126,22 @@ $artTypes = getTypes();
 		// on-load logic
 		window.addEventListener('load', loader)
 		async function loader()  {
-									Object.entries(typesMatchTable).forEach(([key, val]) => {if (key !== '0') typesCounter[key] = val.name})
+									Object.entries(typesMatchTable).forEach(([key, val]) => {if (key !== 0) typesCounter[key] = val.name})
 									
 									// fetch all required data
 									await fetchUsers('#users');
 									await fetchArticles('#articles');
 									await fetchTags('#tags');
 									await fetchTypes('#types');
+									await fetchCategories('#categories');
 									
 									// easy match table with their type
 									tableMatch = {
 												'users': {'table': usersTable, 'source': JSON.stringify(usersTable.getData()), 'call': fetchUsers, 'selector': '#users', 'type': 'users'},
 												'articles': {'table': articlesTable, 'source': JSON.stringify(articlesTable.getData()), 'call': fetchArticles, 'selector': '#articles', 'type': 'articles'},
 												'tags': {'table': tagsTable, 'source': JSON.stringify(tagsTable.getData()), 'call': fetchTags, 'selector': '#tags', 'type': 'tags'},
-												'types': {'table': typesTable, 'source': JSON.stringify(typesTable.getData()), 'call': fetchTypes, 'selector': '#types', 'type': 'types'}
+												'types': {'table': typesTable, 'source': JSON.stringify(typesTable.getData()), 'call': fetchTypes, 'selector': '#types', 'type': 'types'},
+												'categories': {'table': categoriesTable, 'source': JSON.stringify(categoriesTable.getData()), 'call': fetchCategories, 'selector': '#categories', 'type': 'categories'}
 												}
 									
 									tablesListener(true)
@@ -157,9 +164,8 @@ $artTypes = getTypes();
 
 				await sleep(500);
 				
-				jsonData = JSON.stringify({'action':'archive','type':'articles','csrf':csrfToken, 'slug':slug, 'status':state})
-				
 				// update data
+				jsonData = JSON.stringify({'action':'archive','type':'articles','csrf':csrfToken, 'slug':slug, 'status':state})
 				response = await fetchAPI('/admin/engine/database', jsonData)
 				
 				if (!response.ok) {
@@ -199,9 +205,8 @@ $artTypes = getTypes();
 
 				await sleep(500);
 				
-				jsonData = JSON.stringify({'action':'delete', 'type':type, 'csrf':csrfToken, 'slug':slug, 'value':value})
-				
 				// update data
+				jsonData = JSON.stringify({'action':'delete', 'type':type, 'csrf':csrfToken, 'slug':slug, 'value':value})
 				response = await fetchAPI('/admin/engine/database', jsonData)
 
 				if (!response.ok) {
@@ -216,7 +221,7 @@ $artTypes = getTypes();
 				resetState(activeTable)
 				
 				if (['tags', 'type'].includes(type)) {
-					tableMatch.articles.source = await dataFetcher('articles').then(response => JSON.stringify(response['sql-data']));
+					tableMatch.articles.source = await dataFetcher('articles').then(response => JSON.stringify(response));
 					await resetTabledata(tableMatch.articles)
 				}
 

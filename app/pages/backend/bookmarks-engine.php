@@ -11,13 +11,21 @@ if ($_SERVER['HTTP_X_REQUESTED_WITH'] !== 'fetch') {
 
 // extract passed arguments
 $action = $_GET['action'] ?? 'fetch';
-$user = $_SESSION['user_id'];
+$userid = $_SESSION['user_id'] ?? false;
 
 if ($action === 'fetch') {
 	$n = (int) $_GET['n'] ?? 0;
 	$start = (int) $_GET['start'] ?? 0;
 
-	$sql = "SELECT url, description, title, tags, date, author, types.name AS type, picture_path, color FROM bookmarks JOIN articles ON article_id = articles.id JOIN types on articles.type = types.id WHERE user_id = :user AND status = 'published' ORDER BY added_on DESC";
+	$sql = "SELECT articles.slug AS url, description, title, tags, date, author, COALESCE(types.name, 'Indéfini') AS type, COALESCE(files.url, '/files/placeholder.png') AS picture_path, color
+			FROM bookmarks
+				JOIN articles ON bookmarks.article_id = articles.id
+				LEFT JOIN types on articles.type = types.id
+				LEFT JOIN articles_covers ON articles_covers.article_id = articles.id
+				LEFT JOIN files ON file_id = files.id
+			WHERE user_id = :userid AND status = 'published'
+			ORDER BY added_on DESC";
+	
 	if ($n === 0) {
 		if ($start !== 0) {
 			$extension = " LIMIT 2000000000 OFFSET :start"; // all entries from offset
@@ -38,7 +46,7 @@ if ($action === 'fetch') {
 	$query = $pdo->prepare($sql);
 	$n > 0 ? $query->bindValue(':n', $n, PDO::PARAM_INT):null;
 	$start > 0 ? $query->bindValue(':start', $start, PDO::PARAM_INT):null;
-	$query->bindValue(':user', $user);
+	$query->bindValue(':userid', $userid, PDO::PARAM_INT);
 	$query->execute();
 	$output = $query->fetchALL(PDO::FETCH_ASSOC);
 
@@ -47,7 +55,6 @@ if ($action === 'fetch') {
 	$total = $query->fetch(PDO::FETCH_ASSOC);
 
 	http_response_code(200);
-	// echo json_encode($output);
 	echo json_encode(['metadata' => ['sent' => count($output), 'n' => $n, 'start_at' => $start, 'total' => $total['COUNT(*)']], 'data' => $output]);
 	exit;
 }
@@ -56,25 +63,30 @@ if ($action === 'update') {
 	$mode = $_GET['mode'];
 	$url = $_GET['url'];
 	
+	if (!$userid) {
+		http_response_code(400);
+		echo json_encode(['error' => "Aucun·e utilisateurice n'est actuellement connecté·e"]);
+	}
+
 	try {
 		// get article id for passed url
-		$query = $pdo->prepare("SELECT id FROM articles WHERE url = :url");
+		$query = $pdo->prepare("SELECT id FROM articles WHERE slug = :url");
 		$query->execute([':url' => $url]);
-		$id = $query->fetch()['id'];
+		$id = (int) $query->fetch()['id'];
 		
 		if ($mode === 'mark') {
 			// insert bookmark pair
 			$sql = "INSERT INTO bookmarks (user_id, article_id) VALUES (:user, :article)";	
 		} elseif ($mode === 'unmark') {
 			// remove bookmark pair
-			$sql = "DELETE FROM bookmarks WHERE user_id = :user AND article_id = :article";
+			$sql = "DELETE FROM bookmarks WHERE user_id = CAST(:user AS UNSIGNED) AND article_id = CAST(:article AS UNSIGNED)";
 		} else {
 			// safety leverage to prevent invalid query parameter strings
 			http_response_code(500);
 			exit;
 		}
 
-		$params = [':user' => $user, ':article' => $id];
+		$params = [':user' => $userid, ':article' => $id];
 		$query = $pdo->prepare($sql);
 		$query->execute($params);
 		logger('/log/users.log', "Article $url ".($mode === 'mark' ? 'added to':'removed from')." bookmarks for user ".$_SESSION['username'], ($mode === 'mark' ? 'Add':'Remove')." bookmark", false);

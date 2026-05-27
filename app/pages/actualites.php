@@ -160,11 +160,11 @@ $artTags = getTags();
 				newsList.data.forEach((article) => {
 						// article data
 						url = article.url;
-						desc = article.description;
+						desc = article.summary;
 						time = article.date != null ? article.date.split(' ')[1]:null;
 						day = article.date != null ? article.date.split(' ')[0]:null;
 						auth = article.author;
-						tags = JSON.parse(article.tags);
+						tags = article.tags?.split(',');
 							tagsHTML = '';
 							tags ? tags.forEach(tag => {
 								tagsHTML += `<span class="tag-item">

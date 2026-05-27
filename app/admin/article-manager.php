@@ -32,19 +32,23 @@ $typesRaw = $query->fetchAll(PDO::FETCH_ASSOC) ?? null;
 $query=$pdo->prepare("SELECT author FROM articles");
 $query->execute();
 $raw_authors = $query->fetchAll(PDO::FETCH_ASSOC);
-
-$authors = [];
-foreach ($raw_authors as $item) {
-	if (!in_array($item['author'],$authors)) {
-		$authors[] = $item['author'];
-	}
-}
+$authors = array_reduce($raw_authors, function($carry, $item) {if (!in_array($item['author'], $carry)) $carry[] = $item['author']; return $carry;}, []);
 
 // edition mode
-$edition = $edition ?? false;
+$edition ??= false;
 $url = $slug ?? '';
 if ($edition && $url) {
-	$query=$pdo->prepare("SELECT * FROM articles WHERE url = :url AND NOT (status = 'published')");
+	$sql = "WITH tags_list AS (
+			SELECT article_id, GROUP_CONCAT(tag_id SEPARATOR ',') AS tags
+			FROM articles_tags GROUP BY article_id)
+	SELECT articles.slug AS url, title, COALESCE(files.url, '/files/placeholder.png') AS picture_path, summary, tags_list.tags AS tags, articles.type AS type, author, date, end_date, color, published_at, articles.updated_at AS updated_at, content
+	FROM articles
+		JOIN types ON types.id = articles.type
+		LEFT JOIN tags_list ON articles.id = tags_list.article_id
+		LEFT JOIN articles_covers ON articles.id = articles_covers.article_id
+		LEFT JOIN files ON file_id = files.id
+	WHERE articles.slug = :url AND NOT (articles.status = 'published')";
+	$query=$pdo->prepare($sql);
 	$query->execute( [':url' => $url]);
 	$artData = $query->fetch(PDO::FETCH_ASSOC);
 
@@ -55,7 +59,7 @@ if ($edition && $url) {
 		$fileData = $query->fetch(PDO::FETCH_ASSOC);
 
 		// retrieve article tags
-		$tagsIdList = json_decode($artData['tags'], false);
+		$tagsIdList = explode(',', $artData['tags']);
 		$artTags = [];
 		foreach ($tagsRaw as $tag) {
 			$tag['active'] = in_array($tag['id'], $tagsIdList ?? []) ? true:false;
@@ -199,7 +203,7 @@ if ($edition && !$artData) {
 						<div class='box art-desc'>
 							<div class='input-header'>							
 								<div class='icon info inline hoverable'>
-									<span class='img' onclick='event.target.parentNode.toggleAttribute("active")'></span>
+									<span class='img' onclick='event.target.parentNode.toggle()'></span>
 									<span class='infotext'>
 										Description qui apparaîtra sur l'aperçu de l'article
 									</span>
@@ -208,7 +212,7 @@ if ($edition && !$artData) {
 								<label class='label' for='art-desc'>Résumé</label>
 							</div>
 							<div class='input-container'>
-								<input class='lineentry' type='text' name='art-desc' id='art-desc' maxlength="50" autocomplete=of placeholder="Description rapide" value="<?= $edition ? $artData['description']:'' ?>" title="Résumé rapide l'article pour l'aperçu" required>
+								<input class='lineentry' type='text' name='art-desc' id='art-desc' maxlength="50" autocomplete=of placeholder="Description rapide" value="<?= $edition ? $artData['summary']:'' ?>" title="Résumé rapide l'article pour l'aperçu" required>
 							</div>
 						</div>
 					</div>
@@ -220,7 +224,7 @@ if ($edition && !$artData) {
 								<select name='art-type' id='art-type' class='boxentry' required>
 									<option value='' <?= !$edition ? 'selected':'' ?> disabled hidden>Type d'évènement</option>
 									<?php foreach($typesRaw as $type) { ?>
-										<option value='<?= $type['slug'] ?>' <?= ($edition && $artData['type'] === strval($type['id'])) ? 'selected':'' ?> data-color="<?= $type['color'] ?>" <?= $type['slug'] === 'undefined' ? 'disabled hidden':'' ?>><?= $type['name'] ?></option>
+										<option value='<?= $type['slug'] ?>' <?= ($edition && $artData['type'] === $type['id']) ? 'selected':'' ?> data-color="<?= $type['color'] ?>" <?= $type['slug'] === 'undefined' ? 'disabled hidden':'' ?>><?= $type['name'] ?></option>
 									<?php } ?>
 								</select>
 								<span class="checkboxes">
@@ -245,7 +249,7 @@ if ($edition && !$artData) {
 									<input class='boxentry dateentry' type='date' name='art-end-date' id='art-end-date' autocomplete=off placeholder="Date" value="<?= $edition ? $artData['end_date']:'' ?>" title="Veuillez indiquer la date de fin de l'évènement">
 							</span>
 							
-							<span class="meta-item tags input-container checkboxes enhanced" id='art-tags'>
+							<span class="meta-item tags input-container checkboxes enhanced" id="art-tags">
 								<?php foreach ($artTags as $tag) { ?>
 									<span>
 										<input class='checkbox option' type='checkbox' id="<?= $tag['slug'] ?>" name="<?= $tag['slug'] ?>" value="<?= $tag['name'] ?>" <?= $edition ? ($tag['active'] ? 'checked':''):null ?>>
@@ -609,7 +613,7 @@ if ($edition && !$artData) {
 																				})
 
 						output.set('success');
-						output.innerHTML = `Success: article created at url ${artData.url}`;
+						output.innerHTML = `Success: article ${status === 'edition' ? 'updated':'created'} at url ${artData.url}`;
 						resetEditsHistory()
 
 						notify("Modifications enregistrées", "Les données de l'article ont été mises à jour.", 'green');
@@ -637,7 +641,6 @@ if ($edition && !$artData) {
 				formData.set('file-description', overlay.input('desc').value)
 				formData.set('filename', overlay.input('filename').value + '.' + overlay.input('fileextension').value)
 				formData.set('type', JSON.stringify({'slug': typeTag.value, 'name': typesList[typeTag.value], 'color': typeTag.querySelector(`option[value='${typeTag.value}']`).dataset.color, 'new': typeTag.classList.contains('new')}));
-				formData.set('art-end-date', formData.get('art-end-date') !== '' ? formData.get('art-end-date'):null);
 				// formData.set('art-title', titleTag.textContent);
 				formData.set('art-url', formData.get('art-url').replace(core,''));
 				(picTag.value === '') ? formData.set('picture-path', picTag.nextElementSibling.getAttribute('src')):null;
@@ -820,7 +823,7 @@ if ($edition && !$artData) {
 		Input('art-title').oninput = titleManage;
 		function titleManage(e) {
 					tag = e.target;
-					tag.innerText === '\n' || tag.innerText ==='' ? tag.set('empty'):tag.unset('empty')
+					tag.innerText === '\n' || tag.innerText === '' ? tag.set('empty'):tag.unset('empty')
 					tag.nextElementSibling.value = tag.textContent;
 					
 					urltag = Input('art-url');
@@ -879,7 +882,7 @@ if ($edition && !$artData) {
 					
 					await sleep(500);
 					
-					response = await fetchAPI(`/admin/engine/article?url=${url}&mode=${mode}&token=${csrfToken}`);
+					response = await fetchAPI(`/admin/engine/article?action=check&url=${url}&mode=${mode}&token=${csrfToken}`);
 					
 					if (!response.ok) {
 						urltag.set('invalid');
@@ -983,7 +986,7 @@ if ($edition && !$artData) {
 		//// EXISTING FILE
 		// show file selection panel
 		Button('exist-file').onclick = e => {
-				e.container().toggle();
+				Overlay('filepicker').toggle();
 		}
 
 		Overlay('filepicker').button('validate').onclick = e => {
@@ -1021,7 +1024,7 @@ if ($edition && !$artData) {
 				container = Overlay('filepicker').child('.files-list-container');
 				container.innerHTML = '<div class="spinner"></div>';
 
-				jsonData = JSON.stringify({'csrf':csrfToken, 'action':'fetch', 'category':'poster'})
+				jsonData = JSON.stringify({'csrf':csrfToken, 'action':'fetch', 'filetype':'image'})
 				response = await fetchAPI('/admin/engine/files', jsonData)
 				
 				container.innerHTML = '';

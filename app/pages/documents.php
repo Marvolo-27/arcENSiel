@@ -11,13 +11,29 @@ if ($_SESSION['role'] === 'admin') {
     $status = 'view';
 }
 
-// Fetch documents list
-$query=$pdo->prepare("SELECT url, description, name, status, size, category, subcategory FROM files WHERE used_by LIKE '%documents%';");
+// Section to display
+$section ??= 'documents';
+
+// Fetch categories of section
+$query=$pdo->prepare("SELECT categories.slug AS slug, name FROM categories JOIN sections ON sections.id = section_id WHERE sections.slug = '".$section."'");
 $query->execute();
-$documents = $query->fetchAll(PDO::FETCH_ASSOC) ?? null;
+$categories = $query->fetchAll(PDO::FETCH_ASSOC);
+
+// Fetch documents list
+$query=$pdo->prepare("SELECT url, description, files.name AS name, status, size, categories.slug AS category FROM files JOIN files_categories ON files.id = file_id JOIN categories ON categories.id = category_id JOIN sections ON section_id = sections.id WHERE sections.slug = '".$section."'");
+$query->execute();
+$documents = $query->fetchAll(PDO::FETCH_ASSOC);
+
+// Filter by categories
+$files_list = array_reduce($categories, function($carry, $item) use ($documents) {
+		if ($item['slug'] === 'statuts') return $carry; // skip statuts as specific structure
+		$carry[$item['slug']] = [
+			'name' => $item['name'], 
+			'documents' => array_filter($documents, function($doc) use ($item) {return $doc['category'] === $item['slug'];})
+			] ;return $carry;}, []);
 
 // Fetch latest statuts
-$query=$pdo->prepare("SELECT url, size, description FROM files WHERE status = TRUE AND category = 'statuts' AND used_by LIKE '%documents%' ORDER BY updated_at DESC LIMIT 1;");
+$query=$pdo->prepare("SELECT url, size, description FROM files JOIN files_categories ON file_id = files.id JOIN categories ON category_id = categories.id WHERE status = TRUE AND categories.slug = 'statuts' ORDER BY updated_at DESC LIMIT 1;");
 $query->execute();
 $statuts = $query->fetchAll(PDO::FETCH_ASSOC)[0] ?? [];
 
@@ -62,13 +78,14 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
                 Documents associatifs
             </h1>
 
-			 <h3>
+			<?php if($section === 'documents'): ?>
+			<h3>
                 Statuts
             </h3>
                 <p>Dernière mise à jour : 
 					<span class="last-updated">
 						<?php if ($status === 'edit'): ?>
-							<input class='boxentry' type='date' name='update-time' id='update-time' value="<?= $statuts['date'] ?>" autocomplete=off placeholder="Description" title="Date de mise à jour des statuts" required>
+							<input class='boxentry' type='date' name='update-time' id='update-time' data-source="<?= $statuts['date'] ?>" value="<?= $statuts['date'] ?>" autocomplete=off placeholder="Description" title="Date de mise à jour des statuts" required>
 						<?php endif; ?>
 						<?php if ($status !== 'edit'): ?>
 							<?= $statuts['date_fmt'] ?>
@@ -76,67 +93,51 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 					</span>
 				</p>
 
-                <p>Consulter les <a href="<?= $statuts['url'] ?>" target="_blank_" data-alias="<?= $statuts['description'] ?>" download="<?= end(explode('/', $statuts['url'])) ?>">statuts</a> <small><i>(<?= formatBytes($statuts['size'],1) ?>)</i></small>.</p> 
-	
+                <p>Consulter les <a id="statuts" href="<?= $statuts['url'] ?>" data-alias="<?= $statuts['description'] ?>" download="<?= end(explode('/', $statuts['url'])) ?>" target="_blank_">statuts</a> <small><i>(<?= formatBytes($statuts['size'],1) ?>)</i></small>.</p> 
+				
 				<?php if ($status === 'edit'): ?>
-					<div class='icon edit inline medium dynamic hoverable' onclick="updateStatutsTrigger(event.target)" title="Modifier cette entrée"><span class='img'></span></div>
+					<div class="form-action-wrap linear left-align">
+						<div class="form-action">
+							<button class="action-btn new-file" data-category="statuts" data-mode="add" disabled>Mettre à jour les statuts</button>
+						</div>
+					</div>
 				<?php endif; ?>
+			<?php endif; ?>
+
 			<h3>
-                Bilans annuels
-            </h3>   
-                <p><strong>Bilans moraux :</strong> 
-                    <ul class="bm">
-                        <?php foreach(array_reverse($documents) as $doc) { ?>
-							<?php if ($doc['status'] && $doc['category'] === 'bilan' && $doc['subcategory'] === 'BM'): ?>
-								<li>
-									<?php if ($status === 'edit'): ?>
-										<div class='icon delete inline medium dynamic hoverable' onclick="changeEntryTrigger(event.target, 'delete', 'bm')" title="Supprimer cette entrée"><span class='img'></span></div>
-										<div class='icon edit inline medium dynamic hoverable' onclick="changeEntryTrigger(event.target, 'edit', 'bm')" title="Modifier cette entrée"><span class='img'></span></div>
-									<?php endif; ?>
-									<a href="<?= $doc['url'] ?>" data-name="<?= $doc['name'] ?>" <?= $status === 'edit' ? "data-target-url='".$doc['url']."'":'' ?> target="_blank_" download><?= $doc['description'] ?></a> <small><i>(<?= formatBytes($doc['size'],1) ?>)</i></small>
-								</li>
+               Bilans et compte-rendus
+            </h3>
+			
+			<?php foreach($files_list as $slug => $category) { ?>
+                <p><strong><?= $category['name'] ?></strong> 
+                    <ul class="<?= $slug ?>">
+                        <?php foreach($category['documents'] as $doc) { ?>
+							<?php if ($doc['status']): ?>
+							<li>
+								<?php if ($status === 'edit'): ?>
+									<div class='icon change delete inline medium dynamic hoverable' data-icon-type='delete' title="Supprimer cette entrée"><span class='img'></span></div>
+									<div class='icon change edit inline medium dynamic hoverable' data-icon-type='edit' title="Modifier cette entrée"><span class='img'></span></div>
+								<?php endif; ?>
+								<a href="<?= $doc['url'] ?>" data-name="<?= $doc['name'] ?>" <?= $status === 'edit' ? "data-target-url='".$doc['url']."'":'' ?> download target="_blank_"><?= $doc['description'] ?></a> <small><i>(<?= formatBytes($doc['size'],1) ?>)</i></small>
+							</li>
 							<?php endif; ?>
 						<?php } ?>
                     </ul>
 					<?php if ($status === 'edit'): ?>
 						<div class="form-action-wrap linear left-align">
-							<div class='form-action'>
-								<button class='action-btn new-bm'>Ajouter un fichier</button>
+							<div class="form-action">
+								<button class="action-btn new-file" data-category="<?= $slug ?>" data-mode="add">Ajouter un fichier</button>
 							</div>
 						</div>
 					<?php endif; ?>
                 </p>
-
-				<p><strong>Bilans financiers :</strong> 
-                    <ul class="bf">
-                        <?php foreach(array_reverse($documents) as $doc) { ?>
-							<?php if ($doc['status'] && $doc['category'] === 'bilan' && $doc['subcategory'] === 'BF'): ?>
-								<li>
-									<?php if ($status === 'edit'): ?>
-										<div class='icon delete inline medium dynamic hoverable' onclick="changeEntryTrigger(event.target, 'delete', 'bf')" title="Supprimer cette entrée"><span class='img'></span></div>
-										<div class='icon edit inline medium dynamic hoverable' onclick="changeEntryTrigger(event.target, 'edit', 'bf')" title="Modifier cette entrée"><span class='img'></span></div>
-									<?php endif; ?>
-									<a href="<?= $doc['url'] ?>" data-name="<?= $doc['name'] ?>" <?= $status === 'edit' ? "data-target-url='".$doc['url']."'":'' ?> target="_blank_" download><?= $doc['description'] ?></a> <small><i>(<?= formatBytes($doc['size'],1) ?>)</i></small>
-								</li>
-							<?php endif; ?>
-						<?php } ?>
-                    </ul>
-
-					<?php if ($status === 'edit'): ?>
-						<div class="form-action-wrap linear left-align">
-							<div class='form-action'>
-								<button class='action-btn new-bf'>Ajouter un fichier</button>
-							</div>
-						</div>
-						<input name='csrf-token' id='csrf' data-csrf='<?= $_SESSION['CSRF'] ?>' value='<?= $_SESSION['CSRF'] ?>' required hidden readonly>
-					<?php endif; ?>
-                </p>
-        </div>
-        
+			<?php } ?>
+		</div>
+		
 		<?php if($_SESSION['role'] === 'admin'): ?>
 		<div id="admin-actions">
 			<?php if($status === 'view'): ?>	
-			<a class='icon edit inline large dynamic' href="/admin/tools/editor/documents" title="Modifier les fichiers">
+			<a class='icon edit inline large dynamic' href="/admin/tools/edit/documents" title="Modifier les fichiers">
 				<span class='img'></span>
 			</a>
 			<?php endif; ?>
@@ -145,16 +146,17 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 				<span class='img'></span>
 			</a>
 			<?php endif; ?>
+			<input name='csrf-token' id='csrf' data-csrf='<?= $_SESSION['CSRF'] ?>' value='<?= $_SESSION['CSRF'] ?>' required hidden readonly>
 		</div>
 		<?php endif; ?>
 
-		<div class="body-overlay" id="overlay-valid">
+		<div class="body-overlay" id="overlay-deletion">
 			<div class="inner-overlay">
 				<div>
 					<h4 class="title">
 						Confirmation de suppression
 					</h4>
-					<span>Confirmer la suppression de :</span><span class="filename"></span>
+					<span>Confirmer la suppression de : </span><span class="filename"></span>
 					<div><small><it>Le fichier ne sera pas supprimé du serveur</it></small></div>
 				</div>
 				
@@ -176,39 +178,35 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 		<script>
 		<?php if ($status === 'edit'): ?>
 			// global variables
-			let subcategory;
+			let category;
 			let mode;
 			let currentFile = {}; // {tag:tag, url:url}
-			
-			const overlayAdd = document.querySelector('#overlay-add')
-			const overlayAuth = document.querySelector('#overlay-auth')
-			const overlayChoose = document.querySelector('#overlay-choose')
-			const overlayValid = document.querySelector('#overlay-valid')
 
 		/// GENERAL ACTIONS
 			// on load actions
 			window.addEventListener('load', loader)
 			async function loader()  {
-										fileSelectorLoad('bilan')
+										fileSelectorLoad('pdf')
 
-										overlayChoose.querySelector('.file-preview').toggle()
-										overlayChoose.querySelector('.fetch-all').toggle()
+										Overlay('filepicker').querySelector('.file-preview').toggle()
+										Overlay('filepicker').querySelector('.fetch-all').toggle()
 										}
 
 			// trigger entry update
-			function changeEntryTrigger(tag, action, subcat = 'bm') {
+			document.body.childs('.change').forEach(icon => icon.onclick = e => {t = e.target.findParent('.icon'); changeEntryTrigger(t, t.dataset.iconType, t.findParent('ul').className)})
+			function changeEntryTrigger(tag, action, type) {
 						linkTag = tag.findParent('li').querySelector('a');
 						url = linkTag.getAttribute('href'); // .href gives absolute path, so not compatibe with DB format
 						name = linkTag.dataset.name
-						subcategory = subcat;
-						currentFile = {'tag': linkTag, 'url':url, 'subcat': subcat}
+						category = type;
+						currentFile = {'tag':linkTag, 'url':url, 'category':type}
 						
 						if (action === 'delete') {// delete file from list							
-							overlayValid.child('.filename').innerText = name;
-							overlayValid.toggle()
+							Overlay('deletion').child('.filename').innerText = name;
+							Overlay('deletion').toggle()
 
 						} else if (action === 'edit') {// edit pour changer description ou fichier
-							overlay = Overlay('ulpoader')
+							overlay = Overlay('uploader')
 							overlay.box('description').input().value = linkTag.innerText;
 							overlay.child('.title').innerText = "Modification d'une entrée"
 							overlay.child('.selected-file').innerText = name;
@@ -227,6 +225,12 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 						return
 					}
 			
+			// Statuts update switcher
+			Input('update-time').onchange = e => {
+				e.target.value !== e.target.dataset.source ? Button('new-file[data-category="statuts"]').enable() : Button('new-file[data-category="statuts"]').disable();
+			}
+
+
 			// on drop logic
 			function fileDropHandle(e) {
 						allowDrop(e);
@@ -245,36 +249,11 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 							Overlay('uploader').input('fileextension').value = file.name.extension();
 						}
 					}
-			
-			// trigger status update
-			function updateStatutsTrigger(e) {
-				overlay = Overlay('uploader')
-				tag = e.findParent('.icon.edit').previousElementSibling.querySelector('a')
-				url = tag.getAttribute('href')
-				name = tag.download
-
-				overlay.child('.title').innerText = "Modification d'une entrée"
-				overlay.child('.selected-file').innerText = name;
-				overlay.child('.frame').show()
-				overlay.child('.fileentry').required = false;
-				overlay.toggle()
-
-				overlay.input('filename').dataset.name = url.filename(true)
-				overlay.input('filename').value = url.filename()
-				overlay.input('fileextension').value = url.extension()
-				overlay.input('filename').readOnly = true
-				overlay.input('desc').value = tag.dataset.alias
-			}
-
-			// update statuts metadata on server
-			async function updateStatuts(e) {
-				null
-			}
 
 			// update file description on server
 			async function descUpdate(form) {
-						url = currentFile.url
-						tag = currentFile.tag
+						ogUrl = currentFile.url ?? null
+						tag = currentFile.tag ?? null
 						currentFile = {};
 
 						fileTag = Overlay('uploader').child('.fileentry')
@@ -283,11 +262,13 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 						formData.set('mode', mode)
 						formData.set('source', 'uploads/pdf/')
 						formData.set('action', 'update')
-						formData.set('subcategory', subcategory)	
-						formData.set('og-url', url)
-						formData.set('url', tag.dataset.targetUrl)
+						formData.set('section', 'documents')
+						formData.set('category', category)
+						category === 'statuts' ? formData.set('date', Input('update-time').value) : null
+						formData.set('og-url', ogUrl)
+						formData.set('url', tag?.dataset.targetUrl)
 						formData.set('filename', formData.get('filename') + '.' + Overlay('uploader').input('fileextension').value)
-						formData.set('file-updated', mode === 'update' && url !== tag.dataset.targetUrl)
+						formData.set('file-updated', mode === 'update' && ogUrl !== tag?.dataset.targetUrl)
 						formData.set('csrf', csrfToken)
 
 						// Response object
@@ -303,20 +284,31 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 							errorData = data.error;
 							errorCode = data.code;
 							
-							notify(`Error [${errorCode}]: ${errorData}`, 'red');							
+							notify("Erreur lors de la mise à jour", `La mise à jour des informations a échoué. [Error ${errorCode}]: ${errorData}`, 'red');							
 							return
 						} else {// correct sql response
-							notify('Data updated successfully')
+							notify("Mise à jour terminée", "Les informations ont été mises à jour.", 'green')
 						}
 
 						if (mode === 'add') {
-							li = document.createElement('li');
-							li.innerHTML = `
-									<div class='icon delete inline medium dynamic hoverable' onclick="changeEntryTrigger(event.target, 'delete', 'bf')" title="Supprimer cette entrée"><span class='img'></span></div>
-									<div class='icon edit inline medium dynamic hoverable' onclick="changeEntryTrigger(event.target, 'edit', 'bf')" title="Modifier cette entrée"><span class='img'></span></div>
-									<a href="${data.data.path}" data-name="${data.data.name}" target="_blank_" download>${data.data.desc}</a> <small><i>(${formatBytes(data.data.size, 1)})</i></small>
-								`
-							document.querySelector(`.${subcategory}`).prepend(li)
+							if (category === 'statuts') {
+								Input('update-time').dataset.source = Input('update-time').value
+								Button('new-file[data-category="statuts"]').disable()
+
+								Input('statuts').href = data.data.path
+								Input('statuts').download = data.data.name
+								Input('statuts').dataset.alias = data.data.desc
+								Input('statuts').nextElementSibling.firstChild.innerText = `(${formatBytes(data.data.size, 1)})`
+							} else {
+								li = document.createElement('li');
+								li.innerHTML = `
+										<div class='icon change delete inline medium dynamic hoverable'" data-icon-type='delete' title="Supprimer cette entrée"><span class='img'></span></div>
+										<div class='icon change edit inline medium dynamic hoverable'" data-icon-type='edit' title="Modifier cette entrée"><span class='img'></span></div>
+										<a href="${data.data.path}" data-name="${data.data.name}" target="_blank_" download>${data.data.desc}</a> <small><i>(${formatBytes(data.data.size, 1)})</i></small>
+									`
+								li.childs('.icon.change').forEach(icon => icon.onclick = e => {t = e.target.findParent('.icon'); changeEntryTrigger(t, t.dataset.iconType, t.findParent('ul').className)})
+								document.querySelector(`.${category}`).append(li)
+							}
 						} else {
 							if (data.data.path != null) {// new file
 								tag.href = data.data.path;
@@ -335,24 +327,14 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 			async function removeElement() {
 						url = currentFile.url;
 						tag = currentFile.tag;
-						subcat = currentFile.subcat;
 						currentFile = {};
 
-						// extract stored data to update it accordingly
-						jsonData = JSON.stringify({'csrf':csrfToken, 'action':'reference', 'mode':'fetch', 'url':url})
-						data = await fetchAPI('/admin/engine/files', jsonData).then(response => response.body)
-
-						// update used_by
-						usage = data.data['used_by'];
-						newUsage = usageUpdate('documents/'+subcat, usage)
-
 						// update data on server
-						jsonData = JSON.stringify({'csrf':csrfToken, 'action':'reference', 'mode':'delete', 'url':url, 'usage':newUsage})
+						jsonData = JSON.stringify({'csrf':csrfToken, 'action':'reference', 'mode':'delete', 'url':url, 'category':category})
 						response = await fetchAPI('/admin/engine/files', jsonData)
 
 						if (response.ok) {
-							notify('Entry deleted successfully.', 'green');
-
+							notify("Document retiré", `Le fichier ${url.filename()} a été supprimé de la liste des ${category}`, 'green');
 							tag.parentNode.remove();
 						}
 					}
@@ -365,26 +347,17 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 				}
 
 			// show panel to save changes
-			Button('new-bm').onclick = e => {
-				overlay = e.container()
+			document.body.childs('.action-btn.new-file').forEach(button => button.onclick = function(e){
+				overlay = Overlay('uploader')
 				overlay.child('form').reset();
 				overlay.child('.fileentry').required = true;
 				overlay.child('.frame').hide();
 				overlay.child('.title').innerText = "Ajout d'une entrée"
-				subcategory = 'bm';
-				mode = 'add';
 				overlay.toggle()
-			}
 
-			// show panel to save changes
-			Button('new-bf').onclick = e => {
-				overlayAdd.child('form').reset();
-				document.querySelector('#overlay-add .fileentry').required = true;
-				document.querySelector('#overlay-add .title').innerText = "Ajout d'une entrée"
-				subcategory = 'bf';
-				mode = 'add';
-				overlayAdd.toggle()
-			}
+				category = e.target.dataset.category
+				mode = e.target.dataset.mode
+			})
 
 			Overlay('uploader').button('cancel').onclick = e => {
 				overlay = e.container()
@@ -395,12 +368,12 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 				currentFile = {};
 			}
 
-			Overlay('validate').button('cancel').onclick = e => {
+			Overlay('deletion').button('cancel').onclick = e => {
 				e.container().hide();
 				currentFile = {};
 			}
 
-			Overlay('validate').button('validate').onclick = e => {
+			Overlay('deletion').button('validate').onclick = e => {
 				e.container().hide();
 				removeElement()
 			}
@@ -413,7 +386,7 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 			}
 
 			Overlay('uploader').icon('delete').onclick = e => {
-				overlay = e.container()
+				overlay = Overlay('uploader')
 				filename = overlay.input('filename')
 				fileextension = overlay.input('fileextension')
 				file = overlay.input('file')
@@ -440,12 +413,12 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 
 			// show file selection panel
 			Overlay('uploader').button('exist-file').onclick = e => {
-					e.container().toggle();
+					Overlay('uploader').toggle();
 					Overlay('filepicker').toggle();
 			}
 
 			Overlay('filepicker').button('validate').onclick = e => {
-					tag = overlayChoose('.file-element[selected]')
+					tag = Overlay('filepicker').child('.file-element[selected]')
 					error = Error('file-choice')
 
 					if (tag === null) {
@@ -460,15 +433,15 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 						url = tag.dataset.targetUrl;
 						Object.keys(currentFile).length !== 0 ? currentFile.tag.dataset.targetUrl = url:currentFile = {'url': null, 'tag': tag}; // prevent error on add mode
 						
-						Overlay('uploader').input('filename').dataset.name = url.filename(true)
-						Overlay('uploader').input('filename').value = url.filename()
-						Overlay('uploader').input('fileextension').value = url.extension()
-						Overlay('uploader').input('filename').readOnly = true
+						overlay.input('filename').dataset.name = url.filename(true)
+						overlay.input('filename').value = url.filename()
+						overlay.input('fileextension').value = url.extension()
+						overlay.input('filename').readOnly = true
 
 						e.container().childs('.file-element').forEach(tag => {tag.unset('selected')})
-						Overlay('uploader').child('.selected-file').innerText = url.filename(true);
-						Overlay('uploader').child('.frame').show();
-						Overlay('uploader').child('.fileentry').required = false;
+						overlay.child('.selected-file').innerText = url.filename(true);
+						overlay.child('.frame').show();
+						overlay.child('.fileentry').required = false;
 					}
 			}
 
@@ -482,11 +455,11 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 							}
 							};
 
-		async function fileSelectorLoad(category=null) {
-				container = overlayChoose.child('.files-list-container');
+		async function fileSelectorLoad(type=null) {
+				container = Overlay('filepicker').child('.files-list-container');
 				container.innerHTML = '<div class="spinner"></div>';
 
-				jsonData = JSON.stringify({'csrf':csrfToken, 'action':'fetch', 'category':category})
+				jsonData = JSON.stringify({'csrf':csrfToken, 'action':'fetch', 'filetype':type})
 				response = await fetchAPI('/admin/engine/files', jsonData)
 				
 				container.innerHTML = '';
@@ -498,7 +471,7 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 					div = document.createElement('div');
 
 					div.dataset.targetUrl = file.url
-					div.dataset.alt = file.description
+					div.dataset.alt = file.summary
 					div.innerText = file.name
 					div.classList.toggle('file-element')
 					div.addEventListener('click', fileUpdateSelection)
