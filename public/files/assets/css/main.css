@@ -1523,8 +1523,6 @@ form {
 				min-height: 2.5em;
 				overflow: overlay;
 				
-				&.raw {pointer-events: none;}
-				
 				&[error] {
 						color: var(--error-color);
 						font-weight: bold;
