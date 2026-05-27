@@ -68,8 +68,7 @@ DROP TABLE IF EXISTS `articles_covers`;
 CREATE TABLE `articles_covers` (
   `file_id` int NOT NULL,
   `article_id` int NOT NULL,
-  KEY `article_id` (`article_id`),
-  UNIQUE KEY (`file_id`,`article_id`),
+  UNIQUE KEY `article_id` (`article_id`),
   CONSTRAINT `articles_covers_ibfk_1` FOREIGN KEY (`file_id`) REFERENCES `files` (`id`) ON DELETE CASCADE,
   CONSTRAINT `articles_covers_ibfk_2` FOREIGN KEY (`article_id`) REFERENCES `articles` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=347 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;

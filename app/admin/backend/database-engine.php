@@ -48,7 +48,7 @@ if ($action === 'fetch') {
 					tags_list AS (
 						SELECT article_id, GROUP_CONCAT(tag_id SEPARATOR ',') AS tags
 						FROM articles_tags GROUP BY article_id)
-				SELECT articles.id AS id, articles.status AS status, articles.slug AS url, title, COALESCE(files.url, '/files/placeholder.png') AS picture_path, summary, tags_list.tags AS tags, articles.type AS type, author, date, end_date, color, content
+				SELECT articles.id AS id, articles.status AS status, articles.slug AS url, title, COALESCE(files.url, '/files/placeholder.png') AS picture_path, COALESCE(files.name, 'placeholder.png') AS poster_name, summary, tags_list.tags AS tags, articles.type AS type, author, date, end_date, color, content
 				FROM articles
 					LEFT JOIN types ON types.id = articles.type
 					LEFT JOIN tags_list ON articles.id = tags_list.article_id
@@ -161,7 +161,15 @@ if ($action === 'update') {
 							':type' => $row['type'],
 							':id' => $row['id'],
 							':time' => date('Y-m-d H:i:s', time())
-				];
+							];
+				$query = $pdo->prepare($sql);
+				$query->execute($params);
+
+				$sql = "INSERT INTO articles_covers (article_id, file_id) SELECT :id, (SELECT id FROM files WHERE url = :url) ON DUPLICATE KEY UPDATE file_id = VALUES(file_id)"; // extract id of added article
+				$params =  [
+							':id' => $row['id'],
+							':url' => $row['picture_path']
+						];
 				$query = $pdo->prepare($sql);
 				$query->execute($params);
 			

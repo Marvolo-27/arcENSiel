@@ -202,7 +202,7 @@ async function fetchUsers(target) {
 				  layout: "fitDataTable",
 				  rowHeight: 36,
 				  columns: [
-					{ title: "Role", field: "role", editor: "list", editorParams: {values:{"user":"user","admin":"admin"}}, editable: selfIntegrity, resizable: false},
+					{ title: "Role", field: "role", editor: "list", editorParams: {values:["user","admin"]}, editable: selfIntegrity, resizable: false},
 					{ title: "Username", field: "username", editor:"input", validator: ['unique', 'required'], editable: selfIntegrity},
 				  ],
 				});
@@ -339,7 +339,8 @@ async function fetchTypes(target) {
 // Articles table
 async function fetchArticles(target) {
 			sourcedata = await dataFetcher('articles');
-			
+			files = await dataFetcher('files', {'filetype':'image'}, 'files').then(response => response.reduce((list, file) => {list[file.url] = file.name; return list}, {}))
+
 			statusMatch = {'published': 'Publié', 'archived': 'Archivé', 'draft': 'Brouillon'}
 
 			// Extract authors list
@@ -377,8 +378,8 @@ async function fetchArticles(target) {
 																																	val = cell.getValue();
 																																	val?.split(',').forEach(e => {try {text += tagsMatchTable[e].name+', '} catch (e) {null}});
 																																	return text.slice(0,-2)
-																																	}}
-					// { title: "Image", field: "picture_path", editor:"input", widthShrink:1},
+																																	}},
+					{ title: "Image", field: "picture_path", formatter: cell => cell.getValue().filename(true), editor:"list", editorParams: {values: files}, validator: 'required', widthShrink:1},
 					],
 				});
 			
