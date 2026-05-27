@@ -418,7 +418,7 @@ p {text-align: justify}
 								display: flex;
 								flex-direction: column;
 								gap: .625em;
-								overflow-y: auto;
+								overflow: auto;
 								max-height: 16em;
 								padding: .75em;
 								/* background-color: aliceblue; */
