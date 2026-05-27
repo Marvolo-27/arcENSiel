@@ -92,7 +92,7 @@ if ($action === 'archive') {
 	}
 
 if ($action === 'delete') {
-	preg_match('/^(articles|types|tags)$/', $input['type'], $matches);
+	preg_match('/^(articles|types|tags|categories)$/', $input['type'], $matches);
 	$table = $matches[0] ?? null; // redundant but prevent sql injection
 
 	// delete entry
