@@ -508,7 +508,7 @@ p {text-align: justify}
 				min-height: auto;
 
 				& .drag-zone {display: none;}
-				&:hover .visual-overlay {display: flex}
+				&:hover .visual-overlay {opacity: 1; pointer-events: all;}
 				}
 		
 		&:not([active]) .visual {display: none;}
@@ -565,8 +565,11 @@ p {text-align: justify}
 				position: absolute;
 				top: 0;
 				left: 0;
-				display: none;
+				display: flex;
+				pointer-events: none;
+				opacity: 0;
 				background: #fafafa7a;
+				transition: opacity .3s ease-in-out;
 				
 				& .icon {cursor: pointer;}
 				}
@@ -1541,13 +1544,16 @@ form {
 		background: white;
 		border: 1px solid black;
 		border-radius: 6px;
-		display: none;
+		display: block;
 		top: .25em;
 		left: 2.5em;
 		z-index: 2;
 		padding: .5em;
+		pointer-events: none;
+		opacity: 0;
+		transition: opacity .25s ease-in-out;
 		}
-.icon.info[active] .infotext {display: block}
+.icon.info:hover .infotext {opacity: 1; pointer-events: all;}
 
 .timestamps {
 	font-size: var(--medium-size);

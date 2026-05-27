@@ -181,7 +181,7 @@ if ($edition && !$artData) {
 						<div class='box url'>
 							<div class='input-header'>
 								<div class='icon info inline hoverable'>
-									<span class='img' onclick='event.target.parentNode.toggleAttribute("active")'></span>
+									<span class='img'></span>
 									<span class='infotext'>
 										<?php if (!$edition): ?>Par défaut, l'URL est définie automatiquement à partir du titre de l'article. Cliquez l'icone de modification pour définir une URL personnalisée.<?php endif; ?>
 										<?php if ($edition): ?>L'URL n'est pas modifiable pour un article déjà existant.<?php endif; ?>
@@ -203,7 +203,7 @@ if ($edition && !$artData) {
 						<div class='box art-desc'>
 							<div class='input-header'>							
 								<div class='icon info inline hoverable'>
-									<span class='img' onclick='event.target.parentNode.toggle()'></span>
+									<span class='img'></span>
 									<span class='infotext'>
 										Description qui apparaîtra sur l'aperçu de l'article
 									</span>
