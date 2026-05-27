@@ -57,7 +57,7 @@ String.prototype.extension = function () {
 	// normalise separate accentuated letters in {accent + base letter}
 	// \u0300-\u036f match accents range
 String.prototype.urlForm = function () {return this.strForm().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s/g, '-')}
-String.prototype.filenameForm = function () {return this.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s/g, '_')}
+String.prototype.filenameForm = function () {return this.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[\s\-\/<>:\*\?"\|\\]/g, '_')}
 
 // Add method to str to turn a query selector to a list of selectors (the initial query must be only same-index-level query : no sibling/parent selectors)
 // If node name is given, is assumed to be the first element of the query
