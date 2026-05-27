@@ -138,17 +138,16 @@ if ($action === 'update') {
 	foreach ($raw_data as $row) {
 		try {
 			if ($type === 'users') {
-				$sql = "UPDATE users SET username = :username, role = :role WHERE id = :id;";
-				$params =  [
-							':username' => $row['username'],
-							':role' => $row['role'],
-							':id' => $row['id']
-							];
-				$query = $pdo->prepare($sql);
-				$query->execute($params);
-
-				// update username in session if changed
-				$row['id'] === $_SESSION['user_id'] ? $_SESSION['username'] = $row['username'] : null;
+				if ($row['username'] !== 'admin' && $row['username'] !== $_SESSION['username']) {
+					$sql = "UPDATE users SET username = :username, role = :role WHERE id = :id;";
+					$params =  [
+								':username' => $row['username'],
+								':role' => $row['role'],
+								':id' => $row['id']
+								];
+					$query = $pdo->prepare($sql);
+					$query->execute($params);
+				}
 			
 			} elseif ($type === 'articles') {
 				$sql = "UPDATE articles SET slug = :url, title = :title, author = :author, date = :date, end_date = :enddate, type = :type, updated_at = :time WHERE id = CAST(:id AS UNSIGNED);"; // extract id of added article
