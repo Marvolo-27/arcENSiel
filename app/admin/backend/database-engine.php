@@ -198,7 +198,7 @@ if ($action === 'update') {
 		http_response_code(200);
 		$message = 'queries completed successfully';
 		} catch (PDOException $e) {
-			$failure = $failure && true;
+			$failure = true;
 			logger('\/log\/'.$section.'.log', 'Source: '.queryMaker($sql, $params).';'.PHP_EOL.json_encode($e), '[ERROR] Failed: Update data');
 		}
 	}
