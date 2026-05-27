@@ -7,16 +7,11 @@ $artTags = getTags();
 $artTypes = getTypes();
 
 // Authors list
-$query=$pdo->prepare("SELECT author FROM articles");
+$query=$pdo->prepare("SELECT DISTINCT author FROM articles WHERE status = 'published'");
 $query->execute();
 $raw_authors = $query->fetchAll(PDO::FETCH_ASSOC);
+$authors = array_map(fn($item) => $item['author'], $raw_authors);
 
-$authors = [];
-foreach ($raw_authors as $item) {
-	if (!in_array($item['author'],$authors)) {
-		$authors[] = $item['author'];
-	}
-}
 
 // current filters
 $search = $_GET['query'] ?? ''; // text request
