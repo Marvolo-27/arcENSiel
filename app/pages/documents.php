@@ -15,9 +15,11 @@ if ($_SESSION['role'] === 'admin') {
 $section ??= 'documents';
 
 // Fetch categories of section
-$query=$pdo->prepare("SELECT categories.slug AS slug, name FROM categories JOIN sections ON sections.id = section_id WHERE sections.slug = '".$section."'");
+$query=$pdo->prepare("SELECT categories.slug AS slug, name, sections.slug AS section FROM categories JOIN sections ON sections.id = section_id");
 $query->execute();
-$categories = $query->fetchAll(PDO::FETCH_ASSOC);
+$categories_raw = $query->fetchAll(PDO::FETCH_ASSOC);
+$categories = array_filter($categories_raw, fn($item) => $item['section'] === $section);
+file_put_contents($root . '/.temp/categories.json', json_encode($categories_raw));
 
 // Fetch documents list
 $query=$pdo->prepare("SELECT url, description, files.name AS name, status, size, categories.slug AS category FROM files JOIN files_categories ON files.id = file_id JOIN categories ON categories.id = category_id JOIN sections ON section_id = sections.id WHERE sections.slug = '".$section."'");
@@ -79,10 +81,10 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
             </h1>
 
 			<?php if($section === 'documents'): ?>
-			<h3>
-                Statuts
-            </h3>
-                <p>Dernière mise à jour : 
+			<div>
+				<h3>Statuts</h3>
+				
+				<p>Dernière mise à jour : 
 					<span class="last-updated">
 						<?php if ($status === 'edit'): ?>
 							<input class='boxentry' type='date' name='update-time' id='update-time' data-source="<?= $statuts['date'] ?>" value="<?= $statuts['date'] ?>" autocomplete=off placeholder="Description" title="Date de mise à jour des statuts" required>
@@ -92,8 +94,8 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 						<?php endif; ?>
 					</span>
 				</p>
-
-                <p>Consulter les <a id="statuts" href="<?= $statuts['url'] ?>" data-alias="<?= $statuts['description'] ?>" download="<?= end(explode('/', $statuts['url'])) ?>" target="_blank_">statuts</a> <small><i>(<?= formatBytes($statuts['size'],1) ?>)</i></small>.</p> 
+				
+				<p>Consulter les <a id="statuts" href="<?= $statuts['url'] ?>" data-alias="<?= $statuts['description'] ?>" download="<?= end(explode('/', $statuts['url'])) ?>" target="_blank_">statuts</a> <small><i>(<?= formatBytes($statuts['size'],1) ?>)</i></small>.</p> 
 				
 				<?php if ($status === 'edit'): ?>
 					<div class="form-action-wrap linear left-align">
@@ -102,36 +104,47 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 						</div>
 					</div>
 				<?php endif; ?>
+			</div>
 			<?php endif; ?>
 
-			<h3>
-               Bilans et compte-rendus
-            </h3>
-			
-			<?php foreach($files_list as $slug => $category) { ?>
-                <p><strong><?= $category['name'] ?></strong> 
-                    <ul class="<?= $slug ?>">
-                        <?php foreach($category['documents'] as $doc) { ?>
-							<?php if ($doc['status']): ?>
-							<li>
-								<?php if ($status === 'edit'): ?>
-									<div class='icon change delete inline medium dynamic hoverable' data-icon-type='delete' title="Supprimer cette entrée"><span class='img'></span></div>
-									<div class='icon change edit inline medium dynamic hoverable' data-icon-type='edit' title="Modifier cette entrée"><span class='img'></span></div>
+			<div class="categories-wrap">
+				<h3>Bilans et compte-rendus</h3>
+				
+				<?php foreach($files_list as $slug => $category) { ?>
+					<p><strong><?= $category['name'] ?></strong> 
+						<ul class="<?= $slug ?>">
+							<?php foreach($category['documents'] as $doc) { ?>
+								<?php if ($doc['status']): ?>
+								<li>
+									<?php if ($status === 'edit'): ?>
+										<div class='icon change delete inline medium dynamic hoverable' data-icon-type='delete' title="Supprimer cette entrée"><span class='img'></span></div>
+										<div class='icon change edit inline medium dynamic hoverable' data-icon-type='edit' title="Modifier cette entrée"><span class='img'></span></div>
+									<?php endif; ?>
+									<a href="<?= $doc['url'] ?>" data-name="<?= $doc['name'] ?>" <?= $status === 'edit' ? "data-target-url='".$doc['url']."'":'' ?> download target="_blank_"><?= $doc['description'] ?></a> <small><i>(<?= formatBytes($doc['size'],1) ?>)</i></small>
+								</li>
 								<?php endif; ?>
-								<a href="<?= $doc['url'] ?>" data-name="<?= $doc['name'] ?>" <?= $status === 'edit' ? "data-target-url='".$doc['url']."'":'' ?> download target="_blank_"><?= $doc['description'] ?></a> <small><i>(<?= formatBytes($doc['size'],1) ?>)</i></small>
-							</li>
-							<?php endif; ?>
-						<?php } ?>
-                    </ul>
-					<?php if ($status === 'edit'): ?>
-						<div class="form-action-wrap linear left-align">
-							<div class="form-action">
-								<button class="action-btn new-file" data-category="<?= $slug ?>" data-mode="add">Ajouter un fichier</button>
+							<?php } ?>
+						</ul>
+						<?php if ($status === 'edit'): ?>
+							<div class="form-action-wrap linear left-align">
+								<div class="form-action">
+									<button class="action-btn new-file" data-category="<?= $slug ?>" data-mode="add">Ajouter un fichier</button>
+								</div>
 							</div>
-						</div>
-					<?php endif; ?>
-                </p>
-			<?php } ?>
+						<?php endif; ?>
+					</p>
+				<?php } ?>
+			</div>
+			
+			<?php if ($status === 'edit'): ?>
+			<div>
+				<div class="form-action-wrap linear">
+					<div class='form-action'>
+						<button class='action-btn new-section'>Ajouter une section</button>
+					</div>
+				</div>
+			</div>
+			<?php endif; ?>
 		</div>
 		
 		<?php if($_SESSION['role'] === 'admin'): ?>
@@ -497,6 +510,81 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 				tag.disabled = true
 				await fileSelectorLoad()
 				tag.toggle()
+		}
+		
+	/// SECTION MANAGEMENT
+		Button('new-section').onclick = e => {
+			e.target.disable()
+			container = body.child('#main').child('.categories-wrap')
+			
+			wrap = document.createElement('p')
+			wrap.innerHTML = `	<div class='box section linear condensed'>
+									<div class='icon validity medium dynamic inline hoverable'><span class='img'></span></div>
+									<div class='input-container'>
+										<strong class="editable" id="new-section" contenteditable placeholder='Section' empty></strong>
+										<input name='section' type="text" required hidden>
+									</div>
+								</div>`
+			container.append(wrap)
+
+			Input('new-section').oninput = e => {
+				tag = e.target;
+				tag.innerText === '\n' || tag.innerText === '' ? tag.set('empty'):tag.unset('empty')
+				tag.nextElementSibling.value = tag.textContent;
+			}
+
+			Box('section').icon('validity').onclick = async e => {
+				box = e.container()
+				value = box.input().value
+
+				if (!value) {
+					notify("Saisie vide", "Veuillez entrer un nom de section avant de valider.", 'red')
+					return
+				}
+				
+				if (categoriesList.includes(value)) {
+					notify("Duplicat", "L'identifiant pour cette section existe déjà.", 'red')
+					return
+				}
+
+				notify("Ajout", "La nouvelle section est en cours de création.", 'orange')
+
+				jsonData = JSON.stringify({'csrf':csrfToken, 'action':'insert', 'type':'categories', 'section':'documents', 'slug':value.urlForm(), 'name':value})
+				response = await fetchAPI('/admin/engine/database', jsonData)
+
+				if (!response.ok) {
+					notify("Échec de l'ajout", `L'ajout de la section '${value.urlForm()}' a échoué. Veuillez réessayer.`, 'red')
+					return
+				}
+				
+				Box('section').remove()
+
+				wrap = document.createElement('p')
+				wrap.innerHTML =   `<strong>${value}</strong> 
+									<ul class="${value.urlForm()}">
+									</ul>
+									<div class="form-action-wrap linear left-align">
+										<div class="form-action">
+											<button class="action-btn new-file" data-category="<?= $slug ?>" data-mode="add">Ajouter un fichier</button>
+										</div>
+									</div>`
+				
+				wrap.button('new-file').onclick = function(e){
+						overlay = Overlay('uploader')
+						overlay.child('form').reset();
+						overlay.child('.fileentry').required = true;
+						overlay.child('.frame').hide();
+						overlay.child('.title').innerText = "Ajout d'une entrée"
+						overlay.toggle()
+
+						category = e.target.dataset.category
+						mode = e.target.dataset.mode
+						}
+				
+				document.querySelector('.categories-wrap').append(wrap)
+
+				notify("Section ajoutée", "La nouvelle section a été créée.", 'green')
+			}
 		}
 		<?php endif; ?>
 		</script>

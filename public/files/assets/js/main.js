@@ -8,13 +8,16 @@ function scrResol() {dpi=null;for (i=0; i<600; i++) {window.matchMedia(`(resolut
 
 // common variables
 let typesList = {}
+let tagsList = {}
 let tagsMatchTable = {}
 let typesMatchTable = {}
+let categoriesList = []
 const mimeTable = {'application/pdf': 'pdf.svg', 'application/zip': 'archives.svg', 'application/vnd.sqlite3': 'databases.svg'}
 
 // asynchronous common variables
 fetch('/tmp/tags.json').then(response => response.json()).then(data => {tagsMatchTable = data; Object.values(tagsMatchTable).forEach(val => tagsList[val.slug] = val.name)}).catch(e => {return {}})
 fetch('/tmp/types.json').then(response => response.json()).then(data => {typesMatchTable = data; Object.values(typesMatchTable).forEach(val => typesList[val.slug] = val.name)}).catch(e => {return {}})
+fetch('/tmp/categories.json').then(response => response.json()).then(data => categoriesList = data.reduce((list, cat) => {list.push(cat['slug']); return list}, [])).catch(e => {return {}})
 
 // load images
 fetch('/files/icons/spinner.svg')

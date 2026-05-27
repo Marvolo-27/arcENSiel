@@ -212,3 +212,38 @@ if ($action === 'update') {
 	echo json_encode($sendback);
 	exit;
 }
+
+if ($action === 'insert') {
+	$type = $input['type'];
+
+	// redudancy to prevent SQL injection
+	$typematch = ['categories'];
+	if (!in_array($type, $typematch)) $type = 'categories';
+
+	if ($type === 'categories') {
+		$slug = $input['slug'];
+		$name = $input['name'];
+		$section = $input['section'];
+
+		$sql = "INSERT INTO categories (slug, name, section_id, removable) SELECT :slug, :name, (SELECT id FROM sections WHERE slug = :section), 1";
+		$params = [
+					':slug' => $slug,
+					':name' => $name,
+					':section' => $section
+					];
+		
+		try {
+			$query = $pdo->prepare($sql);
+			$query->execute($params);
+			http_response_code(200);
+			logger('/log/files.log', "Create new file category '".$slug."' in ".$section.".", 'New file category');
+			$sendback = ['message' => 'New category created.'];
+		} catch (PDOException $e) {
+			http_response_code(500);
+			logger('/log/files.log', "Source:".queryMaker($sql, $params).PHP_EOL.json_encode($e), '[ERROR] Failed: new file category');
+			$sendback = ['error' => 'Failed to create new category.'];
+		}
+	}
+
+	echo json_encode($sendback);
+}
