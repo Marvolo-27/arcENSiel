@@ -436,6 +436,7 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 						overlay.input('filename').dataset.name = url.filename(true)
 						overlay.input('filename').value = url.filename()
 						overlay.input('fileextension').value = url.extension()
+						overlay.input('desc').value = tag.dataset.alt
 						overlay.input('filename').readOnly = true
 
 						e.container().childs('.file-element').forEach(tag => {tag.unset('selected')})
@@ -471,7 +472,7 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 					div = document.createElement('div');
 
 					div.dataset.targetUrl = file.url
-					div.dataset.alt = file.summary
+					div.dataset.alt = file.description
 					div.innerText = file.name
 					div.classList.toggle('file-element')
 					div.addEventListener('click', fileUpdateSelection)
