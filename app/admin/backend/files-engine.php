@@ -468,7 +468,7 @@ if ($action === 'update') {
 
 		// reference new file
 		if (($file_updated || $mode === 'add') && $category) {
-			$sql = "INSERT INTO files_categories (file_id, category_id) SELECT (SELECT id FROM files WHERE url = :url), (SELECT id FROM categories WHERE slug = :slug)";
+			$sql = "INSERT INTO files_categories (file_id, category_id) SELECT (SELECT id FROM files WHERE url = :url), (SELECT id FROM categories WHERE slug = :slug) ON DUPLICATE KEY UPDATE file_id = file_id";
 			$params = [
 						':url' => $path,
 						':slug' => $category,

@@ -161,6 +161,7 @@ CREATE TABLE `files_categories` (
   `file_id` int NOT NULL,
   `category_id` int NOT NULL,
   KEY `category_id` (`category_id`),
+  PRIMARY KEY (`file_id`, `article_id`)
   CONSTRAINT `files_categories_ibfk_1` FOREIGN KEY (`file_id`) REFERENCES `files` (`id`) ON DELETE CASCADE,
   CONSTRAINT `files_categories_ibfk_2` FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=347 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
