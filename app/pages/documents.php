@@ -41,7 +41,7 @@ $statuts = $query->fetchAll(PDO::FETCH_ASSOC)[0] ?? [];
 
 // fetch last update
 setlocale(LC_TIME, 'fr_FR.utf8');	
-$statuts['date'] = json_decode(file_get_contents($server_content_file), true)['statuts']['date'];
+$statuts['date'] = json_decode(file_get_contents($server_content_file), true)['statuts']['date'] ?? '1900-01-01';
 $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, IntlDateFormatter::NONE, 'Europe/Paris', IntlDateFormatter::GREGORIAN, 'd MMMM YYYY')->format(DateTime::createFromFormat('Y-m-d', $statuts['date']))
 
 ?>
