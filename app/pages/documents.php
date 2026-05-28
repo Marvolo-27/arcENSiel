@@ -343,6 +343,7 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 							}
 						}
 						fileTag.value = '';
+						fileSelectorLoad('pdf')
 					}
 
 			// delete entry on server
