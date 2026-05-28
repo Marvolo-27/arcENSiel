@@ -293,7 +293,7 @@ if ($action === 'fetch') {
 	$params = $filetype ? array_merge((array) $params, array_reduce($filetype, function ($carry, $item) {$carry[':'.preg_replace(['#-#','#/#'], '_', $item)] = $item; return $carry;}, [])) : $params;
 	
 	$sql = ($category || $filetype) ?
-	"SELECT url, files.name AS name, description
+	"SELECT DISTINCT url, files.name AS name, description
 	FROM files
 		LEFT JOIN files_categories ON files.id = file_id
 		LEFT JOIN categories ON categories.id = category_id
