@@ -84,17 +84,26 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 			<div>
 				<h3>Statuts</h3>
 				
-				<p>Dernière mise à jour : 
-					<span class="last-updated">
-						<?php if ($status === 'edit'): ?>
-							<input class='boxentry' type='date' name='update-time' id='update-time' data-source="<?= $statuts['date'] ?>" value="<?= $statuts['date'] ?>" autocomplete=off placeholder="Description" title="Date de mise à jour des statuts" required>
-						<?php endif; ?>
-						<?php if ($status !== 'edit'): ?>
-							<?= $statuts['date_fmt'] ?>
-						<?php endif; ?>
-					</span>
-				</p>
+				<?php if($status === 'edit'): ?>
+				<div class='box statuts linear'>
+					<div class='input-header'>
+						<div class='icon info inline hoverable'>
+							<span class='img'></span>
+							<span class='infotext'>Modifier la date de dernière mise à jour pour pouvoir charger les nouveaux statuts.</span>
+						</div>
+						
+						<label class='label' for='art-url'>Dernière mise à jour</label>
+					</div>
+					<div class='input-container'>
+						<input class='boxentry' type='date' name='update-time' id='update-time' data-source="<?= $statuts['date'] ?>" value="<?= $statuts['date'] ?>" autocomplete=off placeholder="Description" title="Date de mise à jour des statuts">
+					</div>
+				</div>
+				<?php endif; ?>
 				
+				<?php if($status !== 'edit'): ?>
+				<p>Dernière mise à jour : <?= $statuts['date_fmt'] ?></p>
+				<?php endif; ?>
+
 				<p>Consulter les <a id="statuts" href="<?= $statuts['url'] ?>" data-alias="<?= $statuts['description'] ?>" download="<?= end(explode('/', $statuts['url'])) ?>" target="_blank_">statuts</a> <small><i>(<?= formatBytes($statuts['size'],1) ?>)</i></small>.</p> 
 				
 				<?php if ($status === 'edit'): ?>

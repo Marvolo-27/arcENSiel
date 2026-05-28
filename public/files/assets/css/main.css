@@ -1120,7 +1120,12 @@ form {
 						}
 				}
 		
-		&.linear {flex-direction: row;}
+		&.linear {
+				flex-direction: row;
+				gap: .25em;
+				
+				& .input-header {margin-bottom: 0;}
+				}
 		
 		&:has(.checkboxes) {max-width: var(--main-width)}
 
