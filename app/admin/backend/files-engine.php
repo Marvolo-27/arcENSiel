@@ -293,23 +293,24 @@ if ($action === 'fetch') {
 	$params = $filetype ? array_merge((array) $params, array_reduce($filetype, function ($carry, $item) {$carry[':'.preg_replace(['#-#','#/#'], '_', $item)] = $item; return $carry;}, [])) : $params;
 	
 	$sql = ($category || $filetype) ?
-	"SELECT DISTINCT url, files.name AS name, description
+	"SELECT url, files.name AS name, description, GROUP_CONCAT(categories.slug SEPARATOR ',') AS categories
 	FROM files
 		LEFT JOIN files_categories ON files.id = file_id
 		LEFT JOIN categories ON categories.id = category_id
-	WHERE 1 = 1 ".($category ? $category_sql : '').($filetype ? $filetype_sql : '')
+	WHERE 1 = 1 ".($category ? $category_sql : '').($filetype ? $filetype_sql : '').
+	" GROUP BY files.id"
 	:
 	"WITH
 		references_list AS (
-			SELECT file_id, CONCAT('article/', slug) AS reference
+			SELECT file_id, CONCAT('article/', slug) AS reference, NULL AS category
 			FROM articles_covers
 				JOIN articles ON article_id = articles.id
 			UNION ALL
-			SELECT file_id, CONCAT(sections.slug, '/', categories.slug) AS reference
+			SELECT file_id, CONCAT(sections.slug, '/', categories.slug) AS reference, categories.slug AS category
 			FROM files_categories
 				JOIN categories ON category_id = categories.id
 				JOIN sections ON section_id = sections.id)
-	SELECT url, name, size, uploader, type, description, status, created_at, updated_at, COALESCE(GROUP_CONCAT(reference SEPARATOR ', '), '') AS usages
+	SELECT url, name, size, uploader, type, description, status, created_at, updated_at, COALESCE(GROUP_CONCAT(reference SEPARATOR ', '), '') AS usages, GROUP_CONCAT(category SEPARATOR ',') AS categories
 	FROM files
 		LEFT JOIN references_list ON files.id = file_id
 	GROUP BY files.id

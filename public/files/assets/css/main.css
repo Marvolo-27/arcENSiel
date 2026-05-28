@@ -430,7 +430,9 @@ p {text-align: justify}
 										display: flex;
 										gap: .5em;
 										flex-direction: row;
-									
+										
+										&[hidden] {display: none;}
+										
 										& .file-element-icon {
 												border-radius: .75em;
 												border: 1px solid darkblue;

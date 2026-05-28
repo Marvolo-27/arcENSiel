@@ -435,6 +435,8 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 
 			// show file selection panel
 			Overlay('uploader').button('exist-file').onclick = e => {
+					fileSelectorFilter(category)
+					
 					Overlay('uploader').toggle();
 					Overlay('filepicker').toggle();
 			}
@@ -495,6 +497,7 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 
 					div.dataset.targetUrl = file.url
 					div.dataset.alt = file.description
+					div.dataset.references = file.categories ?? ''
 					div.innerText = file.name
 					div.classList.toggle('file-element')
 					div.addEventListener('click', fileUpdateSelection)
@@ -502,7 +505,14 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 					wrap.append(div)
 					container.append(wrap)
 				})
+		}
+		
+		function fileSelectorFilter(category) {
+				container = Overlay('filepicker').child('.files-list-container');
 
+				Array.from(container.children).forEach(wrap => {
+					wrap.child('.file-element').dataset.references.split(',').includes(category) ? wrap.set('hidden'):wrap.unset('hidden')
+				})
 		}
 
 		function fileUpdateSelection(event) {
@@ -518,6 +528,7 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 				tag.toggle()
 				tag.disabled = true
 				await fileSelectorLoad()
+				fileSelectorFilter(category)
 				tag.toggle()
 		}
 		
