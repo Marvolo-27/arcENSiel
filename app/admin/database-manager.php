@@ -68,6 +68,7 @@ $artTypes = getTypes();
 			<div class="head-info">
 				<a class='icon go-back inline large hoverable dynamic' href="/admin/dashboard"><div class='img'></div></a>	
 				<h1>Bases de données</h1>
+				<div class='icon refresh inline large hoverable dynamic' title="Synchroniser les données"><span class='img'></span></div>
 			</div>
 			
 			<div class="box">
@@ -129,24 +130,30 @@ $artTypes = getTypes();
 									Object.entries(typesMatchTable).forEach(([key, val]) => {if (key !== 0) typesCounter[key] = val.name})
 									
 									// fetch all required data
-									await fetchUsers('#users');
-									await fetchArticles('#articles');
-									await fetchTags('#tags');
-									await fetchTypes('#types');
-									await fetchCategories('#categories');
-									
-									// easy match table with their type
-									tableMatch = {
-												'users': {'table': usersTable, 'source': JSON.stringify(usersTable.getData()), 'call': fetchUsers, 'selector': '#users', 'type': 'users'},
-												'articles': {'table': articlesTable, 'source': JSON.stringify(articlesTable.getData()), 'call': fetchArticles, 'selector': '#articles', 'type': 'articles'},
-												'tags': {'table': tagsTable, 'source': JSON.stringify(tagsTable.getData()), 'call': fetchTags, 'selector': '#tags', 'type': 'tags'},
-												'types': {'table': typesTable, 'source': JSON.stringify(typesTable.getData()), 'call': fetchTypes, 'selector': '#types', 'type': 'types'},
-												'categories': {'table': categoriesTable, 'source': JSON.stringify(categoriesTable.getData()), 'call': fetchCategories, 'selector': '#categories', 'type': 'categories'}
-												}
-									
+									await tablesBuilder()
 									tablesListener(true)
 									}
+		
+		async function tablesBuilder() {
+				// fetch all required data
+				await fetchUsers('#users');
+				await fetchArticles('#articles');
+				await fetchTags('#tags');
+				await fetchTypes('#types');
+				await fetchCategories('#categories');
+				
+				// easy match table with their type
+				tableMatch = {
+							'users': {'table': usersTable, 'source': JSON.stringify(usersTable.getData()), 'call': fetchUsers, 'selector': '#users', 'type': 'users'},
+							'articles': {'table': articlesTable, 'source': JSON.stringify(articlesTable.getData()), 'call': fetchArticles, 'selector': '#articles', 'type': 'articles'},
+							'tags': {'table': tagsTable, 'source': JSON.stringify(tagsTable.getData()), 'call': fetchTags, 'selector': '#tags', 'type': 'tags'},
+							'types': {'table': typesTable, 'source': JSON.stringify(typesTable.getData()), 'call': fetchTypes, 'selector': '#types', 'type': 'types'},
+							'categories': {'table': categoriesTable, 'source': JSON.stringify(categoriesTable.getData()), 'call': fetchCategories, 'selector': '#categories', 'type': 'categories'}
+				}
 
+				body.child('#main').child('.data-actions').hide()
+		}
+		
 		async function archiveArticle(event, cell, toarchive) {				
 				// dom objects
 				const btn = event.target.findParent('.icon')
@@ -259,6 +266,16 @@ $artTypes = getTypes();
 				}
 				}
 		
+		// refresh helloasso data
+		Icon('refresh').onclick = async e => {
+				icon = e.target.findParent('.icon')
+				icon.show();
+				notify("Synchronisation en cours",  `Les données sont en cours de synchronisation depuis la base de données.`, 'orange')
+				await tablesBuilder()
+				notify("Synchronisation terminée", "Les données ont été mises à jour depuis la base de données.", 'green')
+				icon.hide()
+		};
+
 		// cancel requested action
 		Overlay('auth').button('cancel').onclick = e => {
 				e.container().hide();

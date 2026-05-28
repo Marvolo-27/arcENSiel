@@ -153,7 +153,7 @@ function getTypes() {
 	$typeData = [];
 	foreach($artTypes as $type) {
 		// str id : {name: str name, slug: str slug, color: str hexcode}
-		$typeData[strval($type['id'])] = ['slug' => $type['slug'], 'name' => $type['name'], 'color' => $type['color']];
+		$typeData[$type['id']] = ['slug' => $type['slug'], 'name' => $type['name'], 'color' => $type['color']];
 	}
 	file_put_contents($root . '/.temp/types.json', json_encode($typeData));
 
