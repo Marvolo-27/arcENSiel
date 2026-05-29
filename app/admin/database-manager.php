@@ -44,18 +44,11 @@ $artTypes = getTypes();
 		<script type="text/javascript" src="https://unpkg.com/tabulator-tables/dist/js/tabulator.min.js"></script>
 		
 		<style>
-		#main .external.auth-action {
-					display:none;
-					width: 95%;
-					margin: auto;
-					margin-top: 1.5em;
-					}
-		
 		.inner-overlay .form-action-wrap {margin-top: 1em}
 
 
-		.table .tabulator-cell.published {color: green; font-weight: bold;}
-		.table .tabulator-cell.archived {color: red; font-weight: bold;}
+		.table .tabulator-cell.published {color: green; font-weight: bold; background: none !important;}
+		.table .tabulator-cell.archived {color: red; font-weight: bold; background: none !important;}
 		.table .tabulator-cell.draft {color: purple; font-weight: bold;}
 		.table .tabulator-cell[changed] {background-color: #f8f688a6}
 		</style>
@@ -127,11 +120,10 @@ $artTypes = getTypes();
 		// on-load logic
 		window.addEventListener('load', loader)
 		async function loader()  {
-									Object.entries(typesMatchTable).forEach(([key, val]) => {if (key !== 0) typesCounter[key] = val.name})
+									Object.entries(typesMatchTable).forEach(([key, val]) => {if (parseInt(key) !== 0) typesCounter[key] = val.name})
 									
 									// fetch all required data
 									await tablesBuilder()
-									tablesListener(true)
 									}
 		
 		async function tablesBuilder() {
@@ -150,6 +142,7 @@ $artTypes = getTypes();
 							'types': {'table': typesTable, 'source': JSON.stringify(typesTable.getData()), 'call': fetchTypes, 'selector': '#types', 'type': 'types'},
 							'categories': {'table': categoriesTable, 'source': JSON.stringify(categoriesTable.getData()), 'call': fetchCategories, 'selector': '#categories', 'type': 'categories'}
 				}
+				tablesListener(true)
 
 				body.child('#main').child('.data-actions').hide()
 		}
@@ -159,14 +152,19 @@ $artTypes = getTypes();
 				const btn = event.target.findParent('.icon')
 				const row = cell.getRow();
 				const statusCell = row.getCell('status')
-				const iconsCell = row.getCell('actions').getElement()
-				visualIcon = iconsCell.icon('visualize')
-				modifyIcon = iconsCell.icon('modify')
+				const iconsCellElement = row.getCell('actions').getElement()
+				const visualIcon = iconsCellElement.icon('visualize')
+				const modifyIcon = iconsCellElement.icon('modify')
 
 				// extract data
 				const state = toarchive ? 'archived':'published';
-				const slug = cell.getRow().getData().url;
+				const slug = row.getData().url;
 
+				// enforce data update in source to avoid edit detection
+				var tableData = JSON.parse(tableMatch.articles.source)
+				tableData[articlesTable.getRowPosition(row) -1].status = state
+				tableMatch.articles.source = JSON.stringify(tableData)
+				
 				notify("Mise à jour du statut d'un article", `${toarchive ? 'Archivage':'Publication'} de l'article ${slug}.`, 'orange')
 
 				await sleep(500);
@@ -183,7 +181,7 @@ $artTypes = getTypes();
 				// Update DOM and table data
 				btn.classList.toggle('archive')
 				btn.classList.toggle('unarchive')
-				statusCell.setValue(toarchive ? 'archived':'published')
+				statusCell.setValue(state)
 				statusCell.getElement().classList.toggle(toarchive ? 'published':'archived')
 				visualIcon.classList.toggle('view')
 				visualIcon.classList.toggle('preview')
@@ -191,9 +189,6 @@ $artTypes = getTypes();
 				modifyIcon.classList.toggle('dynamic')
 
 				notify("Succès de la mise à jour du statut", `L'article ${slug} a été ${toarchive ? 'archivé':'publié'} avec succès.`, 'green')
-				
-				activeTable.source = JSON.stringify(activeTable.table.getData())
-				resetState(activeTable)
 		}
 		
 		async function deleter(kwargs) {				

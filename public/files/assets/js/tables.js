@@ -37,7 +37,7 @@ function tablesListener(watcher=false, selector='.input-container') {
 function tablesSwitcher() {
 		Object.values(tableMatch).forEach(value => value.table.on("tableBuilt", function(){value.source = JSON.stringify(value.table.getData())}))
 		Object.values(tableMatch).forEach(value => value.table.on("dataChanged", function(data){dataChecker(data)}))
-		Object.values(tableMatch).forEach(value => value.table.on("cellEdited", function(cell){cell.getValue() !== cell.getInitialValue() ? cell.getElement().setAttribute('changed',''):cell.getElement().removeAttribute('changed')}))
+		Object.values(tableMatch).forEach(value => value.table.on("cellEdited", function(cell){cell.getValue() !== cell.getInitialValue() ? cell.getElement().set('changed'):cell.getElement().unset('changed')}))
 }
 
 function dataChecker(data) {
@@ -351,7 +351,7 @@ async function fetchArticles(target) {
 				  layout: "fitDataFill",
 				  rowHeight: 36,
 				  columns: [
-					{ title: "", field: "actions", mutator: function (value, data) {return data.url}, formatter: function (cell) {
+					{ title: "", field: "actions", mutator: (value, data) => data.url, formatter: function (cell) {
 							const value = cell.getRow().getData().status;
 							return `<span>
 										<div class='icon modify ${value !== 'published' ? 'edit dynamic hoverable':''} inline medium' title="Modifier l'article">
@@ -369,17 +369,12 @@ async function fetchArticles(target) {
 					{ title: "Statut", field: "status", formatter: function(cell) {cell.getElement().classList.toggle(cell.getValue()); return statusMatch[cell.getValue()]}, vertAlign: 'middle'},
 					{ title: "URL", field: "url", editor:"input", validator: ['unique', 'required']},
 					{ title: "Titre", field: "title", editor:"input", validator: "required"},
-					{ title: "Auteur", field: "author", editor:"list", editorParams: {autocomplete: true, values: authors, freetext: true}},
-					{ title: "Date", field: "date", editor:"date", resizable: false},
-					{ title: "Date (fin)", field: "end_date", editor:"date", resizable: false},
-					{ title: "Type", field: "type", mutator: function (value, data) {return value === '' ? 0:value}, formatter: function(cell) {return cell.getValue() === 0 ? 'Indéfini' : typesCounter[cell.getValue()]}, editor:"list", editorParams: {values:typesCounter}},
-					{ title: "Étiquettes", field: "tags", mutator: function(value, data) {return value}, formatter: function(cell) {
-																																	text = '';
-																																	val = cell.getValue();
-																																	val?.split(',').forEach(e => {try {text += tagsMatchTable[e].name+', '} catch (e) {null}});
-																																	return text.slice(0,-2)
-																																	}},
-					{ title: "Image", field: "picture_path", formatter: cell => cell.getValue().filename(true), editor:"list", editorParams: {values: files}, validator: 'required', widthShrink:1},
+					{ title: "Auteur", field: "author", mutator: (value, d, p, t, cell) => value || cell.getInitialValue(), editor:"list", editorParams: {autocomplete: true, values: authors, freetext: true, allowEmpty: false, listOnEmpty: true}},
+					{ title: "Date", field: "date", editor:"date", validator: "required", resizable: false},
+					{ title: "Date (fin)", field: "end_date", mutator: value => value || null, editor:"date", resizable: false},
+					{ title: "Type", field: "type", mutator: (value, d, p, t, cell) => parseInt(value || cell.getInitialValue() || 0), formatter: function(cell) {return cell.getValue() === 0 ? 'Indéfini' : typesCounter[cell.getValue()]}, editor:"list", editorParams: {values:typesCounter}},
+					{ title: "Étiquettes", field: "tags", mutator: value => value?.split(','), formatter: cell => cell.getValue()?.map(tag => tagsMatchTable[tag].name).join(', ')},
+					{ title: "Image", field: "picture_path", mutator: value => value || '/files/placeholder.png', formatter: cell => cell.getValue()?.filename(true), editor:"list", editorParams: {values: files, emptyValue: '/files/placeholder.png', defaultValue: '/files/placeholder.png'}, widthShrink:1},
 					],
 				});
 			
