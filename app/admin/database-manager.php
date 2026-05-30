@@ -193,6 +193,16 @@ $artTypes = getTypes();
 				notify("Succès de la mise à jour du statut", `L'article ${slug} a été ${toarchive ? 'archivé':'publié'} avec succès.`, 'green')
 		}
 
+		function deleterTrigger(e, cell) {
+				if (e.target.findParent('.icon.delete').nodeName !== 'BODY') {
+					pendingAction.function = deleter;
+					pendingAction.link = [e, cell];
+					Overlay('auth').toggle()
+				} else if (e.target.findParent('.icon.remove').nodeName !== 'BODY') {
+					activeTable.table.deleteRow(cell.getRow())
+				}
+				}
+
 		async function deleter(kwargs) {				
 				[event, cell] = kwargs;
 

@@ -35,9 +35,9 @@ function tablesListener(watcher=false, selector='.input-container') {
 }
 
 function tablesSwitcher() {
-		Object.values(tableMatch).forEach(value => value.table.on("tableBuilt", function(){value.source = JSON.stringify(value.table.getData())}))
-		Object.values(tableMatch).forEach(value => value.table.on("dataChanged", function(data){dataChecker(data)}))
-		Object.values(tableMatch).forEach(value => value.table.on("cellEdited", function(cell){cell.getValue() !== cell.getInitialValue() ? cell.getElement().set('changed'):cell.getElement().unset('changed')}))
+		Object.values(tableMatch).forEach(value => value.table.on("tableBuilt", () => value.source = JSON.stringify(value.table.getData())))
+		Object.values(tableMatch).forEach(value => value.table.on("dataChanged", data => dataChecker(data)))
+		Object.values(tableMatch).forEach(value => value.table.on("cellEdited", cell => cell.getValue() !== cell.getInitialValue() ? cell.getElement().set('changed'):cell.getElement().unset('changed')))
 }
 
 function dataChecker(data) {
@@ -46,6 +46,9 @@ function dataChecker(data) {
 			if (JSON.stringify(data) === activeTable.source) {
 				main.child('.data-actions').hide()
 				activeTable.integrity = true;
+			} else if (activeTable.table.validate() !== true) {
+				main.child('.data-actions').hide()
+				activeTable.integrity = false;
 			} else {
 				main.child('.data-actions').show()
 				activeTable.integrity = false;
@@ -55,8 +58,8 @@ function dataChecker(data) {
 //// TABULATOR GENERATORS
 // Files table
 async function fetchFiles(target) {
-			sourcedata = await dataFetcher('files', null, 'files');
-			users = await dataFetcher('users').then(response => response.reduce((list, user) => {list[user.username] = user.username; return list}, {}));
+			const sourcedata = await dataFetcher('files', null, 'files');
+			const users = await dataFetcher('users').then(response => response.reduce((list, user) => {list[user.username] = user.username; return list}, {}));
 
 			filesTable = new Tabulator(target, {
 				data: sourcedata,
@@ -82,22 +85,23 @@ async function fetchFiles(target) {
 										</div>
 										<div class='icon inline medium ${rowdata.status ? 'download dynamic hoverable':''}' title="Télécharger le fichier">
 											<span class='img'></span>
-										</div>`}, resizable: false, frozen: true},
-					{ title: "Nom du fichier", field: "name", mutator: function(value){return value.filename()}, formatter: function(cell) {return cell.getValue() + '.' + cell.getRow().getData().extension}, editor: 'input', validator: 'unique', vertAlign: 'middle'},
-					{ title: "Extension", field: "extension", visible: false, mutator: function(value, data) {return data.url.extension()}},
+										</div>
+									</span>`}, cellClick: (e, cell) => actionSwitch(e, cell), resizable: false, frozen: true},
+					{ title: "Nom du fichier", field: "name", mutator: value => value.filename(), formatter: cell => cell.getValue() + '.' + cell.getRow().getData().extension, editor: 'input', validator: 'unique', vertAlign: 'middle'},
+					{ title: "Extension", field: "extension", visible: false, mutator: (value, data) => data.url.extension()},
 					{ title: "Localisation", field: "url", vertAlign: 'middle'},
-					{ title: "Description", field: "description", editor: "input", mutator: function(value) {return value === null ? '':value},  hozAlign: 'center'},
-					{ title: "Taille du fichier", field: "size", formatter: function(cell) {return formatBytes(cell.getValue())}, vertAlign: 'middle', hozAlign: 'center'},
+					{ title: "Description", field: "description", editor: "input", mutator: value => value || '',  hozAlign: 'center'},
+					{ title: "Taille du fichier", field: "size", formatter: cell => formatBytes(cell.getValue()), vertAlign: 'middle', hozAlign: 'center'},
 					{ title: "Type", field: "type", hozAlign: 'center'},
 					{ title: "Utilisations", field: "usages", hozAlign: 'center'},	
 					{ title: "Propriétaire", field: "uploader", editor: "list", editorParams: {values:users}, hozAlign: 'center'},
 					{ title: "Date d'ajout", field: "created_at", hozAlign: 'center'},
 					{ title: "Date de modification", field: "updated_at", hozAlign: 'center'},
-					{ title: "Accessible", field: "status", mutator: function(value) {return value === 1 ? true:false}, formatter: function(cell) {return cell.getValue() ? 'OUI':'NON';}, hozAlign: 'center'},
+					{ title: "Accessible", field: "status", mutator: value => value === 1 ? true:false, formatter: "tickCross", hozAlign: 'center'},
 				]});
 			
-			filesTable.on('cellClick', (e, cell) => {
-				data = cell.getRow().getData()
+			function actionSwitch(e, cell) {
+				const data = cell.getRow().getData()
 
 				if (e.target.findParent('.icon.visualize.view').nodeName !== 'BODY') {
 					viewFile(data.url)
@@ -135,67 +139,42 @@ async function fetchFiles(target) {
 					data = cell.getRow().getData()
 					downloadFile(data)
 				}
-			})
+			}
 			
-			filesTable.on('tableBuilt', function () {
-				statusWizard()
-			})
-
-			filesTable.on('pageLoaded', function () {
-				statusWizard()
-			})
+			filesTable.on('tableBuilt', () => statusWizard())
+			filesTable.on('pageLoaded', () => statusWizard())
 
 			return sourcedata
 			}
 
 // Categories table
 async function fetchCategories(target) {
-			sourcedata = await dataFetcher('categories');
+			const sourcedata = await dataFetcher('categories');
 			
 			categoriesTable = new Tabulator(target, {
 				data: sourcedata,
 				layout: "fitDataStretch",
 				rowHeight: 36,
 				columns: [
-					{ title: "", field: "actions", mutator: function (value, data) {return data.slug}, formatter: function (cell) {
-							return cell.getRow().getData().removable ? `<span>
-										<div class='icon delete inline medium dynamic hoverable' title="Supprimer la catégorie">
+					{ title: "", field: "actions", mutator: (value, data) => data.slug, formatter: cell => cell.getRow().getData().removable ? 
+									`<span>
+										<div class='icon ${cell.getRow().getData().new ? 'remove':'delete'} inline medium dynamic hoverable' title="Supprimer la catégorie">
 											<span class='img'></span>
-										</div>` : ''}, resizable: false},
-					{ title: "Identifiant", field: "slug", editor: 'input', validator: ['unique', 'required'], editable: cell => cell.getRow().getData().removable},
-					{ title: "Nom", field: "name", editor: "input", mutator: function (value, data) {return value.trim()}, validator: [categoryUniqueness, 'required'], editable: cell => cell.getRow().getData().removable},
-					{ title: "Section", field: "section"},
-					{ title: "Nombre de fichiers", field: "files"},
+										</div>
+									</span>` : null, cellClick: (e, cell) => deleterTrigger(e, cell), resizable: false},
+					{ title: "Identifiant", field: "slug", editor: 'input', validator: ['unique', 'required'], editable: cell => cell.getRow().getData().removable, cellEdited: cell => cell.getRow().getCell('slug').setValue(cell.getValue().urlForm())},
+					{ title: "Nom", field: "name", editor: "input", mutator: (value, data) => value?.trim(), validator: [slugUniqueness, 'required'], editable: cell => cell.getRow().getData().removable},
+					{ title: "Section", field: "section", editable: cell => cell.getRow().getData().new, editor: "list", editorParams: {values: ['documents', 'ressources']}, validator: 'required'},
+					{ title: "Nombre de fichiers", field: "files", mutator: value => value || 0},
 				  ],
 				});
-			
-			categoriesTable.on('cellClick', (e, cell) => {
-			if (e.target.findParent('.icon.delete').nodeName !== 'BODY') {
-					pendingAction.function = deleter;
-					pendingAction.link = [e, cell];
-					Overlay('auth').toggle()
-				}
-			})
-
-			function categoryUniqueness(cell, value) {
-				thisVal = cell.getRow().getData().slug;
-				
-				// extract column values
-				data = Array.from(categoriesTable.getColumn('slug').getCells()).map(c => {return c.getValue()}).filter(val => val !== thisVal);
-				
-				return !data.includes(value.urlForm())
-				}
-
-			categoriesTable.on('cellEdited', cell => {
-						cell.getRow().getCell('slug').setValue(cell.getValue().urlForm())
-				})
 			
 			return sourcedata
 			}
 
 // Users table
 async function fetchUsers(target) {
-			sourcedata = await dataFetcher('users');
+			const sourcedata = await dataFetcher('users');
 
 			usersTable = new Tabulator(target, {
 				  data: sourcedata,
@@ -208,7 +187,7 @@ async function fetchUsers(target) {
 				});
 			
 			function selfIntegrity(cell) {
-				rowData = cell.getRow().getData();
+				const rowData = cell.getRow().getData();
 				return (!rowData.active && rowData.username !== 'admin');
 				}
 			
@@ -217,66 +196,47 @@ async function fetchUsers(target) {
 
 // Tags table
 async function fetchTags(target) {
-			sourcedata = await dataFetcher('tags');
+			const sourcedata = await dataFetcher('tags');
 			
 			tagsTable = new Tabulator(target, {
 				data: sourcedata,
 				layout: "fitDataStretch",
 				rowHeight: 36,
 				columns: [
-					{ title: "", field: "actions", mutator: function (value, data) {return data.slug}, formatter: function (cell) {
-							return `<span>
-										<div class='icon delete inline medium dynamic hoverable' title="Supprimer l'étiquette">
-											<span class='img'></span>
-										</div>`}, resizable: false},
+					{ title: "", field: "actions", mutator: (value, data) =>  data.slug, formatter: cell =>
+							`<span>
+								<div class='icon ${cell.getRow().getData().new ? 'remove':'delete'} inline medium dynamic hoverable' title="Supprimer l'étiquette">
+									<span class='img'></span>
+								</div>
+							</span>`, cellClick: (e, cell) => deleterTrigger(e, cell), resizable: false},
 					{ title: "Identifiant", field: "slug", editor: 'input', validator: ['unique', 'required']},
-					{ title: "Nom", field: "name", editor: "input", mutator: function (value, data) {return value.trim()}, validator: [tagUniqueness, 'required']},
+					{ title: "Nom", field: "name", editor: "input", mutator: (value, data) => value?.trim(), validator: [slugUniqueness, 'required'], cellEdited: cell => cell.getRow().getCell('slug').setValue(cell.getValue().urlForm())},
 				  ],
 				});
-			
-			tagsTable.on('cellClick', (e, cell) => {
-			if (e.target.findParent('.icon.delete').nodeName !== 'BODY') {
-					pendingAction.function = deleter;
-					pendingAction.link = [e, cell];
-					Overlay('auth').toggle()
-				}
-			})
-
-			function tagUniqueness(cell, value) {
-				thisVal = cell.getRow().getData().slug;
-				
-				// extract column values
-				data = Array.from(tagsTable.getColumn('slug').getCells()).map(c => {return c.getValue()}).filter(val => val !== thisVal);
-				
-				return !data.includes(value.urlForm())
-				}
-
-			tagsTable.on('cellEdited', cell => {
-						cell.getRow().getCell('slug').setValue(cell.getValue().urlForm())
-				})
 			
 			return sourcedata
 			}
 	
 // Tags table
 async function fetchTypes(target) {
-			sourcedata = await dataFetcher('types');
+			const sourcedata = await dataFetcher('types');
 			
-			colorMatchTable = {}
-			colorCount = 0;
+			let colorMatchTable = {}
+			let colorCount = 0;
 
 			typesTable = new Tabulator(target, {
 				  data: sourcedata,
 				  layout: "fitDataStretch",
 				  rowHeight: 36,
 				  columns: [
-					{ title: "", field: "actions", mutator: function (value, data) {return data.slug}, formatter: function (cell) {
-							return `<span>
-										<div class='icon ${cell.getRow().getData().slug !== 'undefined' ? 'delete dynamic hoverable' : ''} inline medium ' ${cell.getRow().getData().slug !== 'undefined' ?'title="Supprimer la catégorie"':''}>
-											<span class='img'></span>
-										</div>`}, resizable: false},
+					{ title: "", field: "actions", mutator: (value, data) => data.slug, formatter: cell => cell.getRow().getData().slug !== 'undefined' ?
+								 `<span>
+									<div class='icon ${cell.getRow().getData().new ? 'remove':'delete'} dynamic hoverable inline medium ' title="Supprimer la catégorie">
+										<span class='img'></span>
+									</div>
+								</span>` : null, cellClick: (e, cell) => deleterTrigger(e, cell), resizable: false},
 					{ title: "Identifiant", field: "slug", editor: 'input', editable: cell => cell.getRow().getData().slug !== 'undefined', validator: ['unique', 'required']},
-					{ title: "Nom", field: "name", editor: "input", editable: cell => cell.getRow().getData().slug !== 'undefined', mutator: function (value, data) {return value.trim()}, validator: [typeUniqueness, 'required']},
+					{ title: "Nom", field: "name", editor: "input", editable: cell => cell.getRow().getData().slug !== 'undefined', mutator: (value, data) => value?.trim(), validator: [slugUniqueness, 'required'], cellEdited: cell => cell.getRow().getCell('slug').setValue(cell.getValue().urlForm())},
 					{ title: "Couleur", field: "color", formatter: function(cell) {
 																				// remove broken bonds
 																				Object.entries(colorMatchTable).forEach(([k, v]) => {if (!v.getElement()) delete colorMatchTable[k]})
@@ -298,53 +258,26 @@ async function fetchTypes(target) {
 																					if (tag.value.match(/#[a-f0-9]{6,8}/)) {
 																						delete colorMatchTable[tag.dataset.id]
 																						cell.setValue(tag.value)
-																						cell.edit()
 																					}
 																				}
 
 																				colorCount++;
-																				return input
-					}, editor: 'input', editable: () => false}, // allow use of cell.edit() but blocks direct user interaction
+																				return input}, editor: () => false, cellEdited: cell => autoEditedCells[cell.getRow().getData().id] = cell},
 				  ],
 				});
-			
-			typesTable.on('cellClick', (e, cell) => {
-			if (e.target.findParent('.icon.delete').nodeName !== 'BODY') {
-					pendingAction.function = deleter;
-					pendingAction.link = [e, cell];
-					Overlay('auth').toggle()
-				}
-			})
-
-			function typeUniqueness(cell, value) {
-				thisVal = cell.getRow().getData().slug;
-				
-				// extract column values
-				data = Array.from(typesTable.getColumn('slug').getCells()).map(c => {return c.getValue()}).filter(val => val !== thisVal);
-				
-				return !data.includes(value.urlForm())
-				}
-			
-			typesTable.on('cellEdited', cell => {
-					if (cell.getField() !== 'color') {
-						cell.getRow().getCell('slug').setValue(cell.getValue().urlForm())
-					} else if (cell.getField() === 'color') {
-						autoEditedCells[cell.getRow().getData().id] = cell
-					}
-				})
 			
 			return sourcedata
 			}
 
 // Articles table
 async function fetchArticles(target) {
-			sourcedata = await dataFetcher('articles');
-			files = await dataFetcher('files', {'filetype':'image'}, 'files').then(response => response.reduce((list, file) => {list[file.url] = file.name; return list}, {}))
+			const sourcedata = await dataFetcher('articles');
+			const files = await dataFetcher('files', {'filetype':'image'}, 'files').then(response => response.reduce((list, file) => {list[file.url] = file.name; return list}, {}))
 
-			statusMatch = {'published': 'Publié', 'archived': 'Archivé', 'draft': 'Brouillon'}
+			const statusMatch = {'published': 'Publié', 'archived': 'Archivé', 'draft': 'Brouillon'}
 
 			// Extract authors list
-			authors = sourcedata.reduce((list, article) => {list.push(article.author); return list}, []).filterUnique()
+			const authors = sourcedata.reduce((list, article) => {list.push(article.author); return list}, []).filterUnique()
 			
 			articlesTable = new Tabulator(target, {
 				  data: sourcedata,
@@ -365,7 +298,7 @@ async function fetchArticles(target) {
 										</div>
 										<div class='icon ${value === 'published' ? 'archive':(value === 'archived' ? 'unarchive':'paper')} inline medium dynamic hoverable' title="${value === 'published' ? "Archiver l'article":(value === 'archived' ? "Désarchiver l'article":"Publier l'article")}">
 											<span class='img'></span>
-										</div>`}, resizable: false},
+										</div>`}, cellClick: (e, cell) => actionSwitch(e, cell), resizable: false},
 					{ title: "Statut", field: "status", formatter: function(cell) {cell.getElement().classList.toggle(cell.getValue()); return statusMatch[cell.getValue()]}, vertAlign: 'middle'},
 					{ title: "URL", field: "url", editor:"input", validator: ['unique', 'required']},
 					{ title: "Titre", field: "title", editor:"input", validator: "required"},
@@ -378,7 +311,7 @@ async function fetchArticles(target) {
 					],
 				});
 			
-			articlesTable.on('cellClick', (e, cell) => {
+			function actionSwitch(e, cell) {
 				if (e.target.findParent('.icon.archive').nodeName !== 'BODY') {
 					archiveArticle(e, cell, true)
 				} else if (e.target.findParent('.icon.unarchive').nodeName !== 'BODY') {
@@ -420,14 +353,14 @@ async function fetchArticles(target) {
 						redirect(`/admin/tools/edit/article/${cell.getValue()}`)
 					}
 				}
-			})
+			}
 
 			return sourcedata
 			}
 
 // Logs table
 async function fetchLogs(target) {
-			sourcedata = await dataFetcher('logs');
+			const sourcedata = await dataFetcher('logs');
 			
 			logsTable = new Tabulator(target, {
 				data: sourcedata,
@@ -453,16 +386,16 @@ async function fetchLogs(target) {
 
 // HelloAsso main table
 async function fetchHA(target) {
-			sourcedata = await fetchAPI('/api/helloasso/get/all').then(response => response.body)
+			const sourcedata = await fetchAPI('/api/helloasso/get/all').then(response => response.body)
 			
 			// event match table
-			matchTypeTable = {'Shop':'Boutique', 'Event':'Billeterie', 'Donation':'Don', 'Membership':'Adhésion'}
+			const matchTypeTable = {'Shop':'Boutique', 'Event':'Billeterie', 'Donation':'Don', 'Membership':'Adhésion'}
 			
 			// forms match table - key is form as it is what we find in ordersList
-			matchFormsTable = {};
-			sourcedata.formsList.forEach(item => {
-				matchFormsTable[item.formSlug] = {'type': matchTypeTable[item.formType], 'url': item.url, 'name': item.title}
-			})
+			const matchFormsTable = sourcedata.formsList.reduce((list, item) => {
+				list[item.formSlug] = {'type': matchTypeTable[item.formType], 'url': item.url, 'name': item.title}
+				return list
+			}, {})
 			
 			haTable = new Tabulator(target, {
 				data: sourcedata.ordersList,
@@ -473,64 +406,53 @@ async function fetchHA(target) {
 				paginationSizeSelector:[5, 10, 20, 50, 100, 200, 500],
 				paginationCounter:"rows",
 				columns: [
-				{ title: "", field: "receipts",  mutator: function (value, data) {return data.payments !== null ? data.payments[0].paymentReceiptUrl:null},
-																	formatter: function (cell) {
-																								content = '';
-																								content += cell.getValue() !== null ?  `<a href="${cell.getValue()}" target="_blank_" class='icon receipt inline medium dynamic' title="Reçu du paiement">
-																																			<span class='img'></span>
-																																		</a>`:'';
-																								cell.getRow().getData().items.forEach(item => {
-																										if (item.ticketUrl !== null) {
-																											content += `<a href="${item.ticketUrl}" target="_blank_" class='icon ticket inline medium dynamic' title="Billet">
-																															<span class='img'></span>
-																														</a>`;
-																										}
-																									})
-																								return '<span>' + content + '</span>'
-																								}, resizable: false, frozen: true
+				{ title: "", field: "receipts",  mutator: (value, data) => data.payments?.[0].paymentReceiptUrl || null,
+												 formatter: function (cell) {
+																			content = cell.getValue() !== null ?  `<a href="${cell.getValue()}" target="_blank_" class='icon receipt inline medium dynamic' title="Reçu du paiement">
+																														<span class='img'></span>
+																													</a>`:'';
+																			cell.getRow().getData().items.forEach(item => {
+																					if (item.ticketUrl !== null) {
+																						content += `<a href="${item.ticketUrl}" target="_blank_" class='icon ticket inline medium dynamic' title="Billet">
+																										<span class='img'></span>
+																									</a>`;
+																					}
+																				})
+																			return '<span>' + content + '</span>'
+																			}, resizable: false, frozen: true
 				},
 				{ title: "Transaction ID", field: "id", resizable: false},
-				{ title: "Payment ID", field: "paymentsID", mutator: function (value, data) {return data.payments !== null ? data.payments[0].id:null}, resizable: false},
-				{ title: "Date", field: "date", formatter: function (cell) {v = cell.getValue().split('+')[0]; return v.split('T')[0].replaceAll('-','/') + ' ' + v.split('T')[1]}, resizable: false},
+				{ title: "Payment ID", field: "paymentsID", mutator: (value, data) => data.payments?.[0].id || null, resizable: false},
+				{ title: "Date", field: "date", formatter: cell => haFormatter(cell, 'date'), resizable: false},
 				{ title: "Mail", field: "payer.email"},
-				{ title: "Identité", field: "fullname", mutator: function (value, data) {return data.payer.firstName + ' ' + data.payer.lastName.toUpperCase()}, headerFilter: true},
+				{ title: "Identité", field: "fullname", mutator: (value, data) => data.payer.firstName + ' ' + data.payer.lastName.toUpperCase(), headerFilter: true},
 				/*{ title: "Type", field: "formType", mutator: function (value, data) {
 																					return matchTypeTable[value]
 																					},
 				},*/
-				{ title: "Formulaire", field: "formName", mutator: function (value, data) {
-																					return matchFormsTable[data.formSlug].name
-																					}, headerFilter:'list', headerFilterParams:function(){val={};Object.keys(matchFormsTable).forEach(ite => {val[matchFormsTable[ite].name] = matchFormsTable[ite].name});return {'values': val}}
+				{ title: "Formulaire", field: "formName", mutator: (value, data) => matchFormsTable[data.formSlug].name, headerFilter:'list', headerFilterParams: () => ({'values': Object.keys(matchFormsTable).reduce((list, item) => [...list, matchFormsTable[item].name], [])})
 				},
-				{ title: "Montant", field: "amount.total", width: 100, mutator: function (val) {return val/100}, formatter: function (cell) {v = cell.getValue().toString(); return v.replace('.',',') + ' €'}, hozAlign: "center"},
+				{ title: "Montant", field: "amount.total", width: 100, mutator: value => value/100, formatter: cell => haFormatter(cell, 'price'), hozAlign: "center"},
 				{ title: "Items", field: "itemslist", mutator: function (value, data) {
-																						list = {};
-																						data.items.forEach(item => {
-																							if (list[item.name] === undefined) {
-																								list[item.name] = 1;
-																							} else {
-																								list[item.name] += 1;
-																							}
-																						})
+																						receipts = data.items.reduce((list, item) => {list[item.name] = (list[item.name] ?? 0) + 1; return list}, {})
 																						
-																						text = '';
-																						Object.keys(list).forEach(key => {
-																							text += `${key} (${list[key]});`;
-																						})
+																						text = Object.keys(receipts).reduce((list, key) => [...list, `${key} (${receipts[key]})`], []).join(', ')
 																						
 																						return text
-																						}, formatter: function (cell) {return `<small>${cell.getValue()}</small>`}
+																						}, formatter: cell => `<small>${cell.getValue()}</small>`
 				},
 			]});
             
+			haTable.on("pageLoaded", () => haTable.redraw())
+
 			return sourcedata
 			}
 
 // HelloAsso Goodies table
 async function fetchGoodies(target) {
-			sourcedata = await fetchAPI('/api/helloasso/get/goodies').then(response => response.body)
+			const sourcedata = await fetchAPI('/api/helloasso/get/goodies').then(response => response.body)
 			
-			itemsType = ["Pin's arcENSiel", "Pin's Mouflon", "Sticker", "Briquet", "Affiche"]
+			const itemsType = ["Pin's arcENSiel", "Pin's Mouflon", "Sticker", "Briquet", "Affiche"]
 
 			goodiesTable = new Tabulator(target, {
 				data: sourcedata,
@@ -541,52 +463,31 @@ async function fetchGoodies(target) {
 				paginationSizeSelector:[5, 10, 20, 50, 100, 200],
 				paginationCounter:"rows",
 				columns: [
-				{ title: "", field: "delivered", resizable: false, formatter: function(cell) {
-																							editable = cell.getElement().getAttribute('editable') !== null;
-																							cell.getElement().unset('editable')
-														
-																							return `<input type='checkbox' ${cell.getValue() ? 'checked':''} ${editable ? '':'readonly'}>`
-																						}, frozen: true},
-				{ title: "", field: "receipts", formatter: function (cell) {
-														content = cell.getValue() !== null ?  `<a href="${cell.getValue()}" target="_blank_" class='icon receipt inline medium dynamic' title="Reçu du paiement">
-																									<span class='img'></span>
-																								</a>`:'';
-														return '<span>' + content + '</span>'
-														}, resizable: false, frozen: true
-				},
+				{ title: "", field: "delivered", editor: () => false, editable: cell => !cell.getInitialValue(), formatter: "tickCross", cellClick: (e, cell) => !cell.getInitialValue() ? cell.setValue(!cell.getValue()):null, resizable: false, frozen: true, vertAlign: "middle", hozAlign: "center"},
+				{ title: "", field: "receipts", formatter: cell => cell.getValue() !== null ?
+														`<span>
+															<a href="${cell.getValue()}" target="_blank_" class='icon receipt inline medium dynamic' title="Reçu du paiement">
+																<span class='img'></span>
+															</a>
+														</span>` : null, resizable: false, frozen: true},
 				{ title: "Transaction ID", field: "id", resizable: false},
 				{ title: "Payment ID", field: "paymentsID"},
-				{ title: "Date", field: "date", formatter: function (cell) {v = cell.getValue().split('+')[0]; return v.split('T')[0].replaceAll('-','/') + ' ' + v.split('T')[1]}, resizable: false},
+				{ title: "Date", field: "date", formatter: cell => haFormatter(cell, 'date'), resizable: false},
 				{ title: "Mail", field: "mail"},
 				{ title: "Identité", field: "identity", headerFilter: true},
-				{ title: "Montant", field: "amount", width: 100, mutator: function (val) {return val/100}, formatter: function (cell) {v = cell.getValue().toString(); return v.replace('.',',') + ' €'}, hozAlign: "center"}, //bottomCalc:function(values,data){return values.reduce((accumulator, currentValue) => accumulator + currentValue, 0) + ' €'}
-				{ title: "Item", field: "item", headerFilter: 'list', headerFilter:'list', headerFilterParams:function(){
-																														val={};
-																														itemsType.forEach(ite => {val[ite] = ite});
-																														return {'values': val}}},
-				{ title: "Enregistré sur Paheko ?", field: "registered", mutator: function(value,data) {return value ? value:false}, resizable: false, formatter: function(cell) {
-																							editable = cell.getElement().getAttribute('editable') !== null;
-																							cell.getElement().unset('editable')
-														
-																							return `<input type='checkbox' ${cell.getValue() ? 'checked':''} ${editable ? '':'readonly'}>`
-																						}, hozAlign: 'center'},
+				{ title: "Montant", field: "amount", width: 100, mutator: value => value/100, formatter: cell => haFormatter(cell, 'price'), hozAlign: "center"},
+				{ title: "Item", field: "item", headerFilter: 'list', headerFilter:'list', headerFilterParams: {'values': itemsType}},
+				{ title: "Enregistré sur Paheko ?", field: "registered", editor: () => false, editable: cell => !cell.getInitialValue(), formatter: "tickCross", cellClick: (e, cell) => !cell.getInitialValue() ? cell.setValue(!cell.getValue()):null, resizable: false, vertAlign: "middle", hozAlign: "center"},
 				]});
-			
-			goodiesTable.on('cellClick', (e, cell) => {
-				if (e.target.tagName === 'INPUT') {
-					cell.getElement().toggle('editable')
-					cell.setValue(e.target.checked)
-				}
-			})
 			
 			return sourcedata
 			}
 
 // DQ7 Table
 async function fetchDQ7(target) {
-			sourcedata = await fetchAPI('/api/helloasso/get/drama-queer-7').then(response => response.body)
+			const sourcedata = await fetchAPI('/api/helloasso/get/drama-queer-7').then(response => response.body)
 			
-			itemsType = ["Prix conseillé", "Prix minimum", "Prix libre", "Paiement en espèces", "Liste d'attente"]
+			const itemsType = ["Prix conseillé", "Prix minimum", "Prix libre", "Paiement en espèces", "Liste d'attente"]
 
 			dq7Table = new Tabulator(target, {
 				data: sourcedata,
@@ -597,31 +498,27 @@ async function fetchDQ7(target) {
 				paginationSizeSelector:[5, 10, 20, 50, 100, 200],
 				paginationCounter:"rows",
 				columns: [
-				{title: "", field: "receipts", formatter: function (cell) {
-														content = cell.getValue() !== null ?  `<a href="${cell.getValue()}" target="_blank_" class='icon receipt inline medium dynamic' title="Reçu du paiement">
-																									<span class='img'></span>
-																								</a>`:'';
-														return '<span>' + content + '</span>'
-														}, resizable: false
+				{title: "", field: "receipts", formatter: cell => cell.getValue() !== null ?
+															`<span>
+																<a href="${cell.getValue()}" target="_blank_" class='icon receipt inline medium dynamic' title="Reçu du paiement">
+																	<span class='img'></span>
+																</a>
+															</span>` : null, resizable: false
 				},
-				{title: "", field: "ticket", formatter: function (cell) {
-														content = cell.getValue() !== null ?  `<a href="${cell.getValue()}" target="_blank_" class='icon ticket inline medium dynamic' title="Billet">
-																									<span class='img'></span>
-																								</a>`:'';
-														return '<span>' + content + '</span>'
-														}, resizable: false, frozen: true
+				{title: "", field: "ticket", formatter: cell => cell.getValue() !== null ?
+															`<span>
+																<a href="${cell.getValue()}" target="_blank_" class='icon ticket inline medium dynamic' title="Billet">
+																	<span class='img'></span>
+																</a>
+															</span>` : null, resizable: false, frozen: true
 				},
 				{ title: "Transaction ID", field: "id", resizable: false},
 				{ title: "Payment ID", field: "paymentsID"},
-				{ title: "Date", field: "date", formatter: function (cell) {v = cell.getValue().split('+')[0]; return v.split('T')[0].replaceAll('-','/') + ' ' + v.split('T')[1]}, resizable: false},
+				{ title: "Date", field: "date", formatter: cell => haFormatter(cell, 'date'), resizable: false},
 				{ title: "Identité", field: "identity", headerFilter: true},
-				{ title: "Montant", field: "amount", width: 100, mutator: function (val) {return val/100}, formatter: function (cell) {v = cell.getValue().toString(); return v.replace('.',',') + ' €'}, hozAlign: "center"},
-				{ title: "Tier", field: "item", headerFilter: 'list', headerFilter:'list', headerFilterParams:function(){
-																														val={};
-																														itemsType.forEach(ite => {val[ite] = ite});
-																														return {'values': val}}
-				},
-				{ title: "Étudiant·e ?", field: "student", headerFilter: 'list', headerFilter:'list', headerFilterParams:{'values': {'Oui':'Oui','Non':'Non'}}, hozAlign: 'center'}
+				{ title: "Montant", field: "amount", width: 100, mutator: value => value/100, formatter: cell => haFormatter(cell, 'price'), hozAlign: "center"},
+				{ title: "Tier", field: "item", headerFilter: 'list', headerFilter:'list', headerFilterParams: {'values': itemsType}},
+				{ title: "Étudiant·e ?", field: "student", headerFilter: 'list', headerFilter:'list', headerFilterParams: {'values': ['Oui','Non']}, hozAlign: 'center'}
 				]});
 			
 			return sourcedata
@@ -629,11 +526,11 @@ async function fetchDQ7(target) {
 
 // Paheko categories table
 async function fetchGroups(target) {
-			sourcedata = await fetchAPI('/api/paheko/get/composition').then(response => response.body)
-			categories = await fetchAPI('/api/paheko/get/categories').then(response => response.body)
+			const sourcedata = await fetchAPI('/api/paheko/get/composition').then(response => response.body)
+			const categories = await fetchAPI('/api/paheko/get/categories').then(response => response.body)
 			
 			// Generate dynamically subsection buttons
-			holder = document.querySelector('input[value="categories"] ~ .input-container.checkboxes.subsection')
+			let holder = document.querySelector('input[value="categories"] ~ .input-container.checkboxes.subsection')
 			holder.innerHTML = `
 				<span>
 					<input class='checkbox' type='radio' id="cat-all" name="category" value="all" checked>
@@ -658,7 +555,7 @@ async function fetchGroups(target) {
 										
 							if (tkn === 'all') {
 									groupsTable.clearFilter()
-									groupsTable.setSort([{column:"nom", dir:"asc"}]);
+									groupsTable.setSort([{column:"id", dir:"asc"}]);
 							} else {
 									groupsTable.setFilter("category", "=", tkn)
 									groupsTable.setSort([{column:"nom", dir:"asc"}]);
@@ -683,7 +580,7 @@ async function fetchGroups(target) {
 					{ title: "Catégorie", field: "category", resizable: false},
 					{ title: "Nom", field: "nom", headerFilter: true},
 					{ title: "Mail", field: "email"},
-					{ title: "Première adhésion", field: "date_inscription", mutator: function(value) {return value !== null ? value.split(' ')[0]:null}}
+					{ title: "Première adhésion", field: "date_inscription", mutator: value => value?.split(' ')[0] || null}
 					],
 				});
 			
@@ -692,11 +589,11 @@ async function fetchGroups(target) {
 
 // Subscriptions table
 async function fetchSubscriptions(target) {
-			sourcedata = await fetchAPI('/api/paheko/get/users').then(response => response.body)
-			services   = await fetchAPI('/api/paheko/get/services').then(response => response.body)
+			const sourcedata = await fetchAPI('/api/paheko/get/users').then(response => response.body)
+			const services   = await fetchAPI('/api/paheko/get/services').then(response => response.body)
 			
 			// Generate dynamically subsection buttons
-			holder = document.querySelector('input[value="subscriptions"] ~ .input-container.checkboxes.subsection')
+			let holder = document.querySelector('input[value="subscriptions"] ~ .input-container.checkboxes.subsection')
 			holder.innerHTML = '';
 			Object.values(services).forEach(serv => {
 					years = serv.label.match(/[0-9]{2}\/[0-9]{2}/)[0]
@@ -747,7 +644,7 @@ async function fetchSubscriptions(target) {
 			}
 
 async function fetchStocks(target) {
-			sourcedata = await fetchAPI('/api/paheko/get/goodies').then(response => response.body)
+			const sourcedata = await fetchAPI('/api/paheko/get/goodies').then(response => response.body)
 			
 			// create tabulator
 			stocksTable = new Tabulator(target, {
@@ -760,8 +657,8 @@ async function fetchStocks(target) {
 				rowHeight: 36,
 				columns: [
 					{ title: "Nom", field: "name", resizable: false},
-					{ title: "Prix d'achat", field: "purchase_price", mutator: function (val) {return val/100}, formatter: function (cell) {v = cell.getValue().toString(); return v.replace('.',',') + ' €'}, hozAlign: "center"},
-					{ title: "Prix de vente", field: "price", mutator: function (val) {return val/100}, formatter: function (cell) {v = cell.getValue().toString(); return v.replace('.',',') + ' €'}, hozAlign: "center"},
+					{ title: "Prix d'achat", field: "purchase_price", mutator: value => value/100, formatter: cell => haFormatter(cell, 'price'), hozAlign: "center"},
+					{ title: "Prix de vente", field: "price", mutator: function (val) {return val/100}, formatter: cell => haFormatter(cell, 'price'), hozAlign: "center"},
 					{ title: "Stock", field: "stock", sorter: 'number'},
 					{ title: "Description", field: "description", resizable: false}
 					],
@@ -769,6 +666,26 @@ async function fetchStocks(target) {
 			
 			return sourcedata
 			}
+
+//// SHARED FUNCTIONS
+function slugUniqueness(cell, value) {
+		thisVal = cell.getRow().getData().slug;
+		
+		// extract column values
+		data = Array.from(activeTable.table.getColumn('slug').getCells()).map(c => {return c.getValue()}).filter(val => val !== thisVal);
+		
+		return !data.includes(value?.urlForm())
+		}
+
+function haFormatter(cell, type) {
+		if (type === 'price') {
+			return cell.getValue().toString().replace('.',',') + ' €'
+		
+		} else if (type === 'date') {
+			let body = cell.getValue().split('+')[0]
+			return body.split('T')[0].split('-').reverse().join('/') + ' ' + body.split('T')[1]
+		}
+}
 
 //// UTILS FUNCTIONS
 // Fetch SQL data

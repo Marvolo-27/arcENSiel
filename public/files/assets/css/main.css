@@ -61,6 +61,7 @@
 		--icon-star-full: url(/files/icons/star-full.svg);
 		--icon-colors: url(/files/icons/colors.svg);
 		--icon-preview: url(/files/icons/preview.svg);
+		--icon-remove: url(/files/icons/remove.svg);
 		
 		/* UTILS COLORS */
 		--link-color:#e7495b;
@@ -176,6 +177,7 @@ p {text-align: justify}
 		padding: calc(.2 * var(--standard-size));
 		width: calc(var(--coeff) * var(--standard-size));
 		height: calc(var(--coeff) * var(--standard-size));
+		flex-shrink: 0;
 		transition: all .2s;
 		border-radius: 50%;
 		background: none;
@@ -236,6 +238,7 @@ p {text-align: justify}
 			&.receipt .img {background-image: var(--icon-receipt);}
 			&.refresh .img {background-image: var(--icon-refresh);}
 				&.refresh[active] {animation: rotator 1.75s linear infinite;}
+			&.remove .img {background-image: var(--icon-remove);}
 			&.search .img {background-image: var(--icon-search);}
 			&.send .img {background-image: var(--icon-send);}
 			&.star .img {background-image: var(--icon-star-empty);}

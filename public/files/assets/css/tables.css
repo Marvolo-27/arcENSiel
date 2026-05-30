@@ -33,14 +33,15 @@
                                 & a {display: inline-block;}
                                 }
                         
-                        &[type='checkbox'] input:checked[readonly] {
-                                cursor: pointer;
-                                }
-                        
-                        /* readonly checkboxes */
-                        &:is([tabulator-field='delivered'],[tabulator-field='registered']) input:checked[readonly] {
-                                pointer-events: none !important;
+                        &[tabulator-field='color'] {
+                                padding: 0;
+                                
+                                & input {
+                                        height: 100%;
+                                        width: 100%;
+                                        cursor: pointer;
+                                        }
                                 }
                         }
-                }
 		}
+        }
