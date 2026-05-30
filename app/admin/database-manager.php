@@ -146,7 +146,7 @@ $artTypes = getTypes();
 
 				body.child('#main').child('.data-actions').hide()
 		}
-		
+
 		async function archiveArticle(event, cell, toarchive) {				
 				// dom objects
 				const btn = event.target.findParent('.icon')
@@ -155,6 +155,10 @@ $artTypes = getTypes();
 				const iconsCellElement = row.getCell('actions').getElement()
 				const visualIcon = iconsCellElement.icon('visualize')
 				const modifyIcon = iconsCellElement.icon('modify')
+
+				// Update icon
+				btn.classList.toggle('archive')
+				btn.classList.toggle('unarchive')
 
 				// extract data
 				const state = toarchive ? 'archived':'published';
@@ -170,8 +174,8 @@ $artTypes = getTypes();
 				await sleep(500);
 				
 				// update data
-				jsonData = JSON.stringify({'action':'archive','type':'articles','csrf':csrfToken, 'slug':slug, 'status':state})
-				response = await fetchAPI('/admin/engine/database', jsonData)
+				const jsonData = JSON.stringify({'action':'archive','type':'articles','csrf':csrfToken, 'slug':slug, 'status':state})
+				const response = await fetchAPI('/admin/engine/database', jsonData)
 				
 				if (!response.ok) {
 					notify("Erreur lors de la mise à jour du statut", `${toarchive ? "L'archivage":'La publication'} de l'article ${slug} a échoué. Veuillez réessayer.`, 'red')
@@ -179,8 +183,6 @@ $artTypes = getTypes();
 				}
 
 				// Update DOM and table data
-				btn.classList.toggle('archive')
-				btn.classList.toggle('unarchive')
 				statusCell.setValue(state)
 				statusCell.getElement().classList.toggle(toarchive ? 'published':'archived')
 				visualIcon.classList.toggle('view')
@@ -190,7 +192,7 @@ $artTypes = getTypes();
 
 				notify("Succès de la mise à jour du statut", `L'article ${slug} a été ${toarchive ? 'archivé':'publié'} avec succès.`, 'green')
 		}
-		
+
 		async function deleter(kwargs) {				
 				[event, cell] = kwargs;
 
