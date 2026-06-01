@@ -165,9 +165,9 @@ if ($_SESSION['role'] !== 'admin') {
 									
 									// easy match table with their type
 									tableMatch = {
-												'categories': {'table': groupsTable, 'source': JSON.stringify(groupsTable.getData()), 'call': fetchGroups, 'selector': '#categories', 'type': 'categories'},
-												'subscriptions': {'table': subscriptionsTable, 'source': JSON.stringify(subscriptionsTable.getData()), 'call': fetchSubscriptions, 'selector': '#subscriptions', 'type': 'subscriptions'},
-												'stocks': {'table': stocksTable, 'source': JSON.stringify(stocksTable.getData()), 'call': fetchStocks, 'selector': '#stocks', 'type': 'stocks'},
+												'categories': {'table': groupsTable, 'node': Table('categories'), 'source': JSON.stringify(groupsTable.getData()), 'call': fetchGroups, 'selector': '#categories', 'type': 'categories'},
+												'subscriptions': {'table': subscriptionsTable, 'node': Table('subscriptions'), 'source': JSON.stringify(subscriptionsTable.getData()), 'call': fetchSubscriptions, 'selector': '#subscriptions', 'type': 'subscriptions'},
+												'stocks': {'table': stocksTable, 'node': Table('stocks'), 'source': JSON.stringify(stocksTable.getData()), 'call': fetchStocks, 'selector': '#stocks', 'type': 'stocks'},
 												}
 									
 									tablesListener(false, '.input-container.checkboxes.mainsection')

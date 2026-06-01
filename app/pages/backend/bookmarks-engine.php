@@ -20,7 +20,7 @@ if ($action === 'fetch') {
 	$sql = "SELECT articles.slug AS url, description, title, tags, date, author, COALESCE(types.name, 'Indéfini') AS type, COALESCE(files.url, '/files/placeholder.png') AS picture_path, color
 			FROM bookmarks
 				JOIN articles ON bookmarks.article_id = articles.id
-				LEFT JOIN types on articles.type = types.id
+				LEFT JOIN types on COALESCE(articles.type, 0) = types.id
 				LEFT JOIN articles_covers ON articles_covers.article_id = articles.id
 				LEFT JOIN files ON file_id = files.id
 			WHERE user_id = :userid AND status = 'published'

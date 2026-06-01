@@ -106,7 +106,7 @@ async function newsBuilder(start=0, n=5, script='/engine/news', params='') {
 					tagsHTML = '';
 					tags?.forEach(tag => {
 						tagsHTML += `<span class="tag-item">
-											<a href="/search?&tags=${tagsMatchTable[tag].slug}">${tagsMatchTable[tag].name}</a>
+											<a href="/search?&tags=${tagsList[tag].slug}">${tagsList[tag].name}</a>
 									</span>
 									<span>-</span>`
 						});

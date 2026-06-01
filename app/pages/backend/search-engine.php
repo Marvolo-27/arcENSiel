@@ -29,7 +29,7 @@ $n = (int) $_GET['n'] ?? 0;
 $start = (int) $_GET['start'] ?? 0;
 
 // base of SQL request
-$fetchcore = "WITH tags_list AS (SELECT article_id, GROUP_CONCAT(tag_id SEPARATOR ',') AS tags FROM articles_tags GROUP BY article_id) SELECT articles.slug AS url, title, COALESCE(files.url, '/files/placeholder.png') AS picture_path, summary, tags_list.tags AS tags, COALESCE(types.name, 'Indéfini') AS type, author, date, end_date, color FROM articles LEFT JOIN types ON types.id = articles.type LEFT JOIN tags_list ON articles.id = tags_list.article_id LEFT JOIN articles_covers ON articles.id = articles_covers.article_id LEFT JOIN files ON file_id = files.id WHERE";
+$fetchcore = "WITH tags_list AS (SELECT article_id, GROUP_CONCAT(tag_id SEPARATOR ',') AS tags FROM articles_tags GROUP BY article_id) SELECT articles.slug AS url, title, COALESCE(files.url, '/files/placeholder.png') AS picture_path, summary, tags_list.tags AS tags, types.name AS type, author, date, end_date, color FROM articles LEFT JOIN types ON types.id = COALESCE(articles.type, 0) LEFT JOIN tags_list ON articles.id = tags_list.article_id LEFT JOIN articles_covers ON articles.id = articles_covers.article_id LEFT JOIN files ON file_id = files.id WHERE";
 $countcore = "SELECT COUNT(*) FROM articles JOIN types ON types.id = articles.type WHERE";
 $params = [];
 

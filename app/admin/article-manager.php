@@ -640,7 +640,7 @@ if ($edition && !$artData) {
 				formData.set('art-tags', JSON.stringify(taglist));
 				formData.set('file-description', overlay.input('desc').value)
 				formData.set('filename', overlay.input('filename').value + '.' + overlay.input('fileextension').value)
-				formData.set('type', JSON.stringify({'slug': typeTag.value, 'name': typesList[typeTag.value], 'color': typeTag.querySelector(`option[value='${typeTag.value}']`).dataset.color, 'new': typeTag.classList.contains('new')}));
+				formData.set('type', JSON.stringify({'slug': typeTag.value, 'name': typesMatch[typeTag.value], 'color': typeTag.querySelector(`option[value='${typeTag.value}']`).dataset.color, 'new': typeTag.classList.contains('new')}));
 				// formData.set('art-title', titleTag.textContent);
 				formData.set('art-url', formData.get('art-url').replace(core,''));
 				(picTag.value === '') ? formData.set('picture-path', picTag.nextElementSibling.getAttribute('src')):null;
@@ -658,10 +658,10 @@ if ($edition && !$artData) {
 						i_tag++;
 
 						// input linked to 'add' label
-						adder = document.querySelector('#new-tag-option');
+						adder = Input('new-tag-option');
 						
 						// allow only one new tage at a time
-						assertion = document.querySelector('#art-tags .tag-item.new') === null;
+						assertion = Input('art-tags').child('.tag-item.new') === null;
 						if (!assertion) {return}
 						
 						adder.disable() // lock add button
@@ -675,7 +675,7 @@ if ($edition && !$artData) {
 						
 						span.querySelector('.new').onchange = function createTag(e) {
 																	// adder button
-																	adder = document.querySelector('#new-tag-option');
+																	adder = Input('#new-tag-option');
 																	
 																	// extract tags
 																	tag = e.target;
@@ -685,14 +685,14 @@ if ($edition && !$artData) {
 																	val = tag.value;
 																	
 																	// check uniqueness
-																	if (Object.keys(tagsList).includes(val.urlForm())) {
-																		tag.setAttribute('duplicate','')
+																	if (Object.keys(tagsMatch).includes(val.urlForm())) {
+																		tag.set('duplicate')
 																		return
 																	}
 																	tag.unset('duplicate')
 																	
 																	// add tags
-																	tagsList[val.urlForm()] = val;
+																	tagsMatch[val.urlForm()] = val;
 																	
 																	adder.enable() // unlock button
 																	tag.value = tag.value.trim();
@@ -712,7 +712,7 @@ if ($edition && !$artData) {
 																																wrap = e.target.findParent('.tag-wrap');
 																																wrap.remove()
 																																delete editsHistory[wrap.firstElementChild.toSelector(true)]
-																																delete tagsList[wrap.firstElementChild.value]
+																																delete tagsMatch[wrap.firstElementChild.value]
 																																buttonsToggler()
 																																}
 																	
@@ -730,7 +730,7 @@ if ($edition && !$artData) {
 																	editsManager(neotag)
 																	};
 						}
-		document.querySelector('#new-tag-option').onchange = addTag
+		Input('new-tag-option').onchange = addTag
 
 	// add tag input
 		i_type = 0;
@@ -738,10 +738,10 @@ if ($edition && !$artData) {
 						i_tag++;
 
 						// input linked to 'add' label
-						adder = document.querySelector('#new-type-option');
+						adder = Input('new-type-option');
 						
 						// allow only one new tage at a time
-						assertion = document.querySelector('#art-type .type-option.new') === null;
+						assertion = Input('art-type').child('.type-option.new') === null;
 						if (!assertion) {return}
 						
 						adder.disable()
@@ -758,12 +758,12 @@ if ($edition && !$artData) {
 
 						span.icon('validity').onclick = function createType(e) {
 																	// adder button
-																	adder = document.querySelector('#new-type-option');
+																	adder = Input('new-type-option');
 																	
 																	// extract tags
 																	tag = e.target.findParent('.type-wrap').querySelector('.lineentry');
 																	ctag = e.target.findParent('.type-wrap').querySelector('.colorentry');
-																	wrapper = tag.findParent('.input-container').querySelector('#art-type');
+																	wrapper = tag.findParent('.input-container').input('art-type');
 																	
 																	// extract user input
 																	val = tag.value;
@@ -776,14 +776,14 @@ if ($edition && !$artData) {
 																	option.innerText = val
 
 																	// check uniqueness
-																	if (val === '' || !ctag.dataset.changed || Object.keys(typesList).includes(val.urlForm())) {
+																	if (val === '' || !ctag.dataset.changed || Object.keys(typesMatch).includes(val.urlForm())) {
 																		tag.set('duplicate')
 																		return
 																	}
 																	tag.findParent('.type-wrap').remove();
 																	
 																	// add type
-																	typesList[val.urlForm()] = val;
+																	typesMatch[val.urlForm()] = val;
 																	
 																	// unlock button
 																	adder.enable()
@@ -796,10 +796,10 @@ if ($edition && !$artData) {
 																	editsManager(neotag)
 																	};
 						}
-		document.querySelector('#new-type-option').onchange = addType
+		Input('new-type-option').onchange = addType
 		
 		// update tags checkboxes requirement
-		document.querySelector('#art-tags').onclick = () => {
+		Input('art-tags').onclick = () => {
 					document.querySelectorAll('.checkbox.option').forEach(e => {e.required = document.querySelector('.checkbox:checked') === null})
 					}
 

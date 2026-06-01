@@ -48,13 +48,13 @@ CREATE TABLE `articles` (
   `end_date` date DEFAULT NULL,
   `description` text,
   `content` mediumtext NOT NULL,
-  `type` int DEFAULT 0,
+  `type` int,
   `status` varchar(255) NOT NULL DEFAULT 'published',
   `published_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `url` (`url`)
-  CONSTRAINT `articles_ibfk_1` FOREIGN KEY (`type`) REFERENCES `types` (`id`) ON DELETE SET DEFAULT,
+  CONSTRAINT `articles_ibfk_1` FOREIGN KEY (`type`) REFERENCES `types` (`id`) ON DELETE SET NULL,
 ) ENGINE=InnoDB AUTO_INCREMENT=84 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 

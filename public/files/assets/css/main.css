@@ -1390,11 +1390,6 @@ form {
 		&.linear {flex-flow: row; gap: 1.5em} 	/* buttons on a line */
 		&.large {font-size: 1.5em;}				/* bigger buttons */	
 
-		&.responsive {							/* buttons can be hidden */
-				display: none;
-				&[active] {display: flex;}
-				}
-
 		/* button wrapbox */
 		& .form-action {
 				width: fit-content;
@@ -1446,6 +1441,12 @@ form {
 						
 						&:has(a) {padding: 0}
 						
+						/* buttons can be hidden */
+						&.responsive {
+								display: none;
+								&[active] {display: flex;}
+								}
+
 						/* buttons content can be switched to spinner */
 						&.spinnable {
 								& .spinner {display: none}

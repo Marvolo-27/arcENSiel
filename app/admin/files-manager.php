@@ -197,12 +197,12 @@ if ($_SESSION['role'] !== 'admin') {
 					</div>
 				</div>
 
-				<div class="form-action-wrap data-actions linear responsive">
+				<div class="form-action-wrap data-actions linear">
 					<div class='form-action'>
-						<button class='action-btn save'>Sauvegarder</button>
+						<button class='action-btn responsive save'>Sauvegarder</button>
 					</div>
 					<div class='form-action'>
-						<button class='action-btn reset'>Réinitialiser</button>
+						<button class='action-btn responsive reset'>Réinitialiser</button>
 					</div>
 				</div>
 
@@ -295,7 +295,7 @@ if ($_SESSION['role'] !== 'admin') {
 										
 										// easy match table with their type
 										tableMatch = {
-													'files': {'table': filesTable, 'source': JSON.stringify(filesTable.getData()), 'call': fetchFiles, 'selector': '#files', 'type': 'files'},
+													'files': {'table': filesTable, 'node': Table('files'), 'source': JSON.stringify(filesTable.getData()), 'call': fetchFiles, 'selector': '#files', 'type': 'files'},
 													}
 										activeTable = tableMatch['files']
 										
@@ -843,13 +843,7 @@ if ($_SESSION['role'] !== 'admin') {
 				} else {
 					document.querySelector('#main').child('.form-action-wrap').hide()
 					
-					activeTable.source = JSON.stringify(activeTable.table.getData())
-					resetState(activeTable)
-
-					if (activeTable.type === 'tags') {
-						null
-						// UPDATE TAGS MATCH TABLE
-					}
+					resetTableData(activeTable, true)
 
 					notify("Succès", "Les métadonnées des fichiers ont été mises à jour.", 'green')
 				}

@@ -16,7 +16,7 @@ $sql = "WITH tags_list AS (
 			FROM articles_tags GROUP BY article_id)
 	SELECT articles.slug AS url, title, COALESCE(files.url, '/files/placeholder.png') AS picture_path, summary, tags_list.tags AS tags, types.name AS type, types.slug AS typeslug, author, date, end_date, color
 	FROM articles
-		JOIN types ON types.id = articles.type
+		JOIN types ON types.id = COALESCE(articles.type, 0)
 		LEFT JOIN tags_list ON articles.id = tags_list.article_id
 		LEFT JOIN articles_covers ON articles.id = articles_covers.article_id
 		LEFT JOIN files ON file_id = files.id

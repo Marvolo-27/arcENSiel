@@ -17,6 +17,10 @@ let groupsTable;
 let subscriptionsTable;
 let stocksTable;
 
+// Matching tables {slug:name, }
+const haTypeMatch = {'Shop':'Boutique', 'Event':'Billeterie', 'Donation':'Don', 'Membership':'Adhésion'}
+const statusMatch = {'published': 'Publié', 'archived': 'Archivé', 'draft': 'Brouillon'}
+
 //// Utils
 function tablesListener(watcher=false, selector='.input-container') {
 		tablesSwitcher()
@@ -26,7 +30,7 @@ function tablesListener(watcher=false, selector='.input-container') {
 				item => {
 					item.addEventListener('change', e => {
 						tkn = e.target.findParent('span').child('input').value;
-						toggleTable(`#${tkn}`);
+						toggleTable(tkn);
 						activeTable=tableMatch[tkn];
 
 						if (watcher) dataChecker(activeTable.table.getData());
@@ -43,14 +47,17 @@ function tablesSwitcher() {
 function dataChecker(data) {
 			main = document.querySelector('#main')
 
-			if (JSON.stringify(data) === activeTable.source) {
-				main.child('.data-actions').hide()
+			if (JSON.stringify(data) === tableMatch[activeTable.type].source) {
+				Button('save').hide()
+				Button('reset').hide()
 				activeTable.integrity = true;
 			} else if (activeTable.table.validate() !== true) {
-				main.child('.data-actions').hide()
+				Button('save').hide()
+				Button('reset').hide()
 				activeTable.integrity = false;
 			} else {
-				main.child('.data-actions').show()
+				Button('save').show()
+				Button('reset').show()
 				activeTable.integrity = false;
 			}
 		}
@@ -156,15 +163,15 @@ async function fetchCategories(target) {
 				layout: "fitDataStretch",
 				rowHeight: 36,
 				columns: [
-					{ title: "", field: "actions", mutator: (value, data) => data.slug, formatter: cell => cell.getRow().getData().removable ? 
+					{ title: "", field: "actions", mutator: value => (value || false) && true, formatter: cell => cell.getRow().getData().removable ? 
 									`<span>
-										<div class='icon ${cell.getRow().getData().new ? 'remove':'delete'} inline medium dynamic hoverable' title="Supprimer la catégorie">
+										<div class='icon ${cell.getValue() ? 'remove':'delete'} inline medium dynamic hoverable' title="Supprimer la catégorie">
 											<span class='img'></span>
 										</div>
 									</span>` : null, cellClick: (e, cell) => deleterTrigger(e, cell), resizable: false},
-					{ title: "Identifiant", field: "slug", editor: 'input', validator: ['unique', 'required'], editable: cell => cell.getRow().getData().removable, cellEdited: cell => cell.getRow().getCell('slug').setValue(cell.getValue().urlForm())},
-					{ title: "Nom", field: "name", editor: "input", mutator: (value, data) => value?.trim(), validator: [slugUniqueness, 'required'], editable: cell => cell.getRow().getData().removable},
-					{ title: "Section", field: "section", editable: cell => cell.getRow().getData().new, editor: "list", editorParams: {values: ['documents', 'ressources']}, validator: 'required'},
+					{ title: "Identifiant", field: "slug", editor: 'input', validator: ['unique', 'required'], editable: cell => cell.getRow().getData().removable},
+					{ title: "Nom", field: "name", editor: "input", mutator: (value, data) => value?.trim(), validator: [slugUniqueness, 'required'], editable: cell => cell.getRow().getData().removable, cellEdited: cell => cell.getRow().getCell('slug').setValue(cell.getValue().urlForm())},
+					{ title: "Section", field: "section", editable: cell => cell.getRow().getData().actions, editor: "list", editorParams: {values: ['documents', 'ressources']}, validator: 'required'},
 					{ title: "Nombre de fichiers", field: "files", mutator: value => value || 0},
 				  ],
 				});
@@ -203,9 +210,9 @@ async function fetchTags(target) {
 				layout: "fitDataStretch",
 				rowHeight: 36,
 				columns: [
-					{ title: "", field: "actions", mutator: (value, data) =>  data.slug, formatter: cell =>
+					{ title: "", field: "actions", mutator: value => (value || false) && true, formatter: cell =>
 							`<span>
-								<div class='icon ${cell.getRow().getData().new ? 'remove':'delete'} inline medium dynamic hoverable' title="Supprimer l'étiquette">
+								<div class='icon ${cell.getValue() ? 'remove':'delete'} inline medium dynamic hoverable' title="Supprimer l'étiquette">
 									<span class='img'></span>
 								</div>
 							</span>`, cellClick: (e, cell) => deleterTrigger(e, cell), resizable: false},
@@ -221,7 +228,7 @@ async function fetchTags(target) {
 async function fetchTypes(target) {
 			const sourcedata = await dataFetcher('types');
 			
-			let colorMatchTable = {}
+			let colorsList = {}
 			let colorCount = 0;
 
 			typesTable = new Tabulator(target, {
@@ -229,9 +236,9 @@ async function fetchTypes(target) {
 				  layout: "fitDataStretch",
 				  rowHeight: 36,
 				  columns: [
-					{ title: "", field: "actions", mutator: (value, data) => data.slug, formatter: cell => cell.getRow().getData().slug !== 'undefined' ?
+					{ title: "", field: "actions", mutator: value => (value || false) && true, formatter: cell => cell.getRow().getData().slug !== 'undefined' ?
 								 `<span>
-									<div class='icon ${cell.getRow().getData().new ? 'remove':'delete'} dynamic hoverable inline medium ' title="Supprimer la catégorie">
+									<div class='icon ${cell.getValue() ? 'remove':'delete'} dynamic hoverable inline medium ' title="Supprimer la catégorie">
 										<span class='img'></span>
 									</div>
 								</span>` : null, cellClick: (e, cell) => deleterTrigger(e, cell), resizable: false},
@@ -239,10 +246,10 @@ async function fetchTypes(target) {
 					{ title: "Nom", field: "name", editor: "input", editable: cell => cell.getRow().getData().slug !== 'undefined', mutator: (value, data) => value?.trim(), validator: [slugUniqueness, 'required'], cellEdited: cell => cell.getRow().getCell('slug').setValue(cell.getValue().urlForm())},
 					{ title: "Couleur", field: "color", formatter: function(cell) {
 																				// remove broken bonds
-																				Object.entries(colorMatchTable).forEach(([k, v]) => {if (!v.getElement()) delete colorMatchTable[k]})
+																				Object.entries(colorsList).forEach(([k, v]) => {if (!v.getElement()) delete colorsList[k]})
 																				
 																				// add new bond
-																				colorMatchTable[colorCount] = cell;
+																				colorsList[colorCount] = cell;
 																				
 																				// create input
 																				input = document.createElement('input')
@@ -253,10 +260,10 @@ async function fetchTypes(target) {
 																				// handle cell change
 																				input.onchange = e => {
 																					tag = e.target
-																					cell = colorMatchTable[tag.dataset.id]
+																					cell = colorsList[tag.dataset.id]
 																					
 																					if (tag.value.match(/#[a-f0-9]{6,8}/)) {
-																						delete colorMatchTable[tag.dataset.id]
+																						delete colorsList[tag.dataset.id]
 																						cell.setValue(tag.value)
 																					}
 																				}
@@ -273,8 +280,6 @@ async function fetchTypes(target) {
 async function fetchArticles(target) {
 			const sourcedata = await dataFetcher('articles');
 			const files = await dataFetcher('files', {'filetype':'image'}, 'files').then(response => response.reduce((list, file) => {list[file.url] = file.name; return list}, {}))
-
-			const statusMatch = {'published': 'Publié', 'archived': 'Archivé', 'draft': 'Brouillon'}
 
 			// Extract authors list
 			const authors = sourcedata.reduce((list, article) => {list.push(article.author); return list}, []).filterUnique()
@@ -305,8 +310,8 @@ async function fetchArticles(target) {
 					{ title: "Auteur", field: "author", mutator: (value, d, p, t, cell) => value || cell.getInitialValue(), editor:"list", editorParams: {autocomplete: true, values: authors, freetext: true, allowEmpty: false, listOnEmpty: true}},
 					{ title: "Date", field: "date", editor:"date", validator: "required", resizable: false},
 					{ title: "Date (fin)", field: "end_date", mutator: value => value || null, editor:"date", resizable: false},
-					{ title: "Type", field: "type", mutator: (value, d, p, t, cell) => parseInt(value || cell.getInitialValue() || 0), formatter: function(cell) {return cell.getValue() === 0 ? 'Indéfini' : typesCounter[cell.getValue()]}, editor:"list", editorParams: {values:typesCounter}},
-					{ title: "Étiquettes", field: "tags", mutator: value => value?.split(','), formatter: cell => cell.getValue()?.map(tag => tagsMatchTable[tag].name).join(', ')},
+					{ title: "Type", field: "type", mutator: (value, d, p, t, cell) => value !== '' ? value : Object.keys(typesList).includes(cell.getInitialValue().toString()) ? cell.getInitialValue() : 0, formatter: cell => typesList[cell.getValue()]?.name || typesList[0].name, editor:"list", editorParams: cell => ({values:Object.keys(typesList).reduce((list, key) => {if (key != 0) list[key] = typesList[key].name; return list}, {})})},
+					{ title: "Étiquettes", field: "tags", formatter: cell => cell.getValue()?.split(',').map(tag => tagsList[tag].name).join(', ') || null},
 					{ title: "Image", field: "picture_path", mutator: value => value || '/files/placeholder.png', formatter: cell => cell.getValue()?.filename(true), editor:"list", editorParams: {values: files, emptyValue: '/files/placeholder.png', defaultValue: '/files/placeholder.png'}, widthShrink:1},
 					],
 				});
@@ -388,12 +393,9 @@ async function fetchLogs(target) {
 async function fetchHA(target) {
 			const sourcedata = await fetchAPI('/api/helloasso/get/all').then(response => response.body)
 			
-			// event match table
-			const matchTypeTable = {'Shop':'Boutique', 'Event':'Billeterie', 'Donation':'Don', 'Membership':'Adhésion'}
-			
-			// forms match table - key is form as it is what we find in ordersList
-			const matchFormsTable = sourcedata.formsList.reduce((list, item) => {
-				list[item.formSlug] = {'type': matchTypeTable[item.formType], 'url': item.url, 'name': item.title}
+			// forms match table - key is form slug in ordersList
+			const haFormsList = sourcedata.formsList.reduce((list, item) => {
+				list[item.formSlug] = {'type': haTypeMatch[item.formType], 'url': item.url, 'name': item.title}
 				return list
 			}, {})
 			
@@ -426,12 +428,7 @@ async function fetchHA(target) {
 				{ title: "Date", field: "date", formatter: cell => haFormatter(cell, 'date'), resizable: false},
 				{ title: "Mail", field: "payer.email"},
 				{ title: "Identité", field: "fullname", mutator: (value, data) => data.payer.firstName + ' ' + data.payer.lastName.toUpperCase(), headerFilter: true},
-				/*{ title: "Type", field: "formType", mutator: function (value, data) {
-																					return matchTypeTable[value]
-																					},
-				},*/
-				{ title: "Formulaire", field: "formName", mutator: (value, data) => matchFormsTable[data.formSlug].name, headerFilter:'list', headerFilterParams: () => ({'values': Object.keys(matchFormsTable).reduce((list, item) => [...list, matchFormsTable[item].name], [])})
-				},
+				{ title: "Formulaire", field: "formName", mutator: (value, data) => haFormsList[data.formSlug].name, headerFilter:'list', headerFilterParams: () => ({'values': Object.keys(haFormsList).reduce((list, item) => [...list, haFormsList[item].name], [])})},
 				{ title: "Montant", field: "amount.total", width: 100, mutator: value => value/100, formatter: cell => haFormatter(cell, 'price'), hozAlign: "center"},
 				{ title: "Items", field: "itemslist", mutator: function (value, data) {
 																						receipts = data.items.reduce((list, item) => {list[item.name] = (list[item.name] ?? 0) + 1; return list}, {})
@@ -702,25 +699,20 @@ async function dataFetcher(type, extra=null, engine='database') {
 		    return data
 		}
 
-// Restore table cells dom state
-function resetState(table) {
-			document.querySelectorAll(`${table.selector} .tabulator-cell[changed]`).forEach(elem => {
-				elem.unset('changed')
-				}
-			)
-	    }
-
 // restore table data
-async function resetTabledata(table = activeTable) {
-			table.table.setData(table.source)
-				.then(() => {
+async function resetTabledata(table = activeTable, force = false, source = null) {
+			if (force) tableMatch[table.type].source = JSON.stringify(source ?? table.table.getData())
+			
+			table.table.setData(tableMatch[table.type].source).then(() => {
 						dataChecker(table.table.getData());
-						resetState(table)
+						table.table.clearCellEdited()
+						table.node.querySelectorAll('.tabulator-cell[changed]').forEach(elem => elem.unset('changed'))
 					})
 	    }
 
 // navigate between tables
 function toggleTable(query) {
-	        document.querySelector(query).show();
-	        document.querySelectorAll(`.table:not(${query})`).forEach(e => {e.hide()});
+	        Object.values(tableMatch).forEach(table => table.node.id === query ? table.node.show():table.node.hide());
+
+			tableMatch[query].appendable ? Button('add-row')?.show() : Button('add-row')?.hide()
 		}

@@ -48,7 +48,7 @@ if ($action === 'fetch') {
 					tags_list AS (
 						SELECT article_id, GROUP_CONCAT(tag_id SEPARATOR ',') AS tags
 						FROM articles_tags GROUP BY article_id)
-				SELECT articles.id AS id, articles.status AS status, articles.slug AS url, title, COALESCE(files.url, '/files/placeholder.png') AS picture_path, COALESCE(files.name, 'placeholder.png') AS poster_name, summary, tags_list.tags AS tags, articles.type AS type, author, date, end_date, color, content
+				SELECT articles.id AS id, articles.status AS status, articles.slug AS url, title, COALESCE(files.url, '/files/placeholder.png') AS picture_path, COALESCE(files.name, 'placeholder.png') AS poster_name, summary, tags_list.tags AS tags, COALESCE(articles.type, 0) AS type, author, date, end_date, color
 				FROM articles
 					LEFT JOIN types ON types.id = articles.type
 					LEFT JOIN tags_list ON articles.id = tags_list.article_id
@@ -61,7 +61,7 @@ if ($action === 'fetch') {
 	} elseif ($type === 'types') {
 		$sql = "SELECT id, slug, name, color FROM types";
 	} elseif ($type === 'categories') {
-		$sql = "SELECT categories.slug AS slug, categories.name AS name, sections.slug AS section, removable, COUNT(file_id) AS files FROM categories JOIN sections ON section_id = sections.id LEFT JOIN files_categories ON categories.id = category_id GROUP BY categories.slug";
+		$sql = "SELECT categories.id AS id, categories.slug AS slug, categories.name AS name, sections.slug AS section, removable, COUNT(file_id) AS files FROM categories JOIN sections ON section_id = sections.id LEFT JOIN files_categories ON categories.id = category_id GROUP BY categories.slug";
 	} elseif ($type === 'logs') {
 		$sql = "SELECT * FROM logs ORDER BY time DESC";
 	}
@@ -150,7 +150,7 @@ if ($action === 'update') {
 				}
 			
 			} elseif ($type === 'articles') {
-				$sql = "UPDATE articles SET slug = :url, title = :title, author = :author, date = :date, end_date = :enddate, type = :type, updated_at = :time WHERE id = CAST(:id AS UNSIGNED);"; // extract id of added article
+				$sql = "UPDATE articles SET slug = :url, title = :title, author = :author, date = :date, end_date = :enddate, type = :type, updated_at = :time WHERE id = CAST(:id AS UNSIGNED);";
 				$params =  [
 							':url' => $row['url'],
 							':title' => $row['title'],
@@ -164,38 +164,51 @@ if ($action === 'update') {
 				$query = $pdo->prepare($sql);
 				$query->execute($params);
 
-				$sql = "INSERT INTO articles_covers (article_id, file_id) SELECT :id, (SELECT id FROM files WHERE url = :url) ON DUPLICATE KEY UPDATE file_id = VALUES(file_id)"; // extract id of added article
-				$params =  [
-							':id' => $row['id'],
-							':url' => $row['picture_path']
-						];
-				$query = $pdo->prepare($sql);
-				$query->execute($params);
+				if ($row['picture_path'] !== '/files/placeholder.png') {
+					$sql = "INSERT INTO articles_covers (article_id, file_id) SELECT :id, (SELECT id FROM files WHERE url = :url) ON DUPLICATE KEY UPDATE file_id = VALUES(file_id)";
+					$params =  [
+								':id' => $row['id'],
+								':url' => $row['picture_path']
+							];
+					$query = $pdo->prepare($sql);
+					$query->execute($params);
+				}
 			
 			} elseif ($type === 'tags') {
-				$sql = "UPDATE tags SET name = :name, slug = :slug WHERE id = CAST(:id AS UNSIGNED);"; // extract id of added article
+				$sql = "INSERT INTO tags (id, name, slug) VALUES(".($row['id'] ? ':id' : 'NULL').", :name, :slug) ON DUPLICATE KEY UPDATE name = VALUES(name), slug = VALUES(slug)";
 				$params = [
 							':name' => $row['name'],
-							':slug' => $row['slug'],
-							':id' => $row['id']
+							':slug' => $row['slug']
 							];
+				$row['id'] ? $params[':id'] = $row['id']:null;
 				$query = $pdo->prepare($sql);
 				$query->execute($params);
 			} elseif ($type === 'types') {
-				$sql = "UPDATE types SET name = :name, slug = :slug, color = :color WHERE id = CAST(:id AS UNSIGNED);"; // extract id of added article
+				$sql = "INSERT INTO types (id, name, slug, color) VALUES (".($row['id'] ? ':id' : 'NULL').", :name, :slug, :color) ON DUPLICATE KEY UPDATE name = VALUES(name), slug = VALUES(slug), color = VALUES(color)";
 				$params = [
 							':name' => $row['name'],
 							':slug' => $row['slug'],
-							':color' => $row['color'],
-							':id' => $row['id']
+							':color' => $row['color']
 							];
+				$row['id'] ? $params[':id'] = $row['id']:null;
+				$query = $pdo->prepare($sql);
+				$query->execute($params);
+			} elseif ($type === 'categories') {
+				$sql = "INSERT INTO categories (id, name, slug, section_id, removable) SELECT ".($row['id'] ? ':id' : 'NULL').", :name, :slug, (SELECT id FROM sections WHERE slug = :section), :removable ON DUPLICATE KEY UPDATE name = VALUES(name), slug = VALUES(slug)";
+				$params = [
+							':name' => $row['name'],
+							':slug' => $row['slug'],
+							':removable' => $row['removable'],
+							':section' => $row['section']
+							];
+				$row['id'] ? $params[':id'] = $row['id']:null;
 				$query = $pdo->prepare($sql);
 				$query->execute($params);
 			}
 			logger('\/log\/'.$section.'.log', queryMaker($sql, $params), 'Update data');
 		
 		http_response_code(200);
-		$message = 'queries completed successfully';
+		$message = 'Queries completed successfully';
 		} catch (PDOException $e) {
 			$failure = true;
 			logger('\/log\/'.$section.'.log', 'Source: '.queryMaker($sql, $params).';'.PHP_EOL.json_encode($e), '[ERROR] Failed: Update data');

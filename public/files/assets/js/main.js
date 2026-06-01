@@ -7,16 +7,16 @@ let csrfToken;
 function scrResol() {dpi=null;for (i=0; i<600; i++) {window.matchMedia(`(resolution:${i}dpi)`).matches ? dpi=i:null};return dpi}
 
 // common variables
-let typesList = {}
+let typesMatch = {}
+let tagsMatch = {}
 let tagsList = {}
-let tagsMatchTable = {}
-let typesMatchTable = {}
+let typesList = {}
 let categoriesList = []
 const mimeTable = {'application/pdf': 'pdf.svg', 'application/zip': 'archives.svg', 'application/vnd.sqlite3': 'databases.svg'}
 
 // asynchronous common variables
-fetch('/tmp/tags.json').then(response => response.json()).then(data => {tagsMatchTable = data; Object.values(tagsMatchTable).forEach(val => tagsList[val.slug] = val.name)}).catch(e => {return {}})
-fetch('/tmp/types.json').then(response => response.json()).then(data => {typesMatchTable = data; Object.values(typesMatchTable).forEach(val => typesList[val.slug] = val.name)}).catch(e => {return {}})
+fetch('/tmp/tags.json').then(response => response.json()).then(data => {tagsList = data; Object.values(tagsList).forEach(val => tagsMatch[val.slug] = val.name)}).catch(e => {return {}})
+fetch('/tmp/types.json').then(response => response.json()).then(data => {typesList = data; Object.values(typesList).forEach(val => typesMatch[val.slug] = val.name)}).catch(e => {return {}})
 fetch('/tmp/categories.json').then(response => response.json()).then(data => categoriesList = data.reduce((list, cat) => {list.push(cat['slug']); return list}, [])).catch(e => {return {}})
 
 // load images
@@ -162,6 +162,8 @@ function Box(selector, parent=document) {return parent.querySelector(`.box${sele
 Element.prototype.box = function(selector='') { 
 											return Box(selector, this)
 											}
+
+function Table(selector, parent=document) {return parent.querySelector(`.table#${selector}`)}
 
 function Spinner(parent=document) {return parent.querySelector('.spinner')}
 Element.prototype.spinner = function() { 

@@ -168,7 +168,7 @@ $artTags = getTags();
 							tagsHTML = '';
 							tags ? tags.forEach(tag => {
 								tagsHTML += `<span class="tag-item">
-													<a href="/search?&tags=${tagsMatchTable[tag].slug}">${tagsMatchTable[tag].name}</a>
+													<a href="/search?&tags=${tagsList[tag].slug}">${tagsList[tag].name}</a>
 											</span>
 											<span>-</span>`
 								}):null;

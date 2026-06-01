@@ -97,12 +97,15 @@ $artTypes = getTypes();
 				<div class='table' id='categories'></div>
 			</div>
 
-			<div class="form-action-wrap data-actions linear responsive">
+			<div class="form-action-wrap data-actions linear">
 				<div class='form-action'>
-					<button class='action-btn save'>Sauvegarder</button>
+					<button class='action-btn responsive add-row'>Ajouter une ligne</button>
 				</div>
 				<div class='form-action'>
-					<button class='action-btn reset'>Réinitialiser</button>
+					<button class='action-btn responsive save'>Sauvegarder</button>
+				</div>
+				<div class='form-action'>
+					<button class='action-btn responsive reset'>Réinitialiser</button>
 				</div>
 				<input id='csrf' name='csrf-token' value=<?= $_SESSION['CSRF'] ?> data-csrf=<?= $_SESSION['CSRF'] ?> required hidden readonly>
 			</div>
@@ -114,14 +117,9 @@ $artTypes = getTypes();
 		<?php include($root . '/app/templates/footer.html') ?>
 		
 		<script>
-		// variables
-		let typesCounter = {};
-
 		// on-load logic
 		window.addEventListener('load', loader)
 		async function loader()  {
-									Object.entries(typesMatchTable).forEach(([key, val]) => {if (parseInt(key) !== 0) typesCounter[key] = val.name})
-									
 									// fetch all required data
 									await tablesBuilder()
 									}
@@ -136,11 +134,11 @@ $artTypes = getTypes();
 				
 				// easy match table with their type
 				tableMatch = {
-							'users': {'table': usersTable, 'source': JSON.stringify(usersTable.getData()), 'call': fetchUsers, 'selector': '#users', 'type': 'users'},
-							'articles': {'table': articlesTable, 'source': JSON.stringify(articlesTable.getData()), 'call': fetchArticles, 'selector': '#articles', 'type': 'articles'},
-							'tags': {'table': tagsTable, 'source': JSON.stringify(tagsTable.getData()), 'call': fetchTags, 'selector': '#tags', 'type': 'tags'},
-							'types': {'table': typesTable, 'source': JSON.stringify(typesTable.getData()), 'call': fetchTypes, 'selector': '#types', 'type': 'types'},
-							'categories': {'table': categoriesTable, 'source': JSON.stringify(categoriesTable.getData()), 'call': fetchCategories, 'selector': '#categories', 'type': 'categories'}
+							'users': {'table': usersTable, 'node': Table('users'), 'source': JSON.stringify(usersTable.getData()), 'call': fetchUsers, 'selector': '#users', 'type': 'users', 'appendable': false},
+							'articles': {'table': articlesTable, 'node': Table('articles'), 'source': JSON.stringify(articlesTable.getData()), 'call': fetchArticles, 'selector': '#articles', 'type': 'articles', 'appendable': false},
+							'tags': {'table': tagsTable, 'node': Table('tags'), 'source': JSON.stringify(tagsTable.getData()), 'call': fetchTags, 'selector': '#tags', 'type': 'tags', 'appendable': true},
+							'types': {'table': typesTable, 'node': Table('types'), 'source': JSON.stringify(typesTable.getData()), 'call': fetchTypes, 'selector': '#types', 'type': 'types', 'appendable': true},
+							'categories': {'table': categoriesTable, 'node': Table('categories'), 'source': JSON.stringify(categoriesTable.getData()), 'call': fetchCategories, 'selector': '#categories', 'type': 'categories', 'appendable': true}
 				}
 				tablesListener(true)
 
@@ -208,7 +206,8 @@ $artTypes = getTypes();
 
 				// dom objects
 				btn = event.target.findParent('.icon')
-				row = cell.getRow();
+				row = cell.getRow()
+				rowIndex = row.getPosition()
 
 				// extract data
 				type = activeTable.type;
@@ -227,19 +226,43 @@ $artTypes = getTypes();
 					notify("Erreur", `La suppression de '${slug}' de la liste des ${type} a échoué. Veuillez réessayer.`, 'red')
 					return
 				}
-
+				
 				// Update DOM and table data
-				row.delete()
+				row.delete().then(() => tableMatch[activeTable.type].source = JSON.stringify(JSON.parse(tableMatch[activeTable.type].source).filter((item, index) => index !== rowIndex - 1)))
 				
-				activeTable.source = JSON.stringify(activeTable.table.getData())
-				resetState(activeTable)
-				
-				if (['tags', 'type'].includes(type)) {
-					tableMatch.articles.source = await dataFetcher('articles').then(response => JSON.stringify(response));
-					await resetTabledata(tableMatch.articles)
+				// Update config Objects
+				if (['tags', 'types'].includes(type)) {
+					if (type === 'tags') {
+						IDs = tableMatch.tags.table.getData().reduce((list, row) => [...list, row.id], [])
+						Object.keys(tagsList).forEach(id => {if (!IDs.includes(parseInt(id))) delete tagsList[id]})
+					} else if (type === 'types') {
+						IDs = tableMatch.types.table.getData().reduce((list, row) => [...list, row.id], [])
+						Object.keys(typesList).forEach(id => {if (!IDs.includes(parseInt(id))) delete typesList[id]})
+					}
+
+					// Update source data in articles
+					source = JSON.stringify(JSON.parse(tableMatch.articles.source).reduce((list, row) => {
+						// Update type
+						if (!Object.keys(typesList).includes(row.type.toString())) row.type = 0
+
+						// Update tags
+						row.tags = row.tags?.split(',').filter(tag => Object.keys(tagsList).includes(tag)).join(',') || null
+
+						list.push(row)
+						return list
+					}, []))
+					tableMatch.articles.source = source
+
+					// Update corresponding cells
+					tableMatch.articles.table.getColumn('type').getCells().forEach(cell => !Object.keys(typesList).includes(cell.getValue().toString()) ? cell.setValue(0):null)
+					tableMatch.articles.table.getColumn('tags').getCells().forEach(cell => cell.setValue(cell.getValue()?.split(',').filter(tag => Object.keys(tagsList).includes(tag)).join(',') || null))
 				}
 
 				notify("Suppression effectuée", `'${slug}' a été supprimé de la liste des ${type}.`, 'green')
+		}
+
+		Button('add-row').onclick = e => {
+			if (activeTable?.appendable) activeTable.table.addRow({'id': activeTable.table.getRows().slice(-1)[0].getData().id + 1, 'removable': true, 'slug': null, 'name': null, 'color': null, 'actions': true}).then(() => dataChecker(activeTable.table.getData()))
 		}
 
 		// actions that require authentification
@@ -247,38 +270,51 @@ $artTypes = getTypes();
 		async function saveCurrentData() {
 				// active table
 				table = activeTable.table;
+				type = activeTable.type;
 
 				// select edited rows, with values different from original
 				modifiedRows = Array.from(table.getEditedCells().concat(Object.values(autoEditedCells))).map(c => {return c.getValue() !== c.getInitialValue() ? c.getRow().getData():null}).filterUnique();
 
 				// update fetch
-				jsonData = JSON.stringify({'action':'update', 'type':activeTable.type, 'csrf':csrfToken, 'data':modifiedRows})
+				jsonData = JSON.stringify({'action':'update', 'type':type, 'csrf':csrfToken, 'data':modifiedRows})
 				response = await fetchAPI('/admin/engine/database', jsonData)
 
 				if (!response.ok) {
-					notify("Échec de la mise à jour", `Des erreurs sont survenues lors de la mise à jour des données de la table '${activeTable.type}'. Consultez les logs pour plus d'informations.`, 'red')
+					notify("Échec de la mise à jour", `Des erreurs sont survenues lors de la mise à jour des données de la table '${type}'. Consultez les logs pour plus d'informations.`, 'red')
 					return
 				} else {
 					document.querySelector('#main').child('.form-action-wrap').hide()
 					
-					activeTable.source = JSON.stringify(activeTable.table.getData())
-					resetState(activeTable)
+					// Make new rows non-removable
+					if (activeTable.appendable) activeTable.table.getColumn('actions').getCells().forEach(cell => cell.setValue(false))
+					
+					// Reset table source to current data
+					resetTabledata(activeTable, true)
 
-					if (activeTable.type === 'tags') {
-						null
-						// UPDATE TAGS MATCH TABLE
+					// Update config Objects
+					if (['tags', 'types'].includes(type)) {
+						if (type === 'tags') {
+							tableMatch.tags.table.getData().forEach(row => tagsList[row.id] = {'slug':row.slug, 'name':row.name})
+						} else if (type === 'types') {
+							tableMatch.types.table.getData().forEach(row => typesList[row.id] = {'slug':row.slug, 'name':row.name, 'color':row.color})
+						}
+
+						// Update data in articles table
+						tableMatch.articles.table.getRows().forEach(row => row.reformat())
 					}
 
 					notify("Succès", `Les données de la table '${activeTable.type}' ont été mises à jour.`, 'green')
 				}
 				}
 		
-		// refresh helloasso data
+		// refresh tables data
 		Icon('refresh').onclick = async e => {
 				icon = e.target.findParent('.icon')
-				icon.show();
+				icon.show()
+				token = activeTable?.type
 				notify("Synchronisation en cours",  `Les données sont en cours de synchronisation depuis la base de données.`, 'orange')
 				await tablesBuilder()
+				activeTable=tableMatch[token]
 				notify("Synchronisation terminée", "Les données ont été mises à jour depuis la base de données.", 'green')
 				icon.hide()
 		};

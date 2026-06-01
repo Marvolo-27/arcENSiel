@@ -75,12 +75,12 @@ if ($_SESSION['role'] !== 'admin') {
 			<div class='table no-bound' id='goodies'></div>
 			<div class='table no-bound' id='dq7'></div>
 			
-			<div class="form-action-wrap data-actions linear responsive">
+			<div class="form-action-wrap data-actions linear">
 				<div class='form-action'>
-					<button class='action-btn save'>Sauvegarder</button>
+					<button class='action-btn responsive save'>Sauvegarder</button>
 				</div>
 				<div class='form-action'>
-					<button class='action-btn reset'>Réinitialiser</button>
+					<button class='action-btn responsive reset'>Réinitialiser</button>
 				</div>
 				<input id='csrf' name='csrf-token' value=<?= $_SESSION['CSRF'] ?> data-csrf=<?= $_SESSION['CSRF'] ?> required hidden readonly>
 			</div>
@@ -101,9 +101,9 @@ if ($_SESSION['role'] !== 'admin') {
 									
 									// easy match table with their type
 									tableMatch = {
-												'helloasso': {'table': haTable, 'source': JSON.stringify(haTable.getData()), 'call': fetchHA, 'type': 'helloasso', 'selector': '#helloasso'},
-												'goodies': {'table': goodiesTable, 'source': JSON.stringify(goodiesTable.getData()), 'call': fetchGoodies, 'type': 'goodies', 'selector': '#goodies'},
-												'dq7': {'table': dq7Table, 'source': JSON.stringify(dq7Table.getData()), 'call': fetchDQ7, 'type': 'dq7', 'selector': '#dq7'}
+												'helloasso': {'table': haTable, 'node': Table('helloasso'), 'source': JSON.stringify(haTable.getData()), 'call': fetchHA, 'type': 'helloasso', 'selector': '#helloasso'},
+												'goodies': {'table': goodiesTable, 'node': Table('goodies'), 'source': JSON.stringify(goodiesTable.getData()), 'call': fetchGoodies, 'type': 'goodies', 'selector': '#goodies'},
+												'dq7': {'table': dq7Table, 'node': Table('dq7'), 'source': JSON.stringify(dq7Table.getData()), 'call': fetchDQ7, 'type': 'dq7', 'selector': '#dq7'}
 												}
 									
 									tablesListener(true)
@@ -132,7 +132,7 @@ if ($_SESSION['role'] !== 'admin') {
 					await sleep(500);
 					
 					// extract data
-					srcdata = Array.from(goodiesTable.getData()).map(data => {return {"id": data.id, "delivered": data.delivered, "registered": data.registered}});
+					srcdata = Array.from(goodiesTable.getData()).map(data => ({"id": data.id, "delivered": data.delivered, "registered": data.registered}));
 
 					jsonData = JSON.stringify({'data':srcdata, 'csrf':csrfToken})
 					response = await fetchAPI('/api/helloasso/edit', jsonData)
@@ -145,8 +145,7 @@ if ($_SESSION['role'] !== 'admin') {
 					notify("Données mises à jour", "Les modifications ont été enregistrées sur le serveur.", 'green')
 					
 					// Reset table state
-					activeTable.source = JSON.stringify(activeTable.table.getData())
-					resetState(activeTable)
+					resetTableData(activeTable, true)
 				}
 		
 		// Show download options
