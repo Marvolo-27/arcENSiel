@@ -40,14 +40,6 @@ if ($_SESSION['role'] !== 'admin') {
 		
 		<link href="https://unpkg.com/tabulator-tables/dist/css/tabulator.min.css" rel="stylesheet">
 		<script type="text/javascript" src="https://unpkg.com/tabulator-tables/dist/js/tabulator.min.js"></script>
-		
-		<style>
-			/*!! News !!*/
-			#placeholder {
-				width: 95%;
-				margin: auto;
-				}
-		</style>
 	</head>	
 	
 	<body>
@@ -55,12 +47,12 @@ if ($_SESSION['role'] !== 'admin') {
 		
 		<div id='main'>
 			<div class="head-info">
-				<a class='icon go-back inline large hoverable dynamic' href="/admin/dashboard"><div class='img'></div></a>	
+				<a class='icon go-back inline large hoverable dynamic' href="/admin/dashboard"></a>	
 				<h1>Fichiers logs</h1>
-				<div class='icon refresh inline large hoverable dynamic' title="Synchroniser les données"><span class='img'></span></div>
+				<div class='icon refresh inline large hoverable dynamic' title="Synchroniser les données"></div>
 			</div>
 			
-			<div class="box">
+			<div class="box filters">
 				<div class="input-container checkboxes">
 					<span>
 						<input class='checkbox' type='radio' id="all-btn" name="table" value="all" checked>
@@ -103,45 +95,43 @@ if ($_SESSION['role'] !== 'admin') {
 		// on-load logic
 		window.addEventListener('load', loader)
 		async function loader()  {
-									// fetch all required data
-									await fetchLogs('#logs');
-									
-									// easy match table with their type
-									tableMatch = {
-												'logs': {'table': logsTable, 'source': JSON.stringify(logsTable.getData()), 'call': fetchLogs, 'selector': '#logs', 'type': 'logs'},
-												}
-									activeTable = logsTable;
-									
-									tablesSwitcher()
+					await tablesBuilder()
 
-									// Tables buttons management
-									Array.from(document.querySelector('.input-container.checkboxes').children).forEach(
-											item => {
-												item.addEventListener('change', e => {
-													tkn = e.target.findParent('span').input().value;
-													
-													if (tkn === 'all') {
-														logsTable.clearFilter()
-													} else {
-														logsTable.setFilter("section", "=", tkn)
-													}
-												})
-											})
-									}
+					// Tables buttons management
+					Box('filters').inputs().forEach(item => item.onchange = e => {
+							const token = e.target.value
+							
+							if (token === 'all') {
+								logsTable.clearFilter()
+							} else {
+								logsTable.setFilter("section", "=", token)
+							}
+						})
+					}
 		
-		Icon('refresh').onclick = logUpdater;
-		
+		async function tablesBuilder() {
+				// fetch all required data
+				await fetchLogs('#logs')
+				
+				// easy match table with their type
+				tableMatch = {
+							'logs': {'table': logsTable, 'source': JSON.stringify(logsTable.getData()), 'call': fetchLogs, 'selector': '#logs', 'type': 'logs'},
+							}
+				activeTable = tableMatch.logs // Force active table update
+				
+				tablesSwitcher()
+		}
+
+		Icon('refresh').onclick = logUpdater
 		async function logUpdater(e) {
+			const icon = e.target
+			icon.show()
+			icon.setAttribute('title','Synchronisation des logs')
 			notify("Synchronisation en cours", "Récupération des logs depuis la base de données.", 'orange')
-			icon = e.target.findParent('.icon')
-			icon.show();
-			icon.setAttribute('title','Synchronisation des logs');
-
-			await fetchLogs('#logs')
-			
-			icon.hide();
-			icon.setAttribute('title','Synchroniser les logs');
+			await tablesBuilder()
 			notify("Synchronisation terminée", "Les logs ont correctement été synchronisés.", 'green')
+			icon.setAttribute('title','Synchroniser les logs')
+			icon.hide()
 			}
 		</script>
 	</body>

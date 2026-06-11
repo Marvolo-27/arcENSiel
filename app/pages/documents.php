@@ -61,15 +61,7 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 		<link rel='stylesheet' type='text/css' href='/files/assets/css/main.css'></link>
 		
 		<script src='/files/assets/js/main.js'></script>
-		<script src='/files/assets/js/upload.js'></script>
-
-		<style>
-			.left-align {justify-content: flex-start;}
-
-			li .icon {display: inline-block;}
-
-			#filename, #fileextension {font-size: .7em}
-		</style>
+		<?php if ($status === 'edit'): ?><script src='/files/assets/js/upload.js'></script><?php endif; ?>
 	</head>	
 	
 	<body>
@@ -88,7 +80,6 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 				<div class='box statuts linear'>
 					<div class='input-header'>
 						<div class='icon info inline hoverable'>
-							<span class='img'></span>
 							<span class='infotext'>Modifier la date de dernière mise à jour pour pouvoir charger les nouveaux statuts.</span>
 						</div>
 						
@@ -107,8 +98,8 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 				<p>Consulter les <a id="statuts" href="<?= $statuts['url'] ?>" data-alias="<?= $statuts['description'] ?>" download="<?= end(explode('/', $statuts['url'])) ?>" target="_blank_">statuts</a> <small><i>(<?= formatBytes($statuts['size'],1) ?>)</i></small>.</p> 
 				
 				<?php if ($status === 'edit'): ?>
-					<div class="form-action-wrap linear left-align">
-						<div class="form-action">
+					<div class="actions-wrap linear left-align">
+						<div class="action-container">
 							<button class="action-btn new-file" data-category="statuts" data-mode="add" disabled>Mettre à jour les statuts</button>
 						</div>
 					</div>
@@ -126,8 +117,8 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 								<?php if ($doc['status']): ?>
 								<li>
 									<?php if ($status === 'edit'): ?>
-										<div class='icon change delete inline medium dynamic hoverable' data-icon-type='delete' title="Supprimer cette entrée"><span class='img'></span></div>
-										<div class='icon change edit inline medium dynamic hoverable' data-icon-type='edit' title="Modifier cette entrée"><span class='img'></span></div>
+										<div class='icon change delete inline dynamic hoverable' data-icon-type='delete' title="Supprimer cette entrée"></div>
+										<div class='icon change edit inline dynamic hoverable' data-icon-type='edit' title="Modifier cette entrée"></div>
 									<?php endif; ?>
 									<a href="<?= $doc['url'] ?>" data-name="<?= $doc['name'] ?>" <?= $status === 'edit' ? "data-target-url='".$doc['url']."'":'' ?> download target="_blank_"><?= $doc['description'] ?></a> <small><i>(<?= formatBytes($doc['size'],1) ?>)</i></small>
 								</li>
@@ -135,8 +126,8 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 							<?php } ?>
 						</ul>
 						<?php if ($status === 'edit'): ?>
-							<div class="form-action-wrap linear left-align">
-								<div class="form-action">
+							<div class="actions-wrap linear left-align">
+								<div class="action-container">
 									<button class="action-btn new-file" data-category="<?= $slug ?>" data-mode="add">Ajouter un fichier</button>
 								</div>
 							</div>
@@ -147,8 +138,8 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 			
 			<?php if ($status === 'edit'): ?>
 			<div>
-				<div class="form-action-wrap linear">
-					<div class='form-action'>
+				<div class="actions-wrap linear">
+					<div class='action-container'>
 						<button class='action-btn new-section'>Ajouter une section</button>
 					</div>
 				</div>
@@ -159,14 +150,10 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 		<?php if($_SESSION['role'] === 'admin'): ?>
 		<div id="admin-actions">
 			<?php if($status === 'view'): ?>	
-			<a class='icon edit inline large dynamic' href="/admin/tools/edit/documents" title="Modifier les fichiers">
-				<span class='img'></span>
-			</a>
+				<a class='icon edit inline large dynamic' href="/admin/tools/edit/documents" title="Modifier les fichiers"></a>
 			<?php endif; ?>
 			<?php if($status === 'edit'): ?>
-			<a class='icon toggle-pass inline large dynamic hoverable' href="/documents" title="Retourner en mode spectacteur">
-				<span class='img'></span>
-			</a>
+				<a class='icon toggle-pass inline large dynamic hoverable' href="/documents" title="Retourner en mode spectacteur"></a>
 			<?php endif; ?>
 			<input name='csrf-token' id='csrf' data-csrf='<?= $_SESSION['CSRF'] ?>' value='<?= $_SESSION['CSRF'] ?>' required hidden readonly>
 		</div>
@@ -182,27 +169,29 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 					<div><small><it>Le fichier ne sera pas supprimé du serveur</it></small></div>
 				</div>
 				
-				<div class='external form-action-wrap linear'>
-					<div class='form-action'>
+				<div class='external actions-wrap linear'>
+					<div class='action-container'>
 						<button class='action-btn validate'>Poursuivre</button>
 					</div>
-					<div class='form-action'>
+					<div class='action-container'>
 						<button class='action-btn cancel'>Annuler</button>
 					</div>
 				</div>
 			</div>
 		</div>
 		
-		<?php include($root . '/app/templates/overlay_file-picker.html') ?>
-		<?php include($root . '/app/templates/overlay_file-uploader.html') ?>
+		<?php if ($status === 'edit'): ?>
+			<?php include($root . '/app/templates/overlay_file-picker.html') ?>
+			<?php include($root . '/app/templates/overlay_file-uploader.php') ?>
+		<?php endif; ?>
         <?php include($root . '/app/templates/footer.html') ?>
 
 		<script>
 		<?php if ($status === 'edit'): ?>
 			// global variables
-			let category;
-			let mode;
-			let currentFile = {}; // {tag:tag, url:url}
+			let category
+			let mode
+			let currentFile = {}	// {tag:tag, url:url}
 
 		/// GENERAL ACTIONS
 			// on load actions
@@ -210,17 +199,18 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 			async function loader()  {
 										fileSelectorLoad('pdf')
 
-										Overlay('filepicker').querySelector('.file-preview').toggle()
-										Overlay('filepicker').querySelector('.fetch-all').toggle()
+										Overlay('filepicker').section('file-preview').toggle()
+										Overlay('filepicker').button('fetch-all').toggle()
 										}
 
 			// trigger entry update
-			document.body.childs('.change').forEach(icon => icon.onclick = e => {t = e.target.findParent('.icon'); changeEntryTrigger(t, t.dataset.iconType, t.findParent('ul').className)})
+			Icons('change').forEach(icon => icon.onclick = e => changeEntryTrigger(e.target, e.target.dataset.iconType, e.target.parent('ul').className))
 			function changeEntryTrigger(tag, action, type) {
-						linkTag = tag.findParent('li').querySelector('a');
-						url = linkTag.getAttribute('href'); // .href gives absolute path, so not compatibe with DB format
-						name = linkTag.dataset.name
-						category = type;
+						const overlay = Overlay('uploader')
+						const item    = tag.parent('li').querySelector('a')
+						const url     = item.getAttribute('href')		// .href gives absolute path, so not compatibe with DB format
+						const name    = item.dataset.name
+						
 						currentFile = {'tag':linkTag, 'url':url, 'category':type}
 						
 						if (action === 'delete') {// delete file from list							
@@ -228,108 +218,82 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 							Overlay('deletion').toggle()
 
 						} else if (action === 'edit') {// edit pour changer description ou fichier
-							overlay = Overlay('uploader')
-							overlay.box('description').input().value = linkTag.innerText;
 							overlay.child('.title').innerText = "Modification d'une entrée"
 							overlay.child('.selected-file').innerText = name;
-							overlay.child('.frame').show()
-							overlay.child('.fileentry').required = false;
-							overlay.toggle()
 
+							overlay.input('desc').value = linkTag.innerText;
 							overlay.input('filename').dataset.name = url.filename(true)
 							overlay.input('filename').value = url.filename()
-							overlay.input('fileextension').value = url.extension();
+							overlay.input('fileextension').value = url.extension()
 							overlay.input('filename').readOnly = true
+							overlay.input('file').required = false;
 							
-							mode = 'update';
-						}
+							overlay.section('frame').show()
+							overlay.toggle()
 
-						return
+							mode = 'update'
+						}
 					}
 			
 			// Statuts update switcher
-			Input('update-time').onchange = e => {
-				e.target.value !== e.target.dataset.source ? Button('new-file[data-category="statuts"]').enable() : Button('new-file[data-category="statuts"]').disable();
-			}
-
-
-			// on drop logic
-			function fileDropHandle(e) {
-						allowDrop(e);
-						
-						data = e.dataTransfer;
-						files = data.files;
-						
-						input = Input('file');
-						input.files = files;
-						
-						upload = fileUploadManage(input, /(application\/(pdf|zip|vnd\.sqlite3)|image\/.*)/, 10)
-						
-						if (upload) {
-							Overlay('uploader').input('filename').value = file.name.filename().filenameForm()
-							Overlay('uploader').input('filename').dataset.name = file.name.filenameForm()
-							Overlay('uploader').input('fileextension').value = file.name.extension();
-						}
-					}
+			Input('update-time').onchange = e => e.target.value !== e.target.dataset.source ? Button('new-file[data-category="statuts"]').enable() : Button('new-file[data-category="statuts"]').disable()
 
 			// update file description on server
 			async function descUpdate(form) {
-						ogUrl = currentFile.url ?? null
-						tag = currentFile.tag ?? null
-						currentFile = {};
-
-						fileTag = Overlay('uploader').child('.fileentry')
-
-						formData = new FormData(form);
+						const formData  = new FormData(form)
+						const sourceURL = currentFile.url ?? null
+						const item = currentFile.tag ?? null
+						currentFile = {}
+						
 						formData.set('mode', mode)
 						formData.set('source', 'uploads/pdf/')
 						formData.set('action', 'update')
 						formData.set('section', 'documents')
 						formData.set('category', category)
-						category === 'statuts' ? formData.set('date', Input('update-time').value) : null
-						formData.set('og-url', ogUrl)
-						formData.set('url', tag?.dataset.targetUrl)
+						formData.set('og-url', sourceURL)
+						formData.set('url', item?.dataset.targetUrl)
 						formData.set('filename', formData.get('filename') + '.' + Overlay('uploader').input('fileextension').value)
-						formData.set('file-updated', mode === 'update' && ogUrl !== tag?.dataset.targetUrl)
+						formData.set('file-updated', mode === 'update' && sourceURL !== item?.dataset.targetUrl)
 						formData.set('csrf', csrfToken)
+						if (category === 'statuts') formData.set('date', Input('update-time').value)
 
 						// Response object
-						response = await fetchAPI('/admin/engine/files', formData)
-						data = response.body
+						const response = await fetchAPI('/admin/engine/files', formData)
+						const data = response.body
 
 						if (!response.ok) {// http code 400-500 reuturn false
-								alert(`Error: HTTP ${response.httpcode}: ${response.body.error}`);
-								return null
-							}
-						
-						if (response.httpcode === 250) {// failed sql request
-							errorData = data.error;
-							errorCode = data.code;
-							
-							notify("Erreur lors de la mise à jour", `La mise à jour des informations a échoué. [Error ${errorCode}]: ${errorData}`, 'red');							
+							notify("Échec de la requête", `La requête n'a pas pu être traitée sur le serveur. [Error HTTP ${response.httpcode}] ${response.body.error}`, 'red')
 							return
-						} else {// correct sql response
-							notify("Mise à jour terminée", "Les informations ont été mises à jour.", 'green')
+						} else if (response.httpcode === 250) {// failed sql request
+							errorData = data.error
+							errorCode = data.code
+							
+							notify("Erreur lors de la mise à jour", `La mise à jour des informations a échoué. [Error ${errorCode}]: ${errorData}`, 'red')			
+							return
 						}
 
+						notify("Mise à jour terminée", "Les informations ont été mises à jour.", 'green')
+						
 						if (mode === 'add') {
 							if (category === 'statuts') {
-								Input('update-time').dataset.source = Input('update-time').value
+								const time  = Input('update-time')
+								const input = Input('statuts')
 								Button('new-file[data-category="statuts"]').disable()
-
-								Input('statuts').href = data.data.path
-								Input('statuts').download = data.data.name
-								Input('statuts').dataset.alias = data.data.desc
-								Input('statuts').nextElementSibling.firstChild.innerText = `(${formatBytes(data.data.size, 1)})`
+								
+								time.dataset.source = time.value
+								input.href = data.data.path
+								input.download = data.data.name
+								input.dataset.alias = data.data.desc
+								input.nextElementSibling.firstChild.innerText = `(${formatBytes(data.data.size, 1)})`
 							} else {
 								li = document.createElement('li');
 								li.innerHTML = `
-										<div class='icon change delete inline medium dynamic hoverable'" data-icon-type='delete' title="Supprimer cette entrée"><span class='img'></span></div>
-										<div class='icon change edit inline medium dynamic hoverable'" data-icon-type='edit' title="Modifier cette entrée"><span class='img'></span></div>
+										<div class='icon change delete inline dynamic hoverable'" data-icon-type='delete' title="Supprimer cette entrée"></div>
+										<div class='icon change edit inline dynamic hoverable'" data-icon-type='edit' title="Modifier cette entrée"></div>
 										<a href="${data.data.path}" data-name="${data.data.name}" target="_blank_" download>${data.data.desc}</a> <small><i>(${formatBytes(data.data.size, 1)})</i></small>
 									`
-								li.childs('.icon.change').forEach(icon => icon.onclick = e => {t = e.target.findParent('.icon'); changeEntryTrigger(t, t.dataset.iconType, t.findParent('ul').className)})
-								document.querySelector(`.${category}`).append(li)
+								li.icons('change').forEach(icon => icon.onclick = e => changeEntryTrigger(e.target, e.target.dataset.iconType, e.target.parent('ul').className))
+								Section(category).append(li)
 							}
 						} else {
 							if (data.data.path != null) {// new file
@@ -348,19 +312,54 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 
 			// delete entry on server
 			async function removeElement() {
-						url = currentFile.url;
-						tag = currentFile.tag;
-						currentFile = {};
+						const url = currentFile.url
+						const tag = currentFile.tag
+						currentFile = {}
 
 						// update data on server
-						jsonData = JSON.stringify({'csrf':csrfToken, 'action':'reference', 'mode':'delete', 'url':url, 'category':category})
-						response = await fetchAPI('/admin/engine/files', jsonData)
+						const jsonData = JSON.stringify({'csrf':csrfToken, 'action':'reference', 'mode':'delete', 'url':url, 'category':category})
+						const response = await fetchAPI('/admin/engine/files', jsonData)
 
-						if (response.ok) {
-							notify("Document retiré", `Le fichier ${url.filename()} a été supprimé de la liste des ${category}`, 'green');
-							tag.parentNode.remove();
+						if (!response.ok) {
+							notify("Échec lors de la suppression", `Le fichier ${url.filename()} n'a pas pu être supprimé de la liste des ${category}`, 'red')
+						} else {
+							notify("Document retiré", `Le fichier ${url.filename()} a été supprimé de la liste des ${category}`, 'green')
+							tag.parentNode.remove()
 						}
 					}
+
+			function fileSelectorFilter(category) {
+					container = Overlay('filepicker').section('files-list-container')
+
+					Array.from(container.children).forEach(wrap => {
+						wrap.child('.file-element').dataset.references?.split(',').includes(category) ? wrap.set('hidden'):wrap.unset('hidden')
+					})
+				}
+
+			function newEntry(e) {
+					overlay = Overlay('uploader')
+					overlay.child('form').reset()
+					overlay.child('.fileentry').required = true
+					overlay.section('frame').hide()
+					overlay.child('.title').innerText = "Ajout d'une entrée"
+					overlay.toggle()
+
+					category = e.target.dataset.category
+					mode = e.target.dataset.mode
+				}
+
+			// show panel to save changes
+			Buttons('new-file').forEach(button => button.onclick = newEntry)
+
+			Overlay('deletion').button('cancel').onclick = e => {
+				Overlay('deletion').hide()
+				currentFile = {}
+			}
+
+			Overlay('deletion').button('validate').onclick = e => {
+				Overlay('deletion').hide()
+				removeElement()
+			}
 
 			// filename input
 			Overlay('uploader').input('filename').oninput = e => {
@@ -368,245 +367,118 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 					e.target.value = e.target.value.filenameForm()
 					e.target.setSelectionRange(pos,pos)
 				}
-
-			// show panel to save changes
-			document.body.childs('.action-btn.new-file').forEach(button => button.onclick = function(e){
-				overlay = Overlay('uploader')
-				overlay.child('form').reset();
-				overlay.child('.fileentry').required = true;
-				overlay.child('.frame').hide();
-				overlay.child('.title').innerText = "Ajout d'une entrée"
-				overlay.toggle()
-
-				category = e.target.dataset.category
-				mode = e.target.dataset.mode
-			})
-
+			
+			Overlay('uploader').icon('delete').onclick = resetFileUpload
 			Overlay('uploader').button('cancel').onclick = e => {
-				overlay = e.container()
-				overlay.hide();
-				overlay.child('form').reset();
-				overlay.child('.selected-file').innerText = '';
-				overlay.input('filename').readOnly = false
-				currentFile = {};
-			}
-
-			Overlay('deletion').button('cancel').onclick = e => {
-				e.container().hide();
-				currentFile = {};
-			}
-
-			Overlay('deletion').button('validate').onclick = e => {
-				e.container().hide();
-				removeElement()
+				resetFileUpload(e, true)
+				currentFile = {}
 			}
 
 			Overlay('uploader').child('form').onsubmit = e => {
-				e.preventDefault();
-				e.container().hide();
-				
+				e.preventDefault()
+				Overlay('uploader').hide()
 				descUpdate(e.target)
 			}
-
-			Overlay('uploader').icon('delete').onclick = e => {
-				overlay = Overlay('uploader')
-				filename = overlay.input('filename')
-				fileextension = overlay.input('fileextension')
-				file = overlay.input('file')
-
-				overlay.child('.frame').hide();
-				overlay.child('.selected-file').innerText = '';
-				file.required = true;
-				file.value = '';
-
-				filename.dataset.name = ''
-				filename.value = ''
-				filename.readOnly = false
-				fileextension.value = ''
-			}
-
-			// cancel request action
-			Overlay('filepicker').button('cancel').onclick = e => {
-				e.container().toggle();
-				Overlay('uploader').toggle();
-				e.container().childs('.file-element').forEach(tag => {tag.unset('selected')})
-				Overlay('uploader').input('filename').readOnly = false
-				//currentFile = {};
-			}
-
+			
 			// show file selection panel
 			Overlay('uploader').button('exist-file').onclick = e => {
 					fileSelectorFilter(category)
 					
-					Overlay('uploader').toggle();
-					Overlay('filepicker').toggle();
+					Overlay('uploader').toggle()
+					Overlay('filepicker').toggle()
+			}
+			
+			// cancel request action
+			Overlay('filepicker').button('cancel').onclick = e => {
+				Overlay('filepicker').hide()
+				Overlay('uploader').show()
+				Overlay('filepicker').childs('.file-element').forEach(tag => tag.unset('selected'))
+				Overlay('uploader').input('filename').readOnly = false
+				//currentFile = {};
 			}
 
 			Overlay('filepicker').button('validate').onclick = e => {
-					tag = Overlay('filepicker').child('.file-element[selected]')
-					error = Error('file-choice')
+					const url = filePickManage()
 
-					if (tag === null) {
-						error.innerText = 'Sélectionnez un fichier pour continuer';
-						error.show();
-					} else {
-						overlay = Overlay('uploader')
-						error.hide();
-						e.container().hide();
-						overlay.toggle();
-
-						url = tag.dataset.targetUrl;
-						Object.keys(currentFile).length !== 0 ? currentFile.tag.dataset.targetUrl = url:currentFile = {'url': null, 'tag': tag}; // prevent error on add mode
-						
-						overlay.input('filename').dataset.name = url.filename(true)
-						overlay.input('filename').value = url.filename()
-						overlay.input('fileextension').value = url.extension()
-						overlay.input('desc').value = tag.dataset.alt
-						overlay.input('filename').readOnly = true
-
-						e.container().childs('.file-element').forEach(tag => {tag.unset('selected')})
-						overlay.child('.selected-file').innerText = url.filename(true);
-						overlay.child('.frame').show();
-						overlay.child('.fileentry').required = false;
+					if (url) {
+						Overlay('uploader').child('.selected-file').innerText = url.filename(true)
+						Object.keys(currentFile).length !== 0 ? currentFile.tag.dataset.targetUrl = url:currentFile = {'url': null, 'tag': tag}	// prevent error on add mode
 					}
 			}
 
-			// FILE MANAGEMENT //
-		Input('file').onchange = e => {
-							upload = fileUploadManage(e.target, /(application\/(pdf|zip|vnd\.sqlite3)|image\/.*)/, 10)
-							if (upload) {
-								Overlay('uploader').input('filename').value = file.name.filename().filenameForm()
-								Overlay('uploader').input('filename').dataset.name = file.name.filenameForm();
-								Overlay('uploader').input('fileextension').value = file.name.extension();
-							}
-							};
-
-		async function fileSelectorLoad(type=null) {
-				container = Overlay('filepicker').child('.files-list-container');
-				container.innerHTML = '<div class="spinner"></div>';
-
-				jsonData = JSON.stringify({'csrf':csrfToken, 'action':'fetch', 'filetype':type})
-				response = await fetchAPI('/admin/engine/files', jsonData)
-				
-				container.innerHTML = '';
-
-				response.body.forEach(file => {
-					wrap = document.createElement('div')
-					wrap.classList.toggle('file-element-wrap')
-
-					div = document.createElement('div');
-
-					div.dataset.targetUrl = file.url
-					div.dataset.alt = file.description
-					div.dataset.references = file.categories ?? ''
-					div.innerText = file.name
-					div.classList.toggle('file-element')
-					div.addEventListener('click', fileUpdateSelection)
-
-					wrap.append(div)
-					container.append(wrap)
-				})
-		}
-		
-		function fileSelectorFilter(category) {
-				container = Overlay('filepicker').child('.files-list-container');
-
-				Array.from(container.children).forEach(wrap => {
-					wrap.child('.file-element').dataset.references.split(',').includes(category) ? wrap.set('hidden'):wrap.unset('hidden')
-				})
-		}
-
-		function fileUpdateSelection(event) {
-				Overlay('filepicker').childs('.file-element').forEach(tag => {tag.unset('selected')})
-				target = event.target;
-
-				target.set('selected')
-		}
-
-		Overlay('filepicker').button('fetch-all').onclick = async e => {
-				tag = e.target.findParent('.action-btn')
-				
-				tag.toggle()
-				tag.disabled = true
-				await fileSelectorLoad()
-				fileSelectorFilter(category)
-				tag.toggle()
-		}
-		
-	/// SECTION MANAGEMENT
-		Button('new-section').onclick = e => {
-			e.target.disable()
-			container = body.child('#main').child('.categories-wrap')
-			
-			wrap = document.createElement('p')
-			wrap.innerHTML = `	<div class='box section linear condensed'>
-									<div class='icon validity medium dynamic inline hoverable'><span class='img'></span></div>
-									<div class='input-container'>
-										<strong class="editable" id="new-section" contenteditable placeholder='Section' empty></strong>
-										<input name='section' type="text" required hidden>
-									</div>
-								</div>`
-			container.append(wrap)
-
-			Input('new-section').oninput = e => {
-				tag = e.target;
-				tag.innerText === '\n' || tag.innerText === '' ? tag.set('empty'):tag.unset('empty')
-				tag.nextElementSibling.value = tag.textContent;
+		// FILE MANAGEMENT //
+			Overlay('filepicker').button('fetch-all').onclick = async e => {
+					tag = e.target.parent('button')
+					
+					tag.toggle()
+					tag.disabled = true
+					await fileSelectorLoad()
+					fileSelectorFilter(category)
+					tag.toggle()
 			}
-
-			Box('section').icon('validity').onclick = async e => {
-				box = e.container()
-				value = box.input().value
-
-				if (!value) {
-					notify("Saisie vide", "Veuillez entrer un nom de section avant de valider.", 'red')
-					return
-				}
+			
+		/// SECTION MANAGEMENT
+			Button('new-section').onclick = e => {
+				e.target.disable()
+				const container = Block('main').section('categories-wrap')
 				
-				if (categoriesList.includes(value)) {
-					notify("Duplicat", "L'identifiant pour cette section existe déjà.", 'red')
-					return
-				}
-
-				notify("Ajout", "La nouvelle section est en cours de création.", 'orange')
-
-				jsonData = JSON.stringify({'csrf':csrfToken, 'action':'insert', 'type':'categories', 'section':'documents', 'slug':value.urlForm(), 'name':value})
-				response = await fetchAPI('/admin/engine/database', jsonData)
-
-				if (!response.ok) {
-					notify("Échec de l'ajout", `L'ajout de la section '${value.urlForm()}' a échoué. Veuillez réessayer.`, 'red')
-					return
-				}
-				
-				Box('section').remove()
-
-				wrap = document.createElement('p')
-				wrap.innerHTML =   `<strong>${value}</strong> 
-									<ul class="${value.urlForm()}">
-									</ul>
-									<div class="form-action-wrap linear left-align">
-										<div class="form-action">
-											<button class="action-btn new-file" data-category="<?= $slug ?>" data-mode="add">Ajouter un fichier</button>
+				const editor = document.createElement('p')
+				editor.innerHTML = `<div class='box section linear condensed'>
+										<div class='icon validity dynamic inline hoverable'></div>
+										<div class='input-container'>
+											<strong class="editable" id="new-section" contenteditable placeholder='Section' empty></strong>
+											<input name='section' type="text" required hidden>
 										</div>
 									</div>`
-				
-				wrap.button('new-file').onclick = function(e){
-						overlay = Overlay('uploader')
-						overlay.child('form').reset();
-						overlay.child('.fileentry').required = true;
-						overlay.child('.frame').hide();
-						overlay.child('.title').innerText = "Ajout d'une entrée"
-						overlay.toggle()
+				container.append(editor)
 
-						category = e.target.dataset.category
-						mode = e.target.dataset.mode
-						}
-				
-				document.querySelector('.categories-wrap').append(wrap)
+				Input('new-section').oninput = e => {
+					tag = e.target
+					tag.innerText.strForm() === '' ? tag.set('empty'):tag.unset('empty')
+					tag.nextElementSibling.value = tag.textContent
+				}
 
-				notify("Section ajoutée", "La nouvelle section a été créée.", 'green')
+				Box('section').icon('validity').onclick = async e => {
+					const box = e.parent('box')
+					const value = box.input().value
+
+					if (!value) {
+						notify("Saisie vide", "Veuillez entrer un nom de section avant de valider.", 'red')
+						return
+					}
+					
+					if (categoriesList.includes(value)) {
+						notify("Duplicat", "L'identifiant pour cette section existe déjà.", 'red')
+						return
+					}
+
+					notify("Ajout", "La nouvelle section est en cours de création.", 'orange')
+
+					const jsonData = JSON.stringify({'csrf':csrfToken, 'action':'insert', 'type':'categories', 'section':'documents', 'slug':value.urlForm(), 'name':value})
+					const response = await fetchAPI('/admin/engine/database', jsonData)
+
+					if (!response.ok) {
+						notify("Échec de l'ajout", `L'ajout de la section '${value.urlForm()}' a échoué. Veuillez réessayer.`, 'red')
+						return
+					}
+					
+					Box('section').remove()
+
+					const wrap = document.createElement('p')
+					wrap.innerHTML =   `<strong>${value}</strong> 
+										<ul class="${value.urlForm()}">
+										</ul>
+										<div class="actions-wrap linear left-align">
+											<div class="action-container">
+												<button class="action-btn new-file" data-category="<?= $slug ?>" data-mode="add">Ajouter un fichier</button>
+											</div>
+										</div>`
+					wrap.button('new-file').onclick = newEntry
+					
+					Section('categories-wrap').append(wrap)
+					notify("Section ajoutée", "La nouvelle section a été créée.", 'green')
+				}
 			}
-		}
 		<?php endif; ?>
 		</script>
     </body>

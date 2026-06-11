@@ -48,10 +48,10 @@ if ($_SESSION['role'] !== 'admin') {
 		
 		<div id='main'>
 			<div class="head-info">
-				<a class='icon go-back inline large hoverable dynamic' href="/admin/dashboard"><div class='img' ></div></a>
+				<a class='icon go-back inline large hoverable dynamic' href="/admin/dashboard"></a>
 				<h1>HelloAsso</h1>
-				<div class='icon refresh inline large hoverable dynamic' title="Synchroniser les données"><span class='img'></span></div>
-				<div class='icon download inline large hoverable dynamic' title="Télécharger les données"><span class='img'></span></div>
+				<div class='icon refresh inline large hoverable dynamic' title="Synchroniser les données"></div>
+				<div class='icon download inline large hoverable dynamic' title="Télécharger les données"></div>
 			</div>
 			
 			<div class="box">
@@ -75,11 +75,11 @@ if ($_SESSION['role'] !== 'admin') {
 			<div class='table no-bound' id='goodies'></div>
 			<div class='table no-bound' id='dq7'></div>
 			
-			<div class="form-action-wrap data-actions linear">
-				<div class='form-action'>
+			<div class="actions-wrap data-actions linear">
+				<div class='action-container'>
 					<button class='action-btn responsive save'>Sauvegarder</button>
 				</div>
-				<div class='form-action'>
+				<div class='action-container'>
 					<button class='action-btn responsive reset'>Réinitialiser</button>
 				</div>
 				<input id='csrf' name='csrf-token' value=<?= $_SESSION['CSRF'] ?> data-csrf=<?= $_SESSION['CSRF'] ?> required hidden readonly>
@@ -87,38 +87,34 @@ if ($_SESSION['role'] !== 'admin') {
 		</div>
 		
 		<?php include($root . '/app/templates/overlay_validation.html') ?>
-		
 		<?php include($root . '/app/templates/footer.html') ?>
 		
 		<script>
 		// on-load logic
-		window.addEventListener('load', loader)
-		async function loader()  {
-									// fetch all required data
-									await fetchHA('#helloasso');
-									await fetchGoodies('#goodies');
-									await fetchDQ7('#dq7')
-									
-									// easy match table with their type
-									tableMatch = {
-												'helloasso': {'table': haTable, 'node': Table('helloasso'), 'source': JSON.stringify(haTable.getData()), 'call': fetchHA, 'type': 'helloasso', 'selector': '#helloasso'},
-												'goodies': {'table': goodiesTable, 'node': Table('goodies'), 'source': JSON.stringify(goodiesTable.getData()), 'call': fetchGoodies, 'type': 'goodies', 'selector': '#goodies'},
-												'dq7': {'table': dq7Table, 'node': Table('dq7'), 'source': JSON.stringify(dq7Table.getData()), 'call': fetchDQ7, 'type': 'dq7', 'selector': '#dq7'}
-												}
-									
-									tablesListener(true)
-									}
+		window.addEventListener('load', tablesBuilder)
 		
-		// refresh helloasso data
-		Icon('refresh').onclick = haUpdater;
-		
-		async function haUpdater(e) {
-			if (!syncerAPI(e, 'HelloAsso')) return
+		async function tablesBuilder() {
+				// fetch all required data
+				await fetchHA('#helloasso')
+				await fetchGoodies('#goodies')
+				await fetchDQ7('#dq7')
+				
+				// easy match table with their type
+				tableMatch = {
+							'helloasso': {'table': haTable, 'node': Table('helloasso'), 'source': JSON.stringify(haTable.getData()), 'call': fetchHA, 'type': 'helloasso', 'selector': '#helloasso'},
+							'goodies': {'table': goodiesTable, 'node': Table('goodies'), 'source': JSON.stringify(goodiesTable.getData()), 'call': fetchGoodies, 'type': 'goodies', 'selector': '#goodies'},
+							'dq7': {'table': dq7Table, 'node': Table('dq7'), 'source': JSON.stringify(dq7Table.getData()), 'call': fetchDQ7, 'type': 'dq7', 'selector': '#dq7'}
+							}
+				activeTable = tableMatch[activeTable.type] // Force active table update
 
-			await fetchHA('#helloasso')
-			await fetchGoodies('#goodies')
-			await fetchDQ7('#dq7')
-			
+				tablesListener(true)				
+		}
+
+		// refresh helloasso data
+		Icon('refresh').onclick = helloassoUpdater
+		async function helloassoUpdater(e) {
+			if (!syncerAPI(e, 'HelloAsso')) return
+			await tablesBuilder()
 			notify("Synchronisation terminée", "Les données ont été mises à jour depuis le serveur HelloAsso.", 'green')
 			}
 
@@ -132,7 +128,7 @@ if ($_SESSION['role'] !== 'admin') {
 					await sleep(500);
 					
 					// extract data
-					srcdata = Array.from(goodiesTable.getData()).map(data => ({"id": data.id, "delivered": data.delivered, "registered": data.registered}));
+					srcdata = Array.from(goodiesTable.getData()).map(data => ({"id": data.id, "delivered": data.delivered, "registered": data.registered}))
 
 					jsonData = JSON.stringify({'data':srcdata, 'csrf':csrfToken})
 					response = await fetchAPI('/api/helloasso/edit', jsonData)
@@ -149,7 +145,7 @@ if ($_SESSION['role'] !== 'admin') {
 				}
 		
 		// Show download options
-		Icon('download').onclick = helloassoDownload;
+		Icon('download').onclick = helloassoDownload
 		function helloassoDownload() {
 				if (activeTable === undefined) {
 					notify("Choix invalide", "Veuillez sélectionner une table pour en télécharger les données.", 'red')
@@ -157,34 +153,25 @@ if ($_SESSION['role'] !== 'admin') {
 				}
 				
 				type = activeTable.type;
-				data = activeTable.table.getData();
+				data = activeTable.table.getData()
 
-				blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+				blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" })
 				download(blob, `${type}_data.json`)
 		}
 
-		// Cancel pending action
-		Overlay('validate').button('cancel').onclick = e => {
-				e.container().hide();
-				pendingAction = {};
-		}
-
-		// go on with requested action
-		Overlay('validate').button('validate').onclick = e => {
-				e.container().hide();
-				pendingAction.link ? pendingAction.function(pendingAction.link):pendingAction.function();
-				pendingAction = {};
-		}
+		// handle requested action
+		Overlay('validate').button('validate').onclick = e => transfer(e)
+		Overlay('validate').button('cancel').onclick = e => transfer(e, false)
 
 		// show panel to save changes
 		Button('save').onclick = e => {
-				pendingAction.function = saveEdits;
+				pendingAction.function = saveEdits
 				Overlay('validate').toggle()
 		}
 
 		// reset edits
 		Button('reset').onclick = e => {
-				pendingAction.function = resetTabledata;
+				pendingAction.function = resetTabledata
 				Overlay('validate').toggle()
 		}
 		</script>

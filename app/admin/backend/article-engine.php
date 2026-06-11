@@ -40,7 +40,7 @@ if ($action === 'draft') {
 
 //// url availability checkbox
 if ($action === 'check') {
-	$base_url = $_GET['url'] ?? null;
+	$base_url = $_GET['content'] ?? null;
 	$mode = $_GET['mode'] ?? null;
 
 	if ($base_url) {// test url validity
@@ -57,14 +57,14 @@ if ($action === 'check') {
 			}
 			
 			http_response_code(200);
-			echo json_encode(['message' => 'URL disponible.', 'url' => $url]);
+			echo json_encode(['message' => 'URL disponible.', 'value' => $url]);
 		} else {
 			if ($query->fetch()) {
 				http_response_code(400);
 				echo json_encode(['error' => 'URL indisponible.']);
 			} else {
 				http_response_code(200);
-				echo json_encode(['message' => 'URL valide générée', 'url' => $base_url]);
+				echo json_encode(['message' => 'URL valide générée', 'value' => $base_url]);
 			}
 		}
 		exit;
@@ -315,6 +315,6 @@ if ($status === 'edition') {// remove pairs linked with deleted tags
 }
 	
 http_response_code(200);
-echo json_encode(['message' => "Article $title ajouté avec succès", 'art-data' => ['titre' => $title, 'url' => $url, 'tags' => $tags, 'poster' => $path, 'date' => $date]]);
+echo json_encode(['message' => "Article $title ajouté avec succès", 'data' => ['titre' => $title, 'url' => $url, 'tags' => $tags, 'poster' => $path, 'date' => $date]]);
 exit;
 ?>

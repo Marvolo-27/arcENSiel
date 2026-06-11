@@ -46,6 +46,7 @@ $arguments = ($type || $author || $from || $to || $tags !== [null] || $query);
 		<style>
 			.box.search {
 					gap: .5em;
+					align-items: center;
 					
 					& .input-container {
 						align-items: center;
@@ -121,7 +122,6 @@ $arguments = ($type || $author || $from || $to || $tags !== [null] || $query);
 							}
 					}
 			
-			.tags span:last-child {display: none}
 			::-webkit-scrollbar {display: none !important;}
 		</style>
 	</head>
@@ -132,12 +132,12 @@ $arguments = ($type || $author || $from || $to || $tags !== [null] || $query);
 		<div id='main'>
 			<form id="search-form" action="/engine/search">
 				<div class='box search linear'>
-					<div class='icon filters inline large hoverable dynamic' <?= ($type || $author || $from || $to || $tags !== [null]) ? 'active':'' ?>><span class='img'></span></div>
+					<div class='icon filters inline large hoverable dynamic' <?= ($type || $author || $from || $to || $tags !== [null]) ? 'active':'' ?>></div>
 					<div class='input-container'>
-						<div class='icon search left medium'><span class='img'></span></div>
+						<div class='icon search left'></div>
 						<input class='lineentry decorated' type='search' name='query' value="<?= $search ?>" id='textsearch' value="<?= $query_slug ?>" autocomplete=on <?= ($type || $author || $from || $to || $tags !== [null]) ? '':'required' ?> placeholder="Recherche...">
 					</div>
-					<button class='icon send large inline dynamic hoverable' type='submit'><span class='img'></span></button>
+					<button class='icon send large inline dynamic hoverable' type='submit'></button>
 				</div>
 				
 				<div class="filters-wrap">					
@@ -234,86 +234,57 @@ $arguments = ($type || $author || $from || $to || $tags !== [null] || $query);
 		
 		<script>
 		// On-load logic
-		window.addEventListener('load', loader);
-		async function loader()  {
-									triggerSearch()
-									}
+		window.addEventListener('load', triggerSearch)
 		
+		// Trigger search based on query parameters
+		window.onscroll = e => triggerSearch(e, true)
+		async function triggerSearch(e, update=true) {
+				// extract parameters, given manually or through form submission
+				const queries = window.location.search.slice(1)	// GET query, w/o ?
+
+				if (queries !== '') await fetchControl('/engine/search', queries)
+				if (update) Section('news-header').child('h2').textContent = text = queries !== '' ? `${total} Résultat${total>1?'s':''}` : 'Faites une requête pour effectuer une recherche';
+				}
+		
+		// Construct url to trigger search on load
+		Block('search-form').onsubmit = fetchSearch
+		async function fetchSearch(e) {
+			e.preventDefault()
+
+			const taglist = Array.from(Box('tags').section('content').inputs('checkbox.option:checked')).map(e => e.getAttribute('name'))
+			const formData = new FormData(e.target)
+			let data = {}
+			let params = ''
+			
+			data.query = formData.get('query') || ''
+			data.author = (formData.get('art-author') !== '' && Block('author-wrap').checked) ? formData.get('art-author') : ''
+			data.from = (formData.get('art-date-from') !== '' && Block('date-wrap').checked) ? formData.get('art-date-from') : ''
+			data.to = (formData.get('art-date-to') !== '' && Block('date-wrap').checked) ? formData.get('art-date-to') : ''
+			data.type = (formData.get('type') !== null && Block('type-wrap').checked) ? formData.get('type') : ''
+			data.tags = Block('tags-wrap').checked ? taglist.join(',') : '';
+			
+			params += data.query ? '&query=' + data.query : ''
+			params += data.author ? '&author=' + data.author : ''
+			params += data.type ? '&type=' + data.type : ''
+			params += data.from ? '&from=' + data.from : ''
+			params += data.to ? '&to=' + data.to : ''
+			params += data.tags ? '&tags=' + data.tags : ''
+
+			window.location.href = `/search?${params}`
+		}
+
 		// update inputs requirement
-		document.querySelectorAll('#search-form :is(input, select):not(.header)').forEach(item => item.onchange = e => {
+		Block('search-form').inputs(':not(.header)').forEach(item => item.onchange = e => {
 							unmodified = true;
-							document.querySelectorAll('#search-form :is(input, select):not(.header)').forEach(it => {it = it.nodeName === 'LABEL' ? it.previousElementSibling:it;unmodified = unmodified && (it.type === 'checkbox' ? !it.checked : it.value === '')})
-							document.querySelectorAll('#search-form :is(input, select):not(.header)').forEach(it => {it = it.nodeName === 'LABEL' ? it.previousElementSibling:it; it.required = unmodified});
+							Block('search-form').inputs(':not(.header)').forEach(it => {it = it.nodeName === 'LABEL' ? it.previousElementSibling:it; unmodified = unmodified && (it.type === 'checkbox' ? !it.checked : it.value === '')})
+							Block('search-form').inputs(':not(.header)').forEach(it => {it = it.nodeName === 'LABEL' ? it.previousElementSibling:it; it.required = unmodified})
 							})
 		
 		// date input requirements
 		Input('art-date-from').oninput = e => Input('art-date-to').setAttribute('min', e.target.value)
 
-		// search submission
-		window.onscroll = e => fetchControl()
-
-		async function fetchControl() {
-				// end of news in viewport
-				condition = !lock && received < total && document.querySelector('.news-nav-wrap').getBoundingClientRect().y < 0.95 * window.innerHeight;
-				
-				if (condition) {
-					lock = true
-					
-					// fetch new results
-					await triggerSearch()
-
-					lock = false
-				}
-		}
-
-
-		document.querySelector('#search-form').onsubmit = fetchSearch;
-		async function fetchSearch(e) {
-			e.preventDefault();
-
-			formData = new FormData(e.target)
-			data = {};
-
-			taglist = Array.from(document.querySelectorAll('.tags .content .checkbox.option:checked')).map(e => e.getAttribute('name'));
-			
-			data.query = formData.get('query') !== '' ? formData.get('query') : false
-			data.author = (formData.get('art-author') !== '' && document.querySelector('#author-wrap').checked) ? formData.get('art-author') : false
-			data.from = (formData.get('art-date-from') !== '' && document.querySelector('#date-wrap').checked) ? formData.get('art-date-from') : false
-			data.to = (formData.get('art-date-to') !== '' && document.querySelector('#date-wrap').checked) ? formData.get('art-date-to') : false
-			data.type = (formData.get('type') !== null && document.querySelector('#type-wrap').checked) ? formData.get('type') : false;
-			data.tags = document.querySelector('#tags-wrap').checked ? JSON.stringify(taglist) : '[]';
-			
-			params = '';
-			params += data.query ? '&query='+data.query:'';
-			params += data.author ? '&author='+data.author:'';
-			params += data.type ? '&type='+data.type:'';
-			params += data.from ? '&from='+data.from:'';
-			params += data.to ? '&to='+data.to:'';
-			params += data.tags !== '[]' ? '&tags='+data.tags.replaceAll('"','').slice(1,-1):'';
-			n = 4;
-
-			window.location.href = `/search?${params}`
-		}
-		
-		
-		// Trigger search
-		async function triggerSearch(update=true) {
-				// extract parameters, given manually or through form submission
-				queries = window.location.search.slice(1) // GET query, w/o ?
-
-				// fetch most recent arfticles matching given parameters
-				Spinner().show()
-				queries !== '' ? await newsBuilder(received, 3 * nGridItems, '/engine/search', queries):null;
-				Spinner().hide()
-				
-				text = queries !== '' ? `${total} Résultat${total>1?'s':''}` : 'Faites une requête pour effectuer une recherche';
-				update ? document.querySelector('.news-header h2').textContent = text:null;
-
-				return null
-				}
-
 		// filters panel management
-		Icon('filters').onclick = e => {e.target.findParent('#search-form').child('.filters-wrap').toggle()};
+		Icon('filters').onclick = e => e.target.parent('#search-form').section('filters-wrap').toggle()
 		</script>
 	</body>
 </html>

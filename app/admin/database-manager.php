@@ -42,16 +42,6 @@ $artTypes = getTypes();
 		
 		<link href="https://unpkg.com/tabulator-tables/dist/css/tabulator.min.css" rel="stylesheet">
 		<script type="text/javascript" src="https://unpkg.com/tabulator-tables/dist/js/tabulator.min.js"></script>
-		
-		<style>
-		.inner-overlay .form-action-wrap {margin-top: 1em}
-
-
-		.table .tabulator-cell.published {color: green; font-weight: bold; background: none !important;}
-		.table .tabulator-cell.archived {color: red; font-weight: bold; background: none !important;}
-		.table .tabulator-cell.draft {color: purple; font-weight: bold;}
-		.table .tabulator-cell[changed] {background-color: #f8f688a6}
-		</style>
 	</head>	
 	
 	<body>
@@ -59,9 +49,9 @@ $artTypes = getTypes();
 		
 		<div id='main'>
 			<div class="head-info">
-				<a class='icon go-back inline large hoverable dynamic' href="/admin/dashboard"><div class='img'></div></a>	
+				<a class='icon go-back inline large hoverable dynamic' href="/admin/dashboard"></a>	
 				<h1>Bases de données</h1>
-				<div class='icon refresh inline large hoverable dynamic' title="Synchroniser les données"><span class='img'></span></div>
+				<div class='icon refresh inline large hoverable dynamic' title="Synchroniser les données"></div>
 			</div>
 			
 			<div class="box">
@@ -97,14 +87,14 @@ $artTypes = getTypes();
 				<div class='table' id='categories'></div>
 			</div>
 
-			<div class="form-action-wrap data-actions linear">
-				<div class='form-action'>
+			<div class="actions-wrap data-actions linear">
+				<div class='action-container'>
 					<button class='action-btn responsive add-row'>Ajouter une ligne</button>
 				</div>
-				<div class='form-action'>
+				<div class='action-container'>
 					<button class='action-btn responsive save'>Sauvegarder</button>
 				</div>
-				<div class='form-action'>
+				<div class='action-container'>
 					<button class='action-btn responsive reset'>Réinitialiser</button>
 				</div>
 				<input id='csrf' name='csrf-token' value=<?= $_SESSION['CSRF'] ?> data-csrf=<?= $_SESSION['CSRF'] ?> required hidden readonly>
@@ -118,19 +108,15 @@ $artTypes = getTypes();
 		
 		<script>
 		// on-load logic
-		window.addEventListener('load', loader)
-		async function loader()  {
-									// fetch all required data
-									await tablesBuilder()
-									}
+		window.addEventListener('load', tablesBuilder)
 		
 		async function tablesBuilder() {
 				// fetch all required data
-				await fetchUsers('#users');
-				await fetchArticles('#articles');
-				await fetchTags('#tags');
-				await fetchTypes('#types');
-				await fetchCategories('#categories');
+				await fetchUsers('#users')
+				await fetchArticles('#articles')
+				await fetchTags('#tags')
+				await fetchTypes('#types')
+				await fetchCategories('#categories')
 				
 				// easy match table with their type
 				tableMatch = {
@@ -140,23 +126,24 @@ $artTypes = getTypes();
 							'types': {'table': typesTable, 'node': Table('types'), 'source': JSON.stringify(typesTable.getData()), 'call': fetchTypes, 'selector': '#types', 'type': 'types', 'appendable': true},
 							'categories': {'table': categoriesTable, 'node': Table('categories'), 'source': JSON.stringify(categoriesTable.getData()), 'call': fetchCategories, 'selector': '#categories', 'type': 'categories', 'appendable': true}
 				}
-				tablesListener(true)
+				activeTable = tableMatch[activeTable.type] // Force active table update
 
-				body.child('#main').child('.data-actions').hide()
+				tablesListener(true)
+				Block('main').section('data-actions').hide()				
 		}
 
 		async function archiveArticle(event, cell, toarchive) {				
 				// dom objects
-				const btn = event.target.findParent('.icon')
-				const row = cell.getRow();
+				const icon = event.target
+				const row = cell.getRow()
 				const statusCell = row.getCell('status')
 				const iconsCellElement = row.getCell('actions').getElement()
 				const visualIcon = iconsCellElement.icon('visualize')
 				const modifyIcon = iconsCellElement.icon('modify')
 
 				// Update icon
-				btn.classList.toggle('archive')
-				btn.classList.toggle('unarchive')
+				icon.classList.toggle('archive')
+				icon.classList.toggle('unarchive')
 
 				// extract data
 				const state = toarchive ? 'archived':'published';
@@ -192,35 +179,32 @@ $artTypes = getTypes();
 		}
 
 		function deleterTrigger(e, cell) {
-				if (e.target.findParent('.icon.delete').nodeName !== 'BODY') {
-					pendingAction.function = deleter;
-					pendingAction.link = [e, cell];
+				if (e.target.is('delete')) {
+					pendingAction.function = deleter
+					pendingAction.link = [e, cell]
 					Overlay('auth').toggle()
-				} else if (e.target.findParent('.icon.remove').nodeName !== 'BODY') {
+				} else if (e.target.is('remove')) {
 					activeTable.table.deleteRow(cell.getRow())
 				}
-				}
+		}
 
-		async function deleter(kwargs) {				
-				[event, cell] = kwargs;
+		async function deleter(args) {				
+				const [event, cell] = args
 
 				// dom objects
-				btn = event.target.findParent('.icon')
-				row = cell.getRow()
-				rowIndex = row.getPosition()
-
-				// extract data
-				type = activeTable.type;
-				slug = type === 'articles' ? row.getData().url:row.getData().slug;
-				value = cell.getValue();
+				const row = cell.getRow()
+				const index = row.getPosition()
+				const type = activeTable.type
+				const slug = row.getData().url ?? row.getData().slug
+				const value = cell.getValue()
 
 				notify("Suppression en cours", `La suppression de '${slug}' de la liste des ${type} est en cours.`, 'orange')
 
-				await sleep(500);
+				await sleep(500)
 				
 				// update data
-				jsonData = JSON.stringify({'action':'delete', 'type':type, 'csrf':csrfToken, 'slug':slug, 'value':value})
-				response = await fetchAPI('/admin/engine/database', jsonData)
+				const jsonData = JSON.stringify({'action':'delete', 'type':type, 'csrf':csrfToken, 'slug':slug, 'value':value})
+				const response = await fetchAPI('/admin/engine/database', jsonData)
 
 				if (!response.ok) {
 					notify("Erreur", `La suppression de '${slug}' de la liste des ${type} a échoué. Veuillez réessayer.`, 'red')
@@ -228,7 +212,7 @@ $artTypes = getTypes();
 				}
 				
 				// Update DOM and table data
-				row.delete().then(() => tableMatch[activeTable.type].source = JSON.stringify(JSON.parse(tableMatch[activeTable.type].source).filter((item, index) => index !== rowIndex - 1)))
+				row.delete().then(() => tableMatch[activeTable.type].source = JSON.stringify(JSON.parse(tableMatch[activeTable.type].source).filter((item, i) => i !== index - 1)))
 				
 				// Update config Objects
 				if (['tags', 'types'].includes(type)) {
@@ -241,7 +225,7 @@ $artTypes = getTypes();
 					}
 
 					// Update source data in articles
-					source = JSON.stringify(JSON.parse(tableMatch.articles.source).reduce((list, row) => {
+					const source = JSON.stringify(JSON.parse(tableMatch.articles.source).reduce((list, row) => {
 						// Update type
 						if (!Object.keys(typesList).includes(row.type.toString())) row.type = 0
 
@@ -261,29 +245,24 @@ $artTypes = getTypes();
 				notify("Suppression effectuée", `'${slug}' a été supprimé de la liste des ${type}.`, 'green')
 		}
 
-		Button('add-row').onclick = e => {
-			if (activeTable?.appendable) activeTable.table.addRow({'id': activeTable.table.getRows().slice(-1)[0].getData().id + 1, 'removable': true, 'slug': null, 'name': null, 'color': null, 'actions': true}).then(() => dataChecker(activeTable.table.getData()))
-		}
-
 		// actions that require authentification
-		Overlay('auth').child('form').onsubmit = e => e.preventDefault();
+		Overlay('auth').child('form').onsubmit = e => e.preventDefault()
 		async function saveCurrentData() {
-				// active table
-				table = activeTable.table;
-				type = activeTable.type;
+				const table = activeTable.table
+				const type = activeTable.type
 
 				// select edited rows, with values different from original
-				modifiedRows = Array.from(table.getEditedCells().concat(Object.values(autoEditedCells))).map(c => {return c.getValue() !== c.getInitialValue() ? c.getRow().getData():null}).filterUnique();
+				const modifiedRows = Array.from(table.getEditedCells().concat(Object.values(autoEditedCells))).map(c => c.getValue() !== c.getInitialValue() ? c.getRow().getData():null).filterUnique();
 
 				// update fetch
-				jsonData = JSON.stringify({'action':'update', 'type':type, 'csrf':csrfToken, 'data':modifiedRows})
-				response = await fetchAPI('/admin/engine/database', jsonData)
+				const jsonData = JSON.stringify({'action':'update', 'type':type, 'csrf':csrfToken, 'data':modifiedRows})
+				const response = await fetchAPI('/admin/engine/database', jsonData)
 
 				if (!response.ok) {
 					notify("Échec de la mise à jour", `Des erreurs sont survenues lors de la mise à jour des données de la table '${type}'. Consultez les logs pour plus d'informations.`, 'red')
 					return
 				} else {
-					document.querySelector('#main').child('.form-action-wrap').hide()
+					Block('main').section('data-actions').hide()
 					
 					// Make new rows non-removable
 					if (activeTable.appendable) activeTable.table.getColumn('actions').getCells().forEach(cell => cell.setValue(false))
@@ -305,60 +284,48 @@ $artTypes = getTypes();
 
 					notify("Succès", `Les données de la table '${activeTable.type}' ont été mises à jour.`, 'green')
 				}
-				}
+		}
 		
 		// refresh tables data
-		Icon('refresh').onclick = async e => {
-				icon = e.target.findParent('.icon')
-				icon.show()
-				token = activeTable?.type
-				notify("Synchronisation en cours",  `Les données sont en cours de synchronisation depuis la base de données.`, 'orange')
+		Icon('refresh').onclick = databaseUpdater
+		async function databaseUpdater(e) {
+				e.target.show()
+				notify("Synchronisation en cours",  "Les données sont en cours de synchronisation depuis la base de données.", 'orange')
 				await tablesBuilder()
-				activeTable=tableMatch[token]
 				notify("Synchronisation terminée", "Les données ont été mises à jour depuis la base de données.", 'green')
-				icon.hide()
-		};
-
-		// cancel requested action
-		Overlay('auth').button('cancel').onclick = e => {
-				e.container().hide();
-				Overlay('auth').input('overlay-pswd').value = '';
-				pendingAction = {};
-		}
-
-		// cancel requested action
-		Overlay('validate').button('cancel').onclick = e => {
-				e.container().hide();
-				pendingAction = {};
-		}
-
-		// go on with requested action
-		Overlay('validate').button('validate').onclick = e => {
-				e.container().hide();	
-				pendingAction.link ? pendingAction.function(pendingAction.link):pendingAction.function();
-				pendingAction = {};
+				e.target.hide()
 		}
 
 		// validate credentials and go on with requested action
 		Overlay('auth').button('validate').onclick = async e => {
-				// check password
-				validity = await passwordChecker();
-				if (validity) {
-					e.container().hide();	
-					pendingAction.link ? pendingAction.function(pendingAction.link):pendingAction.function();
-					pendingAction = {};
-				}
+				validity = await passwordChecker()
+				if (validity) transfer(e)
 		}
+		
+		// cancel requested action
+		Overlay('auth').button('cancel').onclick = e => {
+				transfer(e, false)
+				Overlay('auth').input('overlay-pswd').value = '';
+		}
+		
+		// handle requested action
+		Overlay('validate').button('validate').onclick = e => transfer(e)
+		Overlay('validate').button('cancel').onclick = e => transfer(e, false)
 
+		// Add row of data
+		Button('add-row').onclick = e => {
+			if (activeTable?.appendable) activeTable.table.addRow({'id': activeTable.table.getRows().slice(-1)[0].getData().id + 1, 'removable': true, 'slug': null, 'name': null, 'color': null, 'actions': true}).then(() => dataChecker(activeTable.table.getData()))
+		}
+		
 		// show overlay save changes
 		Button('save').onclick = e => {
-				pendingAction.function = saveCurrentData;
-				Overlay('auth').show();
+				pendingAction.function = saveCurrentData
+				Overlay('auth').show()
 		}
 
 		// show overlay to reset edits
 		Button('reset').onclick = e => {
-				pendingAction.function = resetTabledata;
+				pendingAction.function = resetTabledata
 				Overlay('validate').show()
 		}
 

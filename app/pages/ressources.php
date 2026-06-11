@@ -27,9 +27,6 @@ if ($_SESSION['role'] === 'admin') {
 		<link rel='stylesheet' type='text/css' href='/files/assets/css/main.css'></link>
 		
 		<script src='/files/assets/js/main.js'></script>
-
-		<style>
-		</style>
 	</head>	
 	
 	<body>

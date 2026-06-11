@@ -91,11 +91,11 @@ unset($_SESSION['contact-message']);
 						</div>
 					</div>
 					
-					<div class="form-action-wrap linear">
-						<div class='form-action'>
+					<div class="actions-wrap linear">
+						<div class='action-container'>
 							<button class='action-btn save'>Envoyer</button>
 						</div>
-						<div class='form-action'>
+						<div class='action-container'>
 							<button class='action-btn reset' type='reset'>Réinitialiser</button>
 						</div>
 					</div>
@@ -110,7 +110,7 @@ unset($_SESSION['contact-message']);
 			window.addEventListener('load', loader)
 			async function loader()  {
 										if (body.dataset.error === 'bad-mail') {
-											Error('mail').show();
+											Error('mail').show()
 										} else if (body.dataset.error === 'send-failed') {
 											notify("Erreur", "Échec de l'envoi du mail. Veuillez réessayer.", 'red')
 										} else if (body.dataset.message === 'sent') {

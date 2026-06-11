@@ -98,6 +98,6 @@ if ($action === 'update') {
 	} catch (PDOException $e) {
 		http_response_code(500);
 		echo json_encode(['error' => 'Failed to update bookmarks: '.json_encode($e)]);
-		logger('/log/queries.log', json_encode($e), "Failed bookmarks request", false);
+		logger('/log/queries.log', "Source: ".queryMaker($sql, $params).PHP_EOL.json_encode($e), "Failed bookmarks request", false);
 	}
 }

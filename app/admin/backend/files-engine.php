@@ -297,7 +297,7 @@ if ($action === 'fetch') {
 	FROM files
 		LEFT JOIN files_categories ON files.id = file_id
 		LEFT JOIN categories ON categories.id = category_id
-	WHERE 1 = 1 ".($category ? $category_sql : '').($filetype ? $filetype_sql : '').
+	WHERE LOCATE('admin:///', files.url) = 0 ".($category ? $category_sql : '').($filetype ? $filetype_sql : '').
 	" GROUP BY files.id"
 	:
 	"WITH

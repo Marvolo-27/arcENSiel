@@ -33,10 +33,6 @@ $artTags = getTags();
 		
 		<script src='/files/assets/js/main.js'></script>
 		<script src='/files/assets/js/grid.js'></script>
-
-		<style>
-			.tags span:last-child {display: none}
-		</style>
 	</head>	
 	
 	<body>
@@ -63,15 +59,13 @@ $artTags = getTags();
 		<?php include($root . '/app/templates/footer.html') ?>
 		
 		<script>
-		window.onscroll = e => fetchControl()
-
 		// On-load logic
-		window.addEventListener('load', loader);
+		window.addEventListener('load', loader)
 		async function loader(e)  {
-									// fetch most recent previews
-									await newsBuilder(0, 2 * nGridItems);
-									fetchControl()
+									await buildNewsFlow(0, 2 * nGridItems)
 									}
+		
+		window.onscroll = () => fetchControl('/engine/news')
 		</script>
 	</body>
 </html>

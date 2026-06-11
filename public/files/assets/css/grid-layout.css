@@ -1,4 +1,4 @@
-/*!! News style !!*/
+/*!!! GRID !!!*/
 #grid-wrap {
 	margin: .5em 1em;
 
@@ -15,6 +15,8 @@
                 & .grid-item-wrap {
                         position: relative;
 			margin-top: 15%;
+                        
+                        &.compact {margin-top: 0;}
 
                         & .overlay-metadata {
                                 position: absolute;
@@ -70,6 +72,8 @@
                                 align-items: center;
                                 overflow: hidden;
                                 box-sizing: border-box;
+                                
+                                &[invalid] {border-color: red !important; border-width: 3px !important;}
 
                                 &:hover {@media (hover:hover) {
                                         margin: 0;

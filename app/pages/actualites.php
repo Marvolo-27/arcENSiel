@@ -61,13 +61,6 @@ $artTags = getTags();
 					box-sizing: border-box;
 					display: flex;
 					flex-flow: column;
-					
-				
-					&.header, &.footer {
-						flex: 0;
-						}
-
-					&.mainer {flex: 1}
 				}
 
 				.metadata {
@@ -84,15 +77,7 @@ $artTags = getTags();
 				
 				.visual {
 						width: 70%;
-						max-width: 400px;
 						}
-				
-					.tags::before {background-image: var(--icon-tag);}
-					.date::before {background-image: var(--icon-clock);}
-				
-				.author {margin: 1.5em 0 1em 0}
-
-				.tags span:last-child {display: none}
 		</style>
 	</head>	
 	
@@ -120,107 +105,13 @@ $artTags = getTags();
 		<?php include($root . '/app/templates/footer.html') ?>
 		
 		<script>
-		window.onscroll = e => fetchControl()
-
 		// On-load logic
-		window.addEventListener('load', loader);
+		window.addEventListener('load', loader)
 		async function loader(e)  {
-									// fetch most recent previews
-									await flowBuilder(0, 4);
-									fetchControl()
+									await buildNewsFlow(0, 4, '/engine/news', '', 'flow')
 									}
 		
-		// auto fetcher - triggered with scroll
-		async function fetchControl(script='/engine/news', params='') {
-						// end of news in viewport
-						condition = !lock && received < total && document.querySelector('.news-nav-wrap').getBoundingClientRect().y < 0.9 * window.innerHeight;
-						
-						if (condition) {
-							lock = true
-							Spinner().show()
-						
-							// fetch new results
-							await flowBuilder(received, 4, script, params)
-
-							Spinner().hide()
-							lock = false
-						}
-				}
-
-		// Add articles data to DOM
-		async function flowBuilder(start=0, n=5, script='/engine/news', params='') {
-				newsList = await fetchArticles(start, n, script, params);
-				
-				// extract general data
-				received += newsList.metadata.sent;
-				appended = newsList.metadata.sent;
-				total = newsList.metadata.total;
-				
-				// add articles
-				newsList.data.forEach((article) => {
-						// article data
-						url = article.url;
-						desc = article.summary;
-						time = article.date != null ? article.date.split(' ')[1]:null;
-						day = article.date != null ? article.date.split(' ')[0]:null;
-						auth = article.author;
-						tags = article.tags?.split(',');
-							tagsHTML = '';
-							tags ? tags.forEach(tag => {
-								tagsHTML += `<span class="tag-item">
-													<a href="/search?&tags=${tagsList[tag].slug}">${tagsList[tag].name}</a>
-											</span>
-											<span>-</span>`
-								}):null;
-						title = article.title;
-						type = article.type;
-						slugtype = article.typeslug;
-						imgURL = article['picture_path'];
-						
-						// HTML code for one article
-						div = document.createElement('div');
-						div.classList.toggle('article-item-wrap');
-						
-						html = `
-				<div class='article-type' style="background: ${article.color};">
-					<h3 class='article-name'><a href='/search?&type=${slugtype}'>${type}</a></h3>
-				</div>
-
-				<div class='article-item'>
-					<div class="header">
-						<div class="head-info">
-							<h3 class="title">${title}</h1>
-						</div>
-							
-						
-						<div class="metadata">
-							<?php if ($date): ?>
-							<span class="meta-item date"><?= $date ?><?= $enddate ? " - ".$enddate : null ?></span>
-							<?php endif; ?>
-							
-							<span class="meta-item tags">
-								${tagsHTML}
-							</span>
-						</div>
-					</div>
-					
-					<div class="mainer">
-						<img class="visual" alt="Affiche de l'évènement" src='${imgURL}'>
-						<div class='article-description'>${desc}</div>
-					</div>
-
-					<div class="view-more">
-						<a href="/articles/${url}">Voir plus</a>
-					</div>
-				</div>`
-						
-						// Add to DOM
-						div.innerHTML = html;
-						flowContainer.append(div);
-				})
-				
-				return null
-			}
+		window.onscroll = () => fetchControl('/engine/news', '', 'flow')
 		</script>
 	</body>
 </html>

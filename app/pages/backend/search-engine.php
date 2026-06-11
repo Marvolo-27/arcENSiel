@@ -30,7 +30,7 @@ $start = (int) $_GET['start'] ?? 0;
 
 // base of SQL request
 $fetchcore = "WITH tags_list AS (SELECT article_id, GROUP_CONCAT(tag_id SEPARATOR ',') AS tags FROM articles_tags GROUP BY article_id) SELECT articles.slug AS url, title, COALESCE(files.url, '/files/placeholder.png') AS picture_path, summary, tags_list.tags AS tags, types.name AS type, author, date, end_date, color FROM articles LEFT JOIN types ON types.id = COALESCE(articles.type, 0) LEFT JOIN tags_list ON articles.id = tags_list.article_id LEFT JOIN articles_covers ON articles.id = articles_covers.article_id LEFT JOIN files ON file_id = files.id WHERE";
-$countcore = "SELECT COUNT(*) FROM articles JOIN types ON types.id = articles.type WHERE";
+$countcore = "SELECT COUNT(*) FROM articles LEFT JOIN types ON types.id = articles.type WHERE";
 $params = [];
 
 
@@ -66,6 +66,12 @@ if ($tags) {
 		}
 	$tagsql = substr($tagsql, 0, -1).") GROUP BY article_id HAVING COUNT(article_id) = :nbtags";
 	$sql = $sql." AND articles.id IN ($tagsql)";
+}
+
+if ($sql === '') {
+	http_response_code(200);
+	echo json_encode(['metadata' => ['sent' => 0, 'n' => $n, 'start_at' => $start, 'total' => 0], 'data' => '[]']);
+	exit;
 }
 
 // sorting
@@ -116,7 +122,6 @@ try {
 	exit;
 }
 http_response_code(200);
-// echo json_encode($output);
 echo json_encode(['metadata' => ['sent' => count($output), 'n' => $n, 'start_at' => $start, 'total' => $total['COUNT(*)']], 'data' => $output]);
 exit;
 	

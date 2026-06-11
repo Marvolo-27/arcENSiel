@@ -1,47 +1,51 @@
-/* Tables special style */
+/* TABLES CUSTOM STYLE */
 .table {
-        margin: 1em 0;
+		margin: 1em 0;
 		
-        &:not([active]) {display: none !important}
+		&:not([active]) {display: none !important}
 
 		@media (min-width: 1000px) {
-			    &.no-bound {
-                        --prop: 10vw;
-			    		width: calc(100vw - 2 * var(--prop));
-			    		position: relative;
-			    		left: calc(-0.5 * (100vw - 1000px) - 2em + var(--prop));
-				    	}
+			&.no-bound {
+				--prop: 10vw;
+				width: calc(100vw - 2 * var(--prop));
+				position: relative;
+				left: calc(-0.5 * (100vw - 1000px) - 2em + var(--prop));
 				}
-		& .tabulator-row {
-                &[invalid] {background-color: #ffd3d3;}
-                &[altered] {background-color: #ffe5d3;}
+			}
 		
-                & .tabulator-cell {
-                        &:not(.tabulator-editable) {cursor: default;}
+		& .tabulator-row {
+			&[invalid] {background-color: #ffd3d3;}
+			&[altered] {background-color: #ffe5d3;}
+		
+			& .tabulator-cell {
+					&:not(.tabulator-editable) {cursor: default;}
 
-                        &.edited {background: #f5acac;}
+					&.edited {background: #f5acac;}
+					&[changed] {background: #f8f688a6;}
+					
+					&:is([tabulator-field='receipts'],[tabulator-field='ticket'],[tabulator-field='actions']) span {
+							display: flex;
+							align-items: center;
+							justify-content: center;
+							flex-flow: row;
+							gap: .25em;
 
-                        &[changed] {background: #f8f688a6;}
-                        
-                        &:is([tabulator-field='receipts'],[tabulator-field='ticket'],[tabulator-field='actions']) span {
-                                display: flex;
-                                align-items: center;
-                                justify-content: center;
-                                flex-flow: row;
-                                gap: .25em;
-
-                                & a {display: inline-block;}
-                                }
-                        
-                        &[tabulator-field='color'] {
-                                padding: 0;
-                                
-                                & input {
-                                        height: 100%;
-                                        width: 100%;
-                                        cursor: pointer;
-                                        }
-                                }
-                        }
+							& a {display: inline-block;}
+							}
+					
+					&[tabulator-field='color'] {
+							padding: 0;
+							
+							& input {
+									height: 100%;
+									width: 100%;
+									cursor: pointer;
+									}
+							}
+                    
+                    &.published {color: green; font-weight: bold; background: none !important;}
+                    &.archived  {color: red; font-weight: bold; background: none !important;}
+                    &.draft     {color: purple; font-weight: bold;}
+					}
 		}
-        }
+}

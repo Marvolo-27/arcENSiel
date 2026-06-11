@@ -30,22 +30,6 @@ if ($_SESSION['username'] !== 'admin') {
 		
 		<script src='/files/assets/js/main.js'></script>
 		<script src='/files/assets/js/jsonview.js'></script>
-		
-		<style>
-			form {
-					/* border: 3px solid black; */
-					border-radius: 6px 0 0 6px;
-					padding: 1.25em;
-					background: white;
-					color: black;
-					transition: right .4s ease-in-out;
-					}
-					
-			.spinner {
-				--dim: var(--standard-size);
-				display: block;
-				};
-		</style>
 	</head>	
 	
 	<body>
@@ -54,7 +38,7 @@ if ($_SESSION['username'] !== 'admin') {
 		<div id='main'>
 			<div class="">
 				<div class="head-info">
-					<a class='icon go-back inline large hoverable dynamic' href="/admin/dashboard"><div class='img'></div></a>
+					<a class='icon go-back inline large hoverable dynamic' href="/admin/dashboard"></a>
 					<h1>Gestion de la base de données</h1>
 				</div>
 				
@@ -72,12 +56,12 @@ if ($_SESSION['username'] !== 'admin') {
 					
 					<input name='csrf-token' id='csrf' data-csrf='<?= $_SESSION['CSRF'] ?>' value='<?= $_SESSION['CSRF'] ?>' required hidden readonly>
 					
-					<div class='form-action-wrap'>
-						<div class='form-action'>
+					<div class='actions-wrap linear'>
+						<div class='action-container'>
 							<button class='action-btn submit spinnable' type='submit'><span class='text'>Soumettre</span><span class="spinner"></span></button>
 						</div>
 						
-						<div class='form-action'>
+						<div class='action-container'>
 							<div class='action-btn reset'>Réinitialiser</div>
 						</div>
 					</div>
@@ -100,65 +84,56 @@ if ($_SESSION['username'] !== 'admin') {
 		<?php include($root . '/app/templates/footer.html') ?>
 		
 		<script>
-		document.querySelector('form#sql-form').onsubmit = e => sqlSend(e);
+		Block('sql-form').onsubmit = sqlSend
 		async function sqlSend(e) {
-						e.preventDefault();
+						e.preventDefault()
+						
+						// Nodes
+						const output = Section('output').section('clean')
+						const raw = Section('output').section('raw')
+						const button = Button('submit')
 						
 						// spinner in submit button
-						btn = Button('submit')
-						btn.disabled = true;
-						btn.toggle();
-						
-						// extract form information
-						formData = new FormData(e.target);
-					    
-						// Response object
-						response = await fetchAPI('/admin/engine/sql', formData)
-						
-						if (!response.ok) {// http code 400-500 reuturn false
-										alert(`Error: HTTP ${response.httpcode}: ${response.body.error}`);
-										return null
-										}
-						
-						output = document.querySelector('.output .output-text.clean');
-						raw = document.querySelector('.output .output-text.raw');
-						
+						button.disabled = true
+						button.toggle()
+						raw.hide()
+						output.unset('error')
 						output.innerHTML = '';
 						raw.innerHTML = '';
-						output.unset('error');
 						
-						raw.parentNode.style.display = 'none';
+						// Fetch queries results  
+						const formData = new FormData(e.target)
+					    const response = await fetchAPI('/admin/engine/sql', formData)
 						
-						if (response.httpcode === 250) {// failed sql request
+						if (!response.ok) {// http code 400-500 reuturn false
+							notify("Erreur serveur", `La requête a échoué. [Error HTTP ${response.httpcode}] ${response.body.error}.`, 'red')
+						
+						} else if (response.httpcode === 250) {// failed sql request
 							// PDOException outputs a dict with key 'errorInfo' whose value is a (3-tuple)
 							// Data structure is response [Response object] => .json() [body content] => .error [key of dict sent by php script] => .errorInfo [key of dict paired with key 'error'] => [2] [third value of array paired with 'errorInfo' key]
-							errorData = response.body.error.errorInfo[2];
-							errorCode = response.body.error.errorInfo[0];
+							const errorData = response.body.error.errorInfo[2]
+							const errorCode = response.body.error.errorInfo[0]
 							
 							output.innerHTML = `SQL Error [${errorCode}]: ${errorData}.`;
-							output.set('error');
-							
-							btn.disabled = false;
-							btn.toggle();
+							output.set('error')
+							button.disabled = false
+							button.toggle()
 						
-							return
 						} else {// correct sql response
-							result = response.body.output;
-						}
-						
-						raw.innerText = JSON.stringify(result);
-						
-						jsonview.renderJSON(JSON.stringify(result.filter(item => item.length !== 0)), output)
+							const result = response.body.output
 
-						raw.parentNode.style.display = 'initial';
-						
-						btn.disabled = false;
-						btn.toggle();;
+							raw.innerText = JSON.stringify(result)
+							jsonview.renderJSON(JSON.stringify(result.filter(item => item.length !== 0)), output)
+							
+							raw.show()
+							button.disabled = false;
+							button.toggle()
+						}
 					}
 		
 		Button('reset').onclick = () => {
-						output = document.querySelector('.output .output-text.clean');
-						raw = document.querySelector('.output .output-text.raw');
+						output = Section('output').section('clean')
+						raw = Section('output').section('raw')
 						
 						output.innerHTML = '';
 						raw.innerHTML = '';

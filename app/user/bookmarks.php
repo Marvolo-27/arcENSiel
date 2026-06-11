@@ -31,10 +31,6 @@ if (isset($_SESSION['message'])) {
 		
 		<script src='/files/assets/js/main.js'></script>
 		<script src='/files/assets/js/grid.js'></script>
-
-		<style>
-			.tags span:last-child {display: none}
-		</style>
 	</head>	
 	
 	<body>
@@ -42,7 +38,7 @@ if (isset($_SESSION['message'])) {
 		
 		<div id='main'>
 			<div class="head-info">
-				<a class='icon go-back inline large hoverable dynamic' href="/user/dashboard"><div class='img'></div></a>
+				<a class='icon go-back inline large hoverable dynamic' href="/user/dashboard"></a>
 				<h1>Vos favoris</h1>
 			</div>
 			
@@ -65,15 +61,13 @@ if (isset($_SESSION['message'])) {
 		<?php include($root . '/app/templates/footer.html') ?>
 		
 		<script>
-		window.onscroll = e => fetchControl('/user/engine/bookmarks', '&action=fetch')
+		window.onscroll = () => fetchControl('/user/engine/bookmarks', '&action=fetch')
 
 		// On-load logic
-		window.addEventListener('load', loader);
+		window.addEventListener('load', loader)
 		async function loader(e)  {
-									// fetch most recent previews
-									await newsBuilder(0, 2 * nGridItems, '/user/engine/bookmarks', '&action=fetch');
-									document.querySelector('.news-header').child('span').innerText = received === 0 ? "Vous n'avez pas d'article enregistré.":'';
-									fetchControl('/user/engine/bookmarks', '&action=fetch')
+									await buildNewsFlow(0, 2 * nGridItems, '/user/engine/bookmarks', '&action=fetch')
+									Section('news-header').child('span').innerText = received === 0 ? "Vous n'avez pas d'article enregistré.":'';
 									}
 		</script>
 	</body>

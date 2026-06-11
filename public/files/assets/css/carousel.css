@@ -1,4 +1,4 @@
-/*!! Carousel style !!*/
+/*!!! CAROUSEL !!!*/
 .carousel-wrap	{
 		--h: 50vh;
 		--w: min(75vh, calc(100vw - 2 * var(--gbl-pad)));

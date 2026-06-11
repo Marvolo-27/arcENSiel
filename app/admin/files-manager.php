@@ -58,14 +58,6 @@ if ($_SESSION['role'] !== 'admin') {
 				& #files {display: none;}
 				}
 			
-			.grid-item-wrap {
-					margin-top: 0 !important;
-
-					& .grid-item {
-							&[invalid] {border-color: red !important; border-width: 3px !important;}
-							}
-					}
-			
 			.scan-info-wrap {
 					display: flex;
 					flex-direction: column;
@@ -127,8 +119,6 @@ if ($_SESSION['role'] !== 'admin') {
 					}
 
 			.checkbox-wrap {max-width: 16em; cursor: pointer;}
-
-			#filename, #fileextension {font-size: .7em}
 		</style>
 	</head>	
 	
@@ -137,46 +127,46 @@ if ($_SESSION['role'] !== 'admin') {
 		
 		<div id='main'>
 			<div class="head-info">
-					<a class='icon go-back inline large hoverable dynamic' href="/admin/dashboard"><div class='img' ></div></a>
+					<a class='icon go-back inline large hoverable dynamic' href="/admin/dashboard"></a>
 					<h1>Fichers stockés sur le serveur</h1>
 			</div>
 			
 			<div class="box linear">
-				<div class='icon layout inline large hoverable dynamic'><span class='img'></span></div>
-				<div class='icon refresh inline large hoverable dynamic' title="Exécuter un scan"><span class='img'></span></div>
-				<div class='icon upload inline large hoverable dynamic' title="Ajouter un fichier sur le serveur"><span class='img'></span></div>
+				<div class='icon layout inline large hoverable dynamic'></div>
+				<div class='icon refresh inline large hoverable dynamic' title="Exécuter un scan"></div>
+				<div class='icon upload inline large hoverable dynamic' title="Ajouter un fichier sur le serveur"></div>
 			</div>			
 
 			<div class="scan-info-wrap">
 				<div class="files-wrap unregistered">
-					<div class='icon float cross small hoverable' onclick="closer(event)" forced><span class='img'></span></div>
+					<div class='icon float cross small hoverable' onclick="closer(event)" forced></div>
 					<div class="desc"></div>
 					<div class="container"></div>
 
-					<div class="form-action-wrap linear">
-						<div class='form-action'>
+					<div class="actions-wrap linear">
+						<div class='action-container'>
 							<button class='action-btn add-files'>Les ajouter</button>
 						</div>
-						<div class='form-action'>
+						<div class='action-container'>
 							<button class='action-btn del-files'>Les supprimer</button>
 						</div>
 					</div>
 				</div>
 				
 				<div class="files-wrap invalid">
-					<div class='icon float cross small hoverable' onclick="closer(event)" forced><span class='img'></span></div>
+					<div class='icon float cross small hoverable' onclick="closer(event)" forced></span></div>
 					<div class="desc"></div>
 					<div class="container"></div>
 				</div>
 
 				<div class="files-wrap changed">
-					<div class='icon float cross small hoverable' onclick="closer(event)" forced><span class='img'></span></div>
+					<div class='icon float cross small hoverable' onclick="closer(event)" forced></span></div>
 					<div class="desc"></div>
 					<div class="container"></div>
 				</div>
 
 				<div class="files-wrap recovered">
-					<div class='icon float cross small hoverable' onclick="closer(event)" forced><span class='img'></span></div>
+					<div class='icon float cross small hoverable' onclick="closer(event)" forced></span></div>
 					<div class="desc"></div>
 					<div class="container"></div>
 				</div>
@@ -197,11 +187,11 @@ if ($_SESSION['role'] !== 'admin') {
 					</div>
 				</div>
 
-				<div class="form-action-wrap data-actions linear">
-					<div class='form-action'>
+				<div class="actions-wrap data-actions linear">
+					<div class='action-container'>
 						<button class='action-btn responsive save'>Sauvegarder</button>
 					</div>
-					<div class='form-action'>
+					<div class='action-container'>
 						<button class='action-btn responsive reset'>Réinitialiser</button>
 					</div>
 				</div>
@@ -215,8 +205,8 @@ if ($_SESSION['role'] !== 'admin') {
 			<div class="inner-overlay">
 				<div class="file-preview" active><img></div>
 
-				<div class='external form-action-wrap linear'>
-					<div class='form-action'>
+				<div class='external actions-wrap linear'>
+					<div class='action-container'>
 						<button class='action-btn close'>Fermer</button>
 					</div>
 				</div>
@@ -247,11 +237,11 @@ if ($_SESSION['role'] !== 'admin') {
 					<input type="checkbox" id="deletion-mode" value="deletion" name="delete"><label for="deletion-mode">Supprimer l'entrée du fichier de la base de données</label>
 				</div>
 
-				<div class='external form-action-wrap linear'>
-					<div class='form-action'>
+				<div class='external actions-wrap linear'>
+					<div class='action-container'>
 						<button class='action-btn validate'>Continuer</button>
 					</div>
-					<div class='form-action'>
+					<div class='action-container'>
 						<button class='action-btn cancel'>Annuler</button>
 					</div>
 				</div>
@@ -259,38 +249,24 @@ if ($_SESSION['role'] !== 'admin') {
 		</div>
 
 		<?php include($root . '/app/templates/overlay_file-picker.html') ?>
-		<?php include($root . '/app/templates/overlay_file-uploader.html') ?>
+		<?php $mode="global"; include($root . '/app/templates/overlay_file-uploader.php') ?>
 		<?php include($root . '/app/templates/overlay_authentification.html') ?>
 		<?php include($root . '/app/templates/overlay_validation.html') ?>
 
 		<?php include($root . '/app/templates/footer.html') ?>
 		
 		<script>
-			let filesList;				// array containing data about registered files
-			let pendingFiles;			// array containing data about unregistered files
+			let filesList				// array containing data about registered files
+			let pendingFiles			// array containing data about unregistered files
 			
 			
 		/// GENERAL ACTION
 			// On-load logic
 			window.addEventListener('load', loader);
 			async function loader()  {
-										// configure overlay
-										overlay = Overlay('uploader')
-										overlay.toggle('strict')			
-										overlay.querySelector('.exist-file').parentElement.style.display = 'none';			
-										overlay.querySelector('.file-maxsize').firstElementChild.innerText = 'Taille maximale: 10 Mo';			
-										overlay.querySelector('.file-formats').firstElementChild.innerText = 'Formats supportés: image, .pdf, .sqlite, .zip';			
-										overlay.input('file').setAttribute('accept', 'application/zip,application/pdf,application/vnd.sqlite3,image/*')			
-										
-										div = document.createElement('div')
-										div.classList.toggle('checkbox-wrap')
-										div.innerHTML = `<div class='input-container'>
-															<input class='checkbox' type='checkbox' name='admin-check' id='admin-check' autocomplete=off title="Restreindre l'accès aux administrateurs"><label class='label' for='admin-check'>Restreindre l'accès aux administrateurs</label>
-														</div>`
-										overlay.child('form').insertBefore(div, overlay.querySelector('.external.form-action-wrap'))
-
 										// fetch all required data
-										total = await fetchFiles('#files').then(response => response.length);
+										filesList = await fetchFiles('#files')
+										total = filesList.length
 										fileScanner()
 										
 										// easy match table with their type
@@ -300,256 +276,97 @@ if ($_SESSION['role'] !== 'admin') {
 										activeTable = tableMatch['files']
 										
 										tablesSwitcher()
-										
-										// fetch most recent previews
 										fetchControl()
 										}
 
-			// Auth validation before redirection
-			Overlay('auth').child('form').onsubmit = e => e.preventDefault();
-			Overlay('auth').button('validate').onclick = async e => {
-					validity = await passwordChecker();
-					if (validity) {
-						e.container().hide();	
-						pendingAction.link ? pendingAction.function(pendingAction.link):pendingAction.function();
-					}
-			}
-		
-			// confirm deletion
-			Overlay('deletion').button('validate').onclick = e => {
-					e.container().toggle();
-					Overlay('auth').toggle();
-					pendingAction['mode'] = Overlay('deletion').input('deletion-mode').checked
-			}
+			
 			
 			// close scan message
 			function closer(e) {
-				e.target.findParent('.files-wrap').hide()
+				e.target.parent('.files-wrap').hide()
 			}
 
 			async function updateData() {
-					filesList = await dataFetcher('files', null, 'files');
+					filesList = await dataFetcher('files', null, 'files')
 					filesTable.setData(filesList).then(statusWizard)
 					gridContainer.innerHTML = '';
 					
-					await buildFiles(3*nGridItems)
-					fetchControl();
+					await buildFilesFlow(3*nGridItems)
+					fetchControl()
 
-					return data;
+					return filesList
 			}
 			
 		/// FILES LAYOUT
-			// Add articles data to DOM
-			async function buildFiles(append) {
-							start = received;
-							received += append;
-							received = received > total ? total:received;
-							
-							// add articles
-							for (i=start; i < received; i++) {
-									file = filesList[i];
-
-									// file data
-									url  = file.url;
-									name = file.name;
-									time = file['updated_at']
-									type = file.type;
-									size = file.size;
-									status = file.status;
-
-									if (!file.type.match(/image\/.*/)) {
-										imgURL = Object.keys(mimeTable).includes(file.type) ? '/files/icons/' + mimeTable[file.type] : '/files/icons/unknown.svg';
-									} else {
-										imgURL = status === 'true' ? url.replace(/admin:\/\//, '/admin') : '/files/icons/picture.svg';
-									}
-
-									bgData = file.type.match(/image\/.*/) && imgURL !== '/files/icons/picture.svg' ? `
-			<div class='article-poster poster-bg'>
-				<img loading="eager" src="${imgURL}">
-			</div>
-			` : '';
-									// HTML code for one file
-									div = document.createElement('div');
-									div.classList.toggle('grid-item-wrap')
-									html = `
-		<div class='grid-item' ${status === 'true' ? '':'invalid'}>
-			${bgData}
-
-			<div class='article-poster poster-fg'>
-				<img loading="eager" src="${imgURL}" data-url="${imgURL}" data-type="${name.extension()}">
-			</div>
-
-			<div class="grid-item-preview full">
-				<h4>${name}</h4>
-				
-				<span>Modifié le : ${time}</span>
-				<span>Taille : ${formatBytes(size)}</span>
-				<span>Téleversé par ${file.uploader}</span>
-			</div>
-
-			<div class='icon dots right medium dynamic base-shdw' title="Afficher les métadonnées"><span class='img'></span></div>
-			<div class='icons-bar inverted' data-url='${url}'>
-				<div class='icon visualize medium inline hoverable dynamic invertable' title="Voir le fichier" ><span class='img'></span></div>
-				<div class='icon download medium inline hoverable dynamic invertable' title="Télécharger le fichier"><span class='img'></span></div>
-				
-			</div>
-		</div>	
-									`
-									
-									// Add to DOM
-									div.innerHTML = html
-									gridContainer.append(div);
-
-									// add event on click
-									if (window.matchMedia(`(hover: none)`).matches) {
-										div.querySelector('.grid-item').addEventListener('click', e => e.target.findParent('.grid-item').querySelector('.grid-item-preview').toggle())
-									}
-									
-									div.icon('visualize').addEventListener('click', e => {e.stopPropagation(); viewFile(e.target.findParent('.icons-bar').dataset.url)})
-									div.icon('download').addEventListener('click', e => {e.stopPropagation(); downloadFile({'url': e.target.findParent('.icons-bar').dataset.url})})
-									div.icon('dots').addEventListener('click', e => {e.stopPropagation(); e.target.findParent('.dots').nextElementSibling.toggle()})
-							}
-							
-							// add general data
-							plural = received > 1 ? 's':'';
-							total > 0 ? document.querySelector('.news-count').innerHTML = `${received} fichier${plural} affiché${plural} sur ${total}`:null;
-							
-							return null
-						}
-			
 			// trigger DOM append
-			window.onscroll = fetchControl
-			async function fetchControl() {
-					// end of news in viewport
-					condition = !lock && received < total && document.querySelector('.news-nav-wrap').getBoundingClientRect().y < 0.95 * window.innerHeight;
-					
-					if (condition) {
-						lock = true
-						Spinner().show()
-					
-						// fetch new results
-						await sleep(750)
-						await buildFiles(3*nGridItems)
-
-						Spinner().hide()
-						lock = false
-					}
-			}
+			window.onscroll = () => fetchControl()
 
 			// display layout management
 			Icon('layout').onclick = e => {
-												e.target.parentNode.toggle();
-												document.querySelector('#files-list').toggle('switched');
-												document.querySelector('#files-list').getAttribute('switched') !== null ? fetchControl():null;
-												};
+											e.target.parentNode.toggle()
+											Block('files-list').toggle('switched')
+											if (Block('files-list').getAttribute('switched') !== null) fetchControl()
+											}
 			
 			function statusWizard() {
-				Array.from(filesTable.getColumn('status').getCells()).forEach(cell => {cell.getValue() ? null:cell.getElement().findParent('.tabulator-row').toggle('invalid')})
+				Array.from(filesTable.getColumn('status').getCells()).forEach(cell => cell.getValue() ? null:cell.getElement().parent('.tabulator-row').toggle('invalid'))
 			}
 	
-			function viewFile(url, activeOverlay=null) {
-				url = url.replace(/admin:\/\//, '/admin')
-				ext = url.extension();
+			function viewFile(raw, activeOverlay=null) {
+				const url = raw.replace(/admin:\/\//, '/admin')
+				const ext = raw.extension()
 				
 				if (ext === 'pdf') {
 					open(url)
 				} else {
-					overlay = Overlay('preview');
-					overlay.toggle();
-					overlay.querySelector('.file-preview img').src = url
+					Overlay('preview').toggle()
+					Overlay('preview').section('file-preview').child('img').src = url
 
-					activeOverlay ? document.querySelector(`$#overlay-${activeOverlay}`).toggle():null;
+					Overlay(activeOverlay)?.toggle()
 					pendingAction = {'overlay': activeOverlay}
 				}
 			}
+		
 		/// SCAN
-			Icon('refresh').onclick = fileScanner;
+			Icon('refresh').onclick = fileScanner
 			async function fileScanner(e = null) {
 						notify("Scan en cours", "Analyse en cours des fichiers stockés sur le serveur et enregistrés dans la base de données.", 'orange')
-						e ? e.target.findParent('.icon').show():null;
+						e?.target.show()
 						
-						document.querySelector('.files-wrap.invalid').hide();
-						document.querySelector('.files-wrap.unregistered').hide()
-						document.querySelector('.files-wrap.recovered').hide();
+						const types = ['unregistered', 'invalid', 'recovered', 'changed']
+						types.forEach(type => Section(`files-wrap.${type}`).hide())
 
 						// update data on server
-						jsonData = JSON.stringify({'csrf':csrfToken, 'action':'scan'})
-						files = await fetchAPI('/admin/engine/files', jsonData).then(response => response.body)
+						const jsonData = JSON.stringify({'csrf':csrfToken, 'action':'scan'})
+						const files = await fetchAPI('/admin/engine/files', jsonData).then(response => response.body)
 
-						descMatch = {
-							'unregistered': null
-						}
-
-						if (files.unregistered.length !== 0) {
-							data = files.unregistered;
-
-							wrap = document.querySelector('.files-wrap.unregistered');
-							wrap.show();
-
-							nb = data.length;
-							plural = nb > 1 ? 's':'';
-
-							// update DOM content
-							wrap.querySelector('.desc').innerHTML = `<strong>${nb} fichier${plural}</strong> sur le serveur ${nb > 1 ? 'ont':'a'} été détecté${plural} sans être enregistré${plural} dans la base de données :`;
-							wrap.querySelector('.container').innerHTML = '';
-							jsonview.renderJSON(JSON.stringify(data), wrap.querySelector('.container'))
+						types.forEach(async type => {
+							const data = files[type]
 							
-							// export data globallly
-							pendingFiles = data;
-						}
+							if (data.length > 0) {
+								const nb = data.length
+								const plural = nb > 1 ? 's':'';
+								const wrap = Section(`files-wrap.${type}`)
+								const container = wrap.section('container')
+								
+								const descMatch = {
+									'unregistered': `<strong>${nb} fichier${plural}</strong> sur le serveur ${nb > 1 ? 'ont':'a'} été détecté${plural} sans être enregistré${plural} dans la base de données :`,
+									'invalid': `<strong>${nb} fichier${plural}</strong> enregistré${plural} dans la base de données n'existe${nb > 1 ? 'nt':''} plus sur le serveur :<br><small><i>${nb > 1 ? 'Leur':'Son'} status a été mis à jour.</i></small>`,
+									'recovered': `<strong>${nb} fichier${plural}</strong> enregistré${plural} dans la base de données mais réputé${plural} inaccessible${plural} ${nb > 1 ? 'ont':'a'} été détecté${plural} sur le serveur :<br><small><i>${nb > 1 ? 'Leur':'Son'} status a été mis à jour.</i></small>`,
+									'changed': `<strong>${nb} fichier${plural}</strong> enregistré${plural} dans la base de données différent${plural} ${plural} ${nb > 1 ? 'des':'du'} fichier${plural} détecté${plural} sur le serveur.`
+								}
+								
+								container.innerHTML = '';
+								jsonview.renderJSON(JSON.stringify(data), container)
+								wrap.section('desc').innerHTML = descMatch[type]
+								wrap.show()
 
-						if (files.invalid.length !== 0) {
-							data = files.invalid;
+								if (type === 'unregistered') pendingFiles = data
+								await updateData()
+							}
+						})
 
-							wrap = document.querySelector('.files-wrap.invalid');
-							wrap.show();
-
-							nb = data.length;
-							plural = nb > 1 ? 's':'';
-
-							// update DOM content
-							wrap.querySelector('.desc').innerHTML = `<strong>${nb} fichier${plural}</strong> enregistré${plural} dans la base de données n'existe${nb > 1 ? 'nt':''} plus sur le serveur :<br><small><i>${nb > 1 ? 'Leur':'Son'} status a été mis à jour.</i></small>`;
-							wrap.querySelector('.container').innerHTML = '';
-							jsonview.renderJSON(JSON.stringify(data), wrap.querySelector('.container'))
-
-							await updateData()
-						}
-
-						if (files.recovered.length !== 0) {
-							data = files.recovered;
-
-							wrap = document.querySelector('.files-wrap.recovered');
-							wrap.show();
-
-							nb = data.length;
-							plural = nb > 1 ? 's':'';
-
-							// update DOM content
-							wrap.querySelector('.desc').innerHTML = `<strong>${nb} fichier${plural}</strong> enregistré${plural} dans la base de données mais réputé${plural} inaccessible${plural} ${nb > 1 ? 'ont':'a'} été détecté${plural} sur le serveur :<br><small><i>${nb > 1 ? 'Leur':'Son'} status a été mis à jour.</i></small>`;
-							wrap.querySelector('.container').innerHTML = '';
-							jsonview.renderJSON(JSON.stringify(data), wrap.querySelector('.container'))
-
-							await updateData()
-						}
-
-						if (files.changed.length !== 0) {
-							data = files.changed;
-
-							wrap = document.querySelector('.files-wrap.changed');
-							wrap.show();
-
-							nb = data.length;
-							plural = nb > 1 ? 's':'';
-
-							// update DOM content
-							wrap.querySelector('.desc').innerHTML = `<strong>${nb} fichier${plural}</strong> enregistré${plural} dans la base de données différent${plural} ${plural} ${nb > 1 ? 'des':'du'} fichier${plural} détecté${plural} sur le serveur.`;
-							wrap.querySelector('.container').innerHTML = '';
-							jsonview.renderJSON(JSON.stringify(data), wrap.querySelector('.container'))
-
-							await updateData()
-						}
-
-						e ? e.target.findParent('.icon').hide():null;
+						e?.target.hide()
 						notify("Scan terminé", "L'analyse des fichiers est terminée.", 'green')
 			}
 
@@ -557,16 +374,17 @@ if ($_SESSION['role'] !== 'admin') {
 		/// FILES ACTIONS
 			// Download file
 			async function downloadFile(rowdata) {
-					url = rowdata.url
+					const url = rowdata.url
+					let blob
 					
 					if (url.match(/^admin:\/\//)) {
-						jsonData = JSON.stringify({'csrf':csrfToken, 'action':'encode', 'url':url})
-						data = await fetchAPI('/admin/engine/files', jsonData).then(response => response.body)
+						const jsonData = JSON.stringify({'csrf':csrfToken, 'action':'encode', 'url':url})
+						const data = await fetchAPI('/admin/engine/files', jsonData).then(response => response.body)
 
-						bytes = Uint8Array.fromBase64(data.base64);
-						blob = new Blob([bytes], {type: rowdata.type});
+						const bytes = Uint8Array.fromBase64(data.base64)
+						blob = new Blob([bytes], {type: rowdata.type})
 					} else {
-						blob = await fetchBlob(url);
+						blob = await fetchBlob(url)
 					}
 					
 					download(blob, url.filename(true))
@@ -576,17 +394,17 @@ if ($_SESSION['role'] !== 'admin') {
 			async function filesInserter(elements) {
 					notify(`${pendingAction.action === 'insert' ? 'Ajout':'Suppression'} en cours`, `Les fichiers détectés sur le serveur n'existant pas sur la base de données sont en cours ${pendingAction.action === 'insert' ? "d'enregistrement":'de suppression'}.`, 'orange')
 					
-					selectedFiles = Array.from(elements).map(elm => {elm.unset('selected'); return elm.dataset.url})
-					action = pendingAction.action;
-					document.querySelector('.files-wrap.unregistered').hide();
-
-					wrapper = Overlay('filepicker').querySelector('.files-list-container')
+					const selectedFiles = Array.from(elements).map(elm => {elm.unset('selected'); return elm.dataset.url})
+					const action = pendingAction.action
+					const wrapper = Overlay('filepicker').section('files-list-container')
+					
+					Section('files-wrap.unregistered').hide()
 					wrapper.innerHTML = '';
 					pendingAction = {}
 
 					// update data on server
-					jsonData = JSON.stringify({'csrf':csrfToken, 'action':action, 'files':selectedFiles})
-					response = await fetchAPI('/admin/engine/files', jsonData)
+					const jsonData = JSON.stringify({'csrf':csrfToken, 'action':action, 'files':selectedFiles})
+					const response = await fetchAPI('/admin/engine/files', jsonData)
 					
 					if (!response.ok) {
 						notify("Erreur lors de l'opération", response.body.error, 'red')
@@ -596,15 +414,15 @@ if ($_SESSION['role'] !== 'admin') {
 			}
 			
 			async function deleter(data) {
-					mode = pendingAction.mode ? 'force':'keep';
-					pendingAction = {};
-					Overlay('deletion').input('deletion-mode').checked = false;
+					const mode = pendingAction.mode ? 'force':'keep';
+					pendingAction = {}
+					Overlay('deletion').input('deletion-mode').checked = false
 
 					notify("Suppression en cours", `La suppression du fichier '${data.url}' du serveur est en cours.${mode === 'force' ? " L'entrée correspondante dans la base de données sera supprimée.":''}`, 'orange')
 
 					// update data on server
-					jsonData = JSON.stringify({'csrf':csrfToken, 'action':'remove', 'mode':mode, 'url':data.url, 'status':data.status})
-					response = await fetchAPI('/admin/engine/files', jsonData)
+					const jsonData = JSON.stringify({'csrf':csrfToken, 'action':'remove', 'mode':mode, 'url':data.url, 'status':data.status})
+					const response = await fetchAPI('/admin/engine/files', jsonData)
 
 					if (!response.ok) {
 						notify("Erreur lors de la suppression", `Le fichier '${data.url}' n'a pas pu être retiré du serveur. Veuillez réessayer.`, 'red')
@@ -614,12 +432,33 @@ if ($_SESSION['role'] !== 'admin') {
 					}
 			}
 
-			// show file metadata on unhover display
-			document.querySelectorAll('.icon.dots').forEach(item => {
-						item.onclick = e => {
-							e.target.findParent('.icon').nextElementSibling.toggle()
-						}
+			function selectionGenerator() {
+					const wrapper = Overlay('filepicker').section('files-list-container')
+					const files = pendingFiles
+
+					files.forEach(file => {
+						const div = document.createElement('div')
+						
+						div.classList.toggle('file-element-wrap')
+						div.innerHTML = `
+							<div class='file-element-icon'>
+								<div class='icon visualize inline hoverable dynamic' title="${file.path}"></div>
+								<div class='icon download  inline hoverable dynamic' title="${file.path}"></div>
+							</div>
+							<div class='file-element' data-url="${file.path}">${file.name}</div>
+						`
+						div.querySelector('.file-element').addEventListener('click', e => e.target.parent('.file-element').toggle('selected'))
+						div.icon('visualize').addEventListener('click', e => viewFile(e.target.parent('.file-element-wrap').querySelector('.file-element').dataset.url))
+						div.icon('download').addEventListener('click', e => downloadFile({'url': e.target.parent('.file-element-wrap').querySelector('.file-element').dataset.url}))
+
+						wrapper.append(div)
 					})
+
+					Overlay('filepicker').toggle()
+			}
+
+			// show file metadata on unhover display
+			Icons('dots').forEach(item => item.onclick = e => e.target.nextElementSibling.toggle())
 
 			// Action for unregistered files
 			Button('add-files').onclick = e => {
@@ -631,109 +470,32 @@ if ($_SESSION['role'] !== 'admin') {
 					selectionGenerator()
 			}
 
-			function selectionGenerator() {
-					wrapper = Overlay('filepicker').querySelector('.files-list-container')
-					files = pendingFiles
-
-					files.forEach(file => {
-						div = document.createElement('div');
-						div.classList.toggle('file-element-wrap')
-
-						div.innerHTML = `
-							<div class='file-element-icon'>
-								<div class='icon visualize medium inline hoverable dynamic' title="${file.path}"><span class='img'></span></div>
-								<div class='icon download medium inline hoverable dynamic' title="${file.path}"><span class='img'></span></div>
-							</div>
-							<div class='file-element' data-url="${file.path}">${file.name}</div>
-						`
-						div.querySelector('.file-element').addEventListener('click', e => e.target.findParent('.file-element').toggleAttribute('selected'))
-						div.icon('visualize').addEventListener('click', e => viewFile(e.target.findParent('.file-element-wrap').querySelector('.file-element').dataset.url))
-						div.icon('download').addEventListener('click', e => downloadFile({'url': e.target.findParent('.file-element-wrap').querySelector('.file-element').dataset.url}))
-
-						wrapper.append(div)
-					})
-
-					Overlay('filepicker').toggle()
-			}
-
 			Overlay('filepicker').button('validate').onclick = e => {
-					tags = e.container().querySelectorAll('.file-element[selected]')
-					error = e.container().error('file-choice')
+					const overlay = e.target.parent('overlay')
+					const tags  = overlay.querySelectorAll('.file-element[selected]')
+					const error = overlay.error('file-choice')
 
 					if (tags.length === 0) {
 						error.innerText = 'Sélectionnez au moins un fichier pour continuer';
-						error.show();
+						error.show()
 					} else {
-						error.hide();
-						e.container().hide();
+						error.hide()
+						overlay.hide()
 
 						filesInserter(tags)
 					}
 			}
 		
 		//// FILE UPLOAD
-			Icon('upload').onclick = e => Overlay('uploader').toggle()
-			
-			Overlay('uploader').button('cancel').onclick = e => {
-				overlay = e.container()
-				overlay.hide();
-				overlay.child('form').reset();
-				overlay.child('.selected-file').innerText = '';
-				overlay.child('.frame').hide();
-				overlay.input('file').required = true;
-			}
-
-			Overlay('uploader').icon('delete').onclick = e => {
-				Overlay('uploader').child('.frame').hide();
-				Overlay('uploader').child('.selected-file').innerText = '';
-				Overlay('uploader').input('file').value = '';
-			}
-
-			document.querySelector('#file').onchange = e => handlePassedFile(e.target)
-
-			Overlay('uploader').child('form').onsubmit = e => {
-				e.preventDefault();
-				e.container().hide();
-				
-				uploader(e.target)
-			}
-
-			function fileDropHandle(e) {
-						allowDrop(e);
-						
-						data = e.dataTransfer;
-						files = data.files;
-						
-						input = document.querySelector('#file');
-						input.files = files;
-						
-						handlePassedFile(input)
-				}
-
-			function handlePassedFile(input) {
-						upload = fileUploadManage(input, /(application\/(pdf|zip|x-zip-compressed|vnd\.sqlite3)|image\/.*)/, 10)
-							if (upload) {
-								Overlay('uploader').input('filename').value = file.name.filename();
-								Overlay('uploader').input('filename').dataset.name = file.name;
-								Overlay('uploader').input('fileextension').value = file.name.extension();
-								}
-			}
-
 			// update new file
 			async function uploader(form) {
-						notify("Téléversement en cours", "Le fichier sélectionné est en cours d'ajour sur le serveur.", 'orange')
-						fileTag = Overlay('uploader').child('.fileentry')
-						adminCheck = Overlay('uploader').input('admin-check').checked
-						file = fileTag.files[0];
-
-						// url config
-						if (adminCheck) {
-							url = 'admin:///files/'+file.name
-						} else {
-							url = '/files/uploads/'+file.name
-						}
+						notify("Téléversement en cours", "Le fichier sélectionné est en cours d'ajout sur le serveur.", 'orange')
 						
-						formData = new FormData(form);
+						const adminCheck = Overlay('uploader').input('admin-check').checked
+						const file = fileTag.files[0]
+						const url  = (adminCheck ? 'admin:///files/' : '/files/uploads/') + file.name
+						const formData = new FormData(form)
+						
 						formData.set('mode', 'add')
 						formData.set('action', 'update')
 						formData.set('og-url', url)
@@ -745,7 +507,7 @@ if ($_SESSION['role'] !== 'admin') {
 						formData.set('csrf', csrfToken)
 
 						// Response object
-						response = await fetchAPI('/admin/engine/files', formData)
+						const response = await fetchAPI('/admin/engine/files', formData)
 
 						if (!response.ok) {// http code 400-500 return false
 								notify("Échec du téléversement", `[Erreur HTTP ${response.httpcode}] ${response.body.error}`, 'red');
@@ -753,10 +515,10 @@ if ($_SESSION['role'] !== 'admin') {
 								}
 						
 						if (response.httpcode === 250) {// failed sql request
-							errorData = response.body.error;
-							errorCode = response.body.code;
+							errorData = response.body.error
+							errorCode = response.body.code
 							
-							notify("Erreur lors du téléversement", `L'ajot à la base de données a échoué. [Error ${errorCode}]: ${errorData}`, 'red');							
+							notify("Erreur lors du téléversement", `L'ajout à la base de données a échoué. [Error ${errorCode}]: ${errorData}`, 'red');							
 							return
 						} else {// correct sql response
 							notify("Succès du téléversement", `Le fichier ${response.body.data.path} a été ajouté au serveur et à la base de données`, 'green')
@@ -764,85 +526,99 @@ if ($_SESSION['role'] !== 'admin') {
 
 						form.reset()
 						Overlay('uploader').child('.selected-file').innerText = ''
-						Overlay('uploader').child('.frame').hide()
+						Overlay('uploader').section('frame').hide()
 						await updateData()
 					}
+			
+			Icon('upload').onclick = () => Overlay('uploader').toggle()
+			
+			Overlay('uploader').button('cancel').onclick = e => resetFileUpload(e, true)
+
+			Overlay('uploader').icon('delete').onclick = resetFileUpload
+
+			Overlay('uploader').child('form').onsubmit = e => {
+				e.preventDefault()
+				e.target.parent('overlay').hide()
+				
+				uploader(e.target)
+			}
 		
 			// close file viewer
 			Overlay('preview').button('close').onclick = e => {
-					e.container().toggle();
-					e.container().child('.file-preview img').src = '';
+					e.target.parent('overlay').toggle()
+					e.target.parent('overlay').section('file-preview').child('img').src = '';
 
-					activeOverlay = pendingAction.overlay;
-					activeOverlay ? document.querySelector(`$#overlay-${activeOverlay}`).toggle():null;
+					activeOverlay = pendingAction.overlay
+					Overlay(activeOverlay)?.toggle()
 					pendingAction = {}
 			}
 
 			// close unregistered files selector
 			Overlay('filepicker').button('cancel').onclick = e => {
-					wrapper = e.container().querySelector('.files-list-container')
-					document.error('file-choice').hide();
-					e.container().toggle();
+					wrapper = e.target.parent('overlay').section('files-list-container')
+					Overlay('filepicker').error('file-choice').hide()
+					Overlay('filepicker').toggle()
 					wrapper.innerHTML = '';
 					pendingAction = {}
 			}
 
+			// confirm deletion
+			Overlay('deletion').button('validate').onclick = e => {
+					Overlay('deletion').toggle()
+					Overlay('auth').toggle()
+					pendingAction['mode'] = Overlay('deletion').input('deletion-mode').checked
+			}
+
 			// close deletion control
 			Overlay('deletion').button('cancel').onclick = e => {
-					e.container().input('deletion-mode').checked = false;
-					e.container().hide()
-					pendingAction = {}
+					e.target.parent('overlay').input('deletion-mode').checked = false;
+					transfer(e, false)
+			}
+
+			// Auth validation before redirection
+			Overlay('auth').child('form').onsubmit = e => e.preventDefault()
+			Overlay('auth').button('validate').onclick = async e => {
+					validity = await passwordChecker()
+					if (validity) transfer(e)
 			}
 
 			// close deletion control
 			Overlay('auth').button('cancel').onclick = e => {
 					Overlay('deletion').input('deletion-mode').checked = false;
-					e.container().hide()
-					pendingAction = {}
+					transfer(e, false)
 			}
 
-			// cancel requested action
-			Overlay('validate').button('cancel').onclick = e => {
-					e.container().hide();
-					pendingAction = {};
-			}
-
-			// go on with requested action
-			Overlay('validate').button('validate').onclick = e => {
-					e.container().hide();	
-					pendingAction.link ? pendingAction.function(pendingAction.link):pendingAction.function();
-					pendingAction = {};
-			}
+			// handle requested action
+			Overlay('validate').button('validate').onclick = e => transfer(e)
+			Overlay('validate').button('cancel').onclick = e => transfer(e, false)
 		
 		//// DATA EDITION
-			Button('reset').onclick = e => {
-					pendingAction.function = resetTabledata;
-					Overlay('validate').show();
-			}
-
 			// show overlay save changes
 			Button('save').onclick = e => {
-					pendingAction.function = saveCurrentData;
-					Overlay('auth').show();
+					pendingAction.function = saveCurrentData
+					Overlay('auth').show()
+			}
+
+			Button('reset').onclick = e => {
+					pendingAction.function = resetTabledata
+					Overlay('validate').show()
 			}
 
 			async function saveCurrentData() {
-				// active table
-				table = activeTable.table;
+				table = activeTable.table
 
 				// select edited rows, with values different from original
-				modifiedRows = Array.from(table.getEditedCells().concat(Object.values(autoEditedCells))).map(c => {return c.getValue() !== c.getInitialValue() ? c.getRow().getData():null}).filterUnique();
+				const modifiedRows = Array.from(table.getEditedCells().concat(Object.values(autoEditedCells))).map(c => c.getValue() !== c.getInitialValue() ? c.getRow().getData():null).filterUnique()
 
 				// update fetch
-				jsonData = JSON.stringify({'action':'placeholder', 'type':activeTable.type, 'csrf':csrfToken, 'data':modifiedRows})
-				response = await fetchAPI('/admin/engine/files', jsonData)
+				const jsonData = JSON.stringify({'action':'placeholder', 'type':activeTable.type, 'csrf':csrfToken, 'data':modifiedRows})
+				const response = await fetchAPI('/admin/engine/files', jsonData)
 
 				if (!response.ok) {
 					notify("Échec de la mise à jour", `Des erreurs sont survenues lors de la mise à jour des métadonnées des fichiers. Consultez les logs pour plus d'informations.`, 'red')
-					return
+				
 				} else {
-					document.querySelector('#main').child('.form-action-wrap').hide()
-					
+					Block('main').section('actions-wrap').hide()
 					resetTableData(activeTable, true)
 
 					notify("Succès", "Les métadonnées des fichiers ont été mises à jour.", 'green')

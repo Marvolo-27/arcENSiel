@@ -98,13 +98,6 @@ if (!empty($tagsIdList)) {
 					flex-flow: column;
 					}
 				
-				
-				.header, .footer {
-						flex: 0;
-						}
-				
-				.mainer {flex: 1}
-				
 				/* .title {margin-bottom: 0} */
 
 				.metadata {
@@ -121,15 +114,9 @@ if (!empty($tagsIdList)) {
 				
 				.visual {
 						width: 70%;
-						max-width: 400px;
 						}
 				
-					.tags::before {background-image: var(--icon-tag);}
-					.date::before {background-image: var(--icon-clock);}
-				
 				.author {margin: 1.5em 0 1em 0}
-
-				.tags span:last-child {display: none}
 		</style>
 	</head>	
 	
@@ -140,30 +127,30 @@ if (!empty($tagsIdList)) {
 			<div id='article'>
 				<div class="header">
 					<div class="head-info">
-						<?php if($status === 'preview' && $edition): ?><a class='icon go-back inline large hoverable dynamic' href="/admin/dashboard"><div class='img'></div></a><?php endif; ?>
+						<?php if($status === 'preview' && $edition): ?><a class='icon go-back inline large hoverable dynamic' href="/admin/dashboard"></a><?php endif; ?>
 						<h1 class="title"><?= $title ?></h1>
-						<?php if ($_SESSION['user_id'] && $status === 'published'): ?><div class='icon star inline large hoverable' title="<?= $starred ? 'Retirer':'Ajouter' ?> l'article aux favoris" <?= $starred ? 'active':null ?>><span class='img'></span></div><?php endif; ?>
+						<?php if ($_SESSION['user_id'] && $status === 'published'): ?><div class='icon star inline large hoverable' title="<?= $starred ? 'Retirer':'Ajouter' ?> l'article aux favoris" <?= $starred ? 'active':null ?>></div><?php endif; ?>
 					</div>
 						
 					
 					<div class="metadata">
 						<?php if ($date): ?>
-						<span class="meta-item date"><?= $date ?><?= $enddate ? " - ".$enddate : null ?></span>
+						<span class="meta-item illustrated pre date"><?= $date ?><?= $enddate ? " - ".$enddate : null ?></span>
 						<?php endif; ?>
 						
-						<span class="meta-item tags">
-							<?php foreach($artTags as $tag) { ?>
+						<span class="meta-item illustrated pre tags">
+							<?php foreach($artTags as $index => $tag) { ?>
 								<span class="tag-item">
 										<a href="/search?&tags=<?= $tag['slug'] ?>"><?= $tag['name']?></a>
 								</span>
-								<span>|</span>
+								<?php if ((int) $index !== count($artTags) - 1): ?><span>|</span><?php endif; ?>
 							<?php } ?>
 						</span>
 					</div>
 				</div>
 				
-				<div class="mainer">
-					<img class="visual" alt="Affiche de l'évènement" src='<?= $picture ?>'>
+				<div class="main">
+					<img class="visual" alt="Affiche de l'évènement" src='<?= $picture ?: '/files/placeholder.png' ?>'>
 					<div class='article-content'>
 					</div>
 				</div>
@@ -181,14 +168,10 @@ if (!empty($tagsIdList)) {
 		<?php if($_SESSION['role'] === 'admin'): ?>
 		<div id="admin-actions">
 			<?php if($status === 'preview' && $edition): ?>
-				<a class='icon edit inline large dynamic' href="/admin/tools/edit/article/<?= $url ?>" title="Modifier l'article">
-					<span class='img'></span>
-				</a>
+				<a class='icon edit inline large dynamic' href="/admin/tools/edit/article/<?= $url ?>" title="Modifier l'article"></a>
 			<?php endif; ?>
 			<?php if(true): ?>
-				<div class='icon chg-status <?= $status === 'published' ? 'archive':'unarchive' ?> inline large dynamic hoverable' data-url="<?= $url ?>" title="<?= $status !== 'published' ? 'Publier':'Archiver' ?> l'article">
-					<span class='img'></span>
-				</div>
+				<div class='icon chg-status <?= $status === 'published' ? 'archive':'unarchive' ?> inline large dynamic hoverable' data-url="<?= $url ?>" title="<?= $status !== 'published' ? 'Publier':'Archiver' ?> l'article"></div>
 			<?php endif; ?>
 			<input name='csrf-token' id='csrf' data-csrf='<?= $_SESSION['CSRF'] ?>' value='<?= $_SESSION['CSRF'] ?>' required hidden readonly>
 		</div>
@@ -211,15 +194,15 @@ if (!empty($tagsIdList)) {
 		// handle banner shape
 		window.addEventListener('scroll', bannerManage)
 		
-		<?php if ($_SESSION['user_id'] && $status === 'published'): ?>
+	<?php if ($_SESSION['user_id'] && $status === 'published'): ?>
 		// bookmark managemement
 		Icon('star').onclick = markArticle
 		async function markArticle(e) {
-				tag = e.target.findParent('.icon');
-				
-				const mode = tag.getAttribute('active') !== null ? 'unmark':'mark';
-				url = window.location.pathname.split('/').slice(-1)[0];
-				tag.toggle()
+				const icon = e.target
+				const mode = icon.getAttribute('active') !== null ? 'unmark':'mark';
+				const url = window.location.pathname.split('/').slice(-1)[0]
+
+				icon.toggle()
 			
 				const response = await fetch(`/user/engine/bookmarks?action=update&mode=${mode}&url=${url}`, {
 						headers: { 'X-Requested-With': 'fetch' },
@@ -228,30 +211,28 @@ if (!empty($tagsIdList)) {
 
 				if (!response.ok) {
 					notify("Échec de la mise à jour", `Une erreur est survenue lors de ${mode === 'mark' ? "l'ajout":'la suppression'} de l'article ${mode === 'mark' ? 'à':'de'} vos favoris.`, 'red')
-					tag.toggle() // reset attribute status
+					icon.toggle() // reset attribute status
 				} else {
 					notify("Favoris mis à jour", `L'article '${url}' a été ${mode === 'mark' ? 'ajouté à':'retiré de'} la liste de vos favoris.`, 'green')
 				}
 		}
-		<?php endif; ?>
-
+	<?php endif; ?>
+		
+	<?php if($status !== 'preview' && $_SESSION['role'] === 'admin'): ?>
 		// handle article archiving
-		async function archiveArticle(event) {				
+		Block('admin-actions').icon('chg-status').onclick = archiveArticle
+		async function archiveArticle(e) {				
 				// DOM objects
-				btn = event.target.findParent('.icon')
-				const toarchive = Array.from(btn.classList).includes('archive');
+				const button = e.target
+				const toarchive = Array.from(button.classList).includes('archive')
+				const state = toarchive ? 'archived':'published';
+				const slug = button.dataset.url;
 
 				// Update DOM
-				btn.classList.toggle('archive')
-				btn.classList.toggle('unarchive')
-
-				// extract data
-				const state = toarchive ? 'archived':'published';
-				slug = btn.dataset.url;
+				button.classList.toggle('archive')
+				button.classList.toggle('unarchive')
 
 				notify(`${toarchive ? 'Archivage':'Publication'} en cours`, `Le statut de l'article ${slug} est en cours de mise à jour.`, 'orange')
-
-				await sleep(500);
 				
 				// check password
 				const jsonData = JSON.stringify({'action':'archive','type':'articles','csrf':csrfToken, 'slug':slug, 'status':state})
@@ -264,9 +245,7 @@ if (!empty($tagsIdList)) {
 
 				notify("Statut mis à jour", `L'article ${slug} a été ${toarchive ? 'archivé':'publié'}.`, 'green')
 		}
-		<?php if($status !== 'preview' && $_SESSION['role'] === 'admin'): ?>
-			document.querySelector('#admin-actions').icon('chg-status').onclick = archiveArticle;
-		<?php endif; ?>
+	<?php endif; ?>
 		</script>
 	</body>
 </html>

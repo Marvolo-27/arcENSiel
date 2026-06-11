@@ -40,8 +40,6 @@ $artTags = $query->fetchAll(PDO::FETCH_ASSOC) ?? null;
 		<script src='/files/assets/js/carousel.js'></script>
 
 		<style>
-			#body {background-color: #f0f8ff99;}
-
 		/*!! Intro Banner style !!*/
 			#intro {
 					height: 70vh;
@@ -98,8 +96,6 @@ $artTags = $query->fetchAll(PDO::FETCH_ASSOC) ?? null;
 							left: 12.5%;
 							}
 					}
-
-			.tags span:last-child {display: none}
 			
 		#news-carousel {
 				--nb: 5 !important; /* works fine if n greater than actaual nb of entries */
@@ -137,8 +133,8 @@ $artTags = $query->fetchAll(PDO::FETCH_ASSOC) ?? null;
 				
 				<div id='news-carousel' class="carousel-wrap"></div>
 				
-				<div class="form-action-wrap large">
-					<div class='form-action'>
+				<div class="actions-wrap large">
+					<div class='action-container'>
 						<button class='action-btn save'><a href='/actualites'>Voir plus</a></button>
 					</div>
 				</div>
@@ -157,8 +153,8 @@ $artTags = $query->fetchAll(PDO::FETCH_ASSOC) ?? null;
 					<iframe id="haWidget" allowtransparency="true" src="https://www.helloasso.com/associations/arcensiel-association-queer-de-l-ens-lyon/boutiques/goodies-arcensiel/widget-vignette" style="height:655px;border:none;" onload="window.addEventListener( 'message', function(e) { const dataHeight = e.data.height; const haWidgetElement = document.getElementById('haWidget'); haWidgetElement.height = dataHeight + 'px'; } )"></iframe>
 				</div>
 
-				<div class="form-action-wrap large">
-					<div class='form-action'>
+				<div class="actions-wrap large">
+					<div class='action-container'>
 						<button class='action-btn save'><a href='https://www.helloasso.com/associations/arcensiel-association-queer-de-l-ens-lyon'>Voir plus</a></button>
 					</div>
 				</div>
@@ -179,8 +175,8 @@ $artTags = $query->fetchAll(PDO::FETCH_ASSOC) ?? null;
 					Membre d'un collectif d'associations engagées, nous aspirons aussi à une lutte intersectionnelle plus large contre les injustices et les discriminations.
 				</p>
 
-				<div class="form-action-wrap large">
-					<div class='form-action'>
+				<div class="actions-wrap large">
+					<div class='action-container'>
 						<button class='action-btn save'><a href='https://www.helloasso.com/associations/arcensiel-association-queer-de-l-ens-lyon'>En savoir plus</a></button>
 					</div>
 				</div>
@@ -192,7 +188,7 @@ $artTags = $query->fetchAll(PDO::FETCH_ASSOC) ?? null;
 		
 		<script>
 		// On-load logic
-		window.addEventListener('load', loader);
+		window.addEventListener('load', loader)
 		async function loader()  {
 									// PHP sent notifications
 									if (body.dataset.message === 'login') {
@@ -203,10 +199,8 @@ $artTags = $query->fetchAll(PDO::FETCH_ASSOC) ?? null;
 										}
 									
 									// fetch most recent article
-									newslist = await fetchArticles(0, 5)
-									data = newslist.data.map(item => {
-											return {'src':item['picture_path'], 'url':`/articles/${item.url}`}
-										})
+									newslist = await fetchNewsFlow(0, 5)
+									data = newslist.data.map(item => ({'src':item['picture_path'], 'url':`/articles/${item.url}`}))
 
 									// Generate carousel
 									carouselGenerator('#news-carousel', data)

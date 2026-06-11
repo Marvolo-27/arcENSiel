@@ -30,29 +30,8 @@ function cas_login(): string {
 	return phpCAS::getUser();
 }
 
-
-// Bypass if username check asked
-$check = $_GET['check'] ?? null;
-if ($check === 'availability') {
-	$type = $_GET['type'];
-	$value = $_GET['content'] ?? null;
-	
-	$query = $pdo->prepare("SELECT id from users WHERE ".($type === 'email' ? 'email':'username')." = ?");
-	$query->execute([$value]);
-	
-	if ($query->fetch()) {
-		http_response_code(400);
-		echo json_encode(['error' => "Valeur indisponible."]);
-		exit;
-	} else {
-		http_response_code(200);
-		echo json_encode(['value' => $user]);
-		exit;
-	}
-}
-
 // get token if exist
-$csrf = $_POST['csrf-token'] ?? null;
+$csrf = $_POST['csrf-token'] ?? $_GET['token'] ?? null;
 
 // Get client-sent arguments
 $method ??= $_GET['method'] ?? 'local';
@@ -65,6 +44,23 @@ $action ??= $_POST['action'] ?? $_GET['action'] ?? 'login';
 // Form check
 $status= isset($_POST['action']) ? 'pending-check':'pending-form';
 
+// Bypass if username check asked
+if ($action === 'check') {
+	$type = $_GET['type'];
+	$value = $_GET['content'] ?? null;
+	
+	$query = $pdo->prepare("SELECT id from users WHERE ".($type === 'email' ? 'email':'username')." = ?");
+	$query->execute([$value]);
+	
+	if ($query->fetch()) {
+		http_response_code(400);
+		echo json_encode(['error' => "Valeur indisponible."]);
+	} else {
+		http_response_code(200);
+		echo json_encode(['message' => 'Valeur disponible.']);
+	}
+	exit;
+}
 
 //// Check log state
 if (isset($_SESSION['user_id'])) {// logged in
@@ -417,10 +413,6 @@ unset($_SESSION['message']);
 		
 		<script src='/files/assets/js/main.js'></script>
 		<script src='/files/assets/js/login.js'></script>
-		
-		<style>
-			a:not(:hover) {color: unset}
-		</style>
 	</head>
 	
 	<body
@@ -465,11 +457,17 @@ unset($_SESSION['message']);
 						<?php if (($resetToken || $action !== 'reset-credentials') && !$resetstatus): ?>
 						<div class='box username'>
 							<div class='input-header'>
+								<div class='icon info inline hoverable'>
+									<span class='infotext'>
+										Le nom d'utilisateurice doit comporter au moins 3 caractères, et ne pas débuter par '-'. Caractères autorisés : a-z, A-Z, 0-9, '_', '-'
+									</span>
+								</div>
+
 								<label class='label' for='username'>Nom d'utilisateur</label>
 							</div>
 							<div class='input-container'>
-								<div class='icon username left medium <?= $action === 'register' ? 'right':'' ?>'><span class='img'></span></div>
-								<input class='lineentry decorated' type='text' name='username' id='username' autocomplete=on required placeholder="Nom d'utilisateur" title="Veuillez entrer votre nom d'utilisateur"
+								<div class='icon username left'></div>
+								<input class='lineentry decorated' type='text' name='username' id='username' autocomplete=on pattern="[a-zA-Z_]+[a-zA-Z0-9_-]{2,}" required placeholder="Nom d'utilisateur" title="Veuillez entrer votre nom d'utilisateur"
 									<?php if ($error['code'] === 'invalid-credentials'): ?>
 										value=<?= $error['username'] ?>
 									<?php endif; ?>
@@ -478,7 +476,7 @@ unset($_SESSION['message']);
 										readonly
 									<?php endif; ?>
 								>
-								<div class='icon validity right medium'><span class='img'></span></div>
+								<div class='icon validity right'></div>
 								<span class="spinner icon right"></span>
 							</div>
 							<div class='error username'>Nom d'utilisateur indisponible.</div>
@@ -491,14 +489,14 @@ unset($_SESSION['message']);
 								<label class='label' for='email'>Adresse email</label>
 							</div>
 							<div class='input-container'>
-								<div class='icon mail left medium'><span class='img'></span></div>
-								<input class='lineentry decorated' type='email' name='email' id='email' autocomplete=on required placeholder='john.doe@example.com' title="Veuilez entrer votre adresse mail"
+								<div class='icon mail left'></div>
+								<input class='lineentry decorated' type='email' name='email' id='email' autocomplete=on pattern="[a-z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$" required placeholder='john.doe@example.com' title="Veuilez entrer votre adresse mail"
 									<?php if ($error['code'] === 'used-mail'): ?>
 										value=<?= $error['email'] ?>
 									<?php endif; ?>
 								>
-								<div class='icon validity right medium'><span class='img'></span></div>
-								<span class="spinner icon right"></span>
+								<div class='icon validity right'></div>
+								<span class="icon spinner right"></span>
 							</div>
 							<div class='error mail'>Cette adresse mail existe déjà.</div>
 						</div>
@@ -510,12 +508,12 @@ unset($_SESSION['message']);
 								<label class='label' for='pswd'>Mot de passe</label>
 							</div>
 							<div class='input-container'>
-								<div class='icon lock left medium'><span class='img'></span></div>
+								<div class='icon lock left'></div>
 								<input class='lineentry decorated livecheck' type='password' name='password' id='pswd' autocomplete=off required placeholder="Mot de passe" title="Veuilez entrer votre mot de passe" pattern='(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[^\sa-zA-Z0-9]).{6,}'>
-								<div class='icon toggle-pass right medium hoverable'><span class='img' title='Montrer le mot de passe'></span></div>
+								<div class='icon toggle-pass right hoverable'></div>
 							</div>
 							<div class='error password' <?= $error['code'] === 'invalid-credentials' ? 'active':'' ?>><?= $action === 'login' ? "Nom d'utilisateur ou mot de passe incorrect":"Le mot de passe n'est pas valide" ?></div>
-							<?php if ($action === 'login'): ?><div class='context right mail'><a class="canonic" href='/auth/reset-credentials'>Mot de passe oublié ?</a></div><?php endif; ?>
+							<?php if ($action === 'login'): ?><div class='context right mail'><a class="dynamic" href='/auth/reset-credentials'>Mot de passe oublié ?</a></div><?php endif; ?>
 
 							<?php if ($action === 'register' || $action === 'reset-credentials'): ?>
 								<?php include($root . '/app/templates/password-requirements.html') ?>
@@ -529,9 +527,9 @@ unset($_SESSION['message']);
 								<label class='label' for='pswd-confirm'>Confirmation du mot de passe</label>
 							</div>
 							<div class='input-container'>
-								<div class='icon lock left medium'><span class='img'></span></div>
+								<div class='icon lock left'></div>
 								<input class='lineentry decorated' type='password' id='pswd-confirm' autocomplete=off required placeholder='Confirmation du mot de passe' title="Veuilez confirmer votre mot de passe">
-								<div class='icon toggle-pass bis right medium hoverable'><span class='img' title='Montrer le mot de passe'></span></div>
+								<div class='icon toggle-pass bis right hoverable' title='Montrer le mot de passe'></div>
 							</div>
 							<div class='error confirmation'>Les mots de passe ne correspondent pas !</div>
 						</div>
@@ -539,19 +537,19 @@ unset($_SESSION['message']);
 					</div>
 					
 					
-					<div class='form-action-wrap'>
+					<div class='actions-wrap'>
 						<?php if ($action === 'login'): ?>
-							<div class='form-action'>
+							<div class='action-container'>
 								<button class='action-btn' type='submit' name='action' value='login'>Se connecter</button>
 							</div>
 						<?php endif; ?>
 						<?php if ($action === 'register'): ?>
-							<div class='form-action'>
+							<div class='action-container'>
 								<button class='action-btn register' name='action' value='register'>S'inscrire</button>
 							</div>
 						<?php endif; ?>
 						<?php if ($action === 'reset-credentials' && !$resetstatus): ?>
-							<div class='form-action'>
+							<div class='action-container'>
 								<button class='action-btn reset' name='action' value='reset-credentials'><?= $resetToken ? 'Réinitialiser':'Continuer' ?></button>
 							</div>
 						<?php endif; ?>
@@ -560,21 +558,21 @@ unset($_SESSION['message']);
 				</form>
 				
 				<?php if ($action === 'register' || $action === 'login'): ?>
-				<div class='external form-action-wrap'>
+				<div class='external actions-wrap'>
 					<?php if ($action === 'login'): ?>
-						<div class='form-action'>
+						<div class='action-container'>
 							<span class='label'>Pas encore de compte ?</span>
 							<button class='action-btn'><a href='/auth/register'>S'inscrire</a></button>
 						</div>
 					<?php endif; ?>
 					<?php if ($action === 'register'): ?>
-						<div class='form-action'>
+						<div class='action-container'>
 							<span class='label'>Déjà un compte ?</span>
 							<button class='action-btn'><a href='/auth/login'>Se connecter</a></button>
 						</div>
 					<?php endif; ?>
 					<?php if (false): ?>
-						<div class='form-action'>
+						<div class='action-container'>
 							<button class='action-btn'>
 								<a href='/auth/loginCAS'>Se connecter avec ENS de Lyon</a>
 							</button>
@@ -592,41 +590,34 @@ unset($_SESSION['message']);
 		window.addEventListener('load', loader)
 		async function loader()  {
 									if (body.dataset.error === 'used-login') {
-										Error('username').style.display='';
+										Error('username').style.removeProperty('dispaly')
 									}
 									if (body.dataset.error === 'invalid-credentials') {
-										Error('password').style.display='';
+										Error('password').style.removeProperty('display')
 									}
 									if (body.dataset.message === 'registered') {
-										notify('Bienvenue !', 'Compte créé avec succès.', 'green');
+										notify('Bienvenue !', 'Compte créé avec succès.', 'green')
 									}
-									
-									}
+								}
 		
 		
 	<?php if ($action === 'register' || ($action === 'reset-credential' && ($resetToken && !$resetstatus))): ?>
 	// Regsiter section logic //
-		// Password match check
-		Input('pswd-confirm').addEventListener('input', pswdCheck)
-
-		// Password validity check
-		Input('pswd').addEventListener('input', pswdRequirementsCheck)
+		// Password checks
+		Input('pswd-confirm').oninput = pswdCheck
+		Input('pswd').oninput = pswdRequirementsCheck
 		
 		// (in)activate button
-		function submitAllower() {
-				btns = document.querySelectorAll('.action-btn:is(.register,.reset)');
-				
-				btns.forEach(btn => {
-					btn.disabled = (document.querySelector('.error[active]') !== null || document.querySelector('.check-item[invalid]') !== null)
-				})
+		function submitAllower(force = false) {
+				Buttons(':is(.register,.reset)').forEach(btn => btn.disabled = force || (Error('[active]') !== null || document.querySelector('.check-item[invalid]') !== null))
 		}
 		
 		// username/email check
-		Input('email')?.oninput = compareWithOldValue
-		Input('email')?.onchange = e => checkInput(e, 'email')
+		Input('email').oninput = compareWithOldValue
+		Input('email').onchange = e => checkInput(e.target, '/auth/login', 'email')
 		
-		Input('username')?.oninput = compareWithOldValue
-		Input('username')?.onchange = e => checkInput(e, 'username')
+		Input('username').oninput = compareWithOldValue
+		Input('username').onchange = e => checkInput(e.target, '/auth/login', 'username')
 	<?php endif; ?>
 		</script>
 	</body>

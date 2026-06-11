@@ -113,10 +113,6 @@ if ($edition && !$artData) {
 			h3 {margin-top: 2.5em;}
 			h1 {margin: 0}
 			
-			/* icons for metadata */
-			.tags::before {background-image: var(--icon-tag);}
-			.date::before {background-image: var(--icon-clock);}
-			
 			/* boxes adapted margins - sizes */
 			.box.author {margin: 1.5em 0 1em 0}
 			#art-type {
@@ -139,7 +135,7 @@ if ($edition && !$artData) {
 
 			.input-container.checkboxes span {position: relative;}
 			
-			::-webkit-scrollbar {display: block !important;}
+			/*::-webkit-scrollbar {display: block !important;}*/
 			
 			.meta-item {
 				height: unset !important;
@@ -157,9 +153,6 @@ if ($edition && !$artData) {
 			select:open::picker-icon {rotate: 180deg;}
 
 			option {background-color: attr(data-color);}
-
-			#filename, #fileextension {font-size: .7em}
-			
 		</style>
 	</head>	
 	
@@ -169,7 +162,7 @@ if ($edition && !$artData) {
 		<div id='main'>
 			<div class="">
 				<div class="head-info">
-					<a class='icon go-back inline large hoverable dynamic' href="/admin/dashboard"><div class='img'></div></a>
+					<a class='icon go-back inline large hoverable dynamic' href="/admin/dashboard"></a>
 					<h1><?= !$edition ? 'Création':'Modification' ?> d'un article</h1>
 				</div>
 				
@@ -181,7 +174,6 @@ if ($edition && !$artData) {
 						<div class='box url'>
 							<div class='input-header'>
 								<div class='icon info inline hoverable'>
-									<span class='img'></span>
 									<span class='infotext'>
 										<?php if (!$edition): ?>Par défaut, l'URL est définie automatiquement à partir du titre de l'article. Cliquez l'icone de modification pour définir une URL personnalisée.<?php endif; ?>
 										<?php if ($edition): ?>L'URL n'est pas modifiable pour un article déjà existant.<?php endif; ?>
@@ -193,9 +185,9 @@ if ($edition && !$artData) {
 							<div class='input-container'>
 								<input class='lineentry livecheck decorated' type='text' name='art-url' id='art-url' autocomplete=off placeholder="URL" value='https://arcensiel.org/articles/<?= $edition ? $artData['url']:'' ?>' title="URL de publication de l'article" required disabled>
 								
-								<?php if (!$edition): ?><div class='icon edit left medium hoverable'><span class='img' title="Entrer manuellement l'URL"></span></div><?php endif; ?>
-								<div class='icon validity right medium'><span class='img'></span></div>
-								<span class="spinner icon right"></span>
+								<?php if (!$edition): ?><div class="icon edit left hoverable" title="Entrer manuellement l'URL"></div><?php endif; ?>
+								<div class="icon validity right"></div>
+								<span class="icon spinner right"></span>
 							</div>
 							<div class='error url'>URL indisponible.</div>
 						</div>
@@ -203,7 +195,6 @@ if ($edition && !$artData) {
 						<div class='box art-desc'>
 							<div class='input-header'>							
 								<div class='icon info inline hoverable'>
-									<span class='img'></span>
 									<span class='infotext'>
 										Description qui apparaîtra sur l'aperçu de l'article
 									</span>
@@ -227,7 +218,7 @@ if ($edition && !$artData) {
 										<option value='<?= $type['slug'] ?>' <?= ($edition && $artData['type'] === $type['id']) ? 'selected':'' ?> data-color="<?= $type['color'] ?>" <?= $type['slug'] === 'undefined' ? 'disabled hidden':'' ?>><?= $type['name'] ?></option>
 									<?php } ?>
 								</select>
-								<span class="checkboxes">
+								<span class="input-container vertical checkboxes">
 									<span>
 										<input class='checkbox' type='checkbox' id="new-type-option">
 										<label class='tag-item new-option' for="new-type-option">+</label>
@@ -272,26 +263,26 @@ if ($edition && !$artData) {
 										<div><small>Taille maximale : 1 Mo</small></div>
 									</span>
 									
-									<div class="form-action-wrap">
-										<div class="form-action">
+									<div class="actions-wrap">
+										<div class="action-container">
 											<div class='action-btn new-file'>Choisir un nouveau fichier</div>
 										</div>
-										<div class="form-action">
+										<div class="action-container">
 											<div class='action-btn exist-file'>Choisir un fichier existant</div>
 										</div>
 									</div>
 									
 									<div class='overlay-panel rounded frame-overlay centered'>
 										<span>Lâcher le fichier pour l'ajouter</span>
-										<div class='icon extra-large inline file'><span class='img'></span></div>
+										<div class='icon extra-large inline file'></div>
 									</div>
 								</div>
 								
-								<input class='fileentry hidden' type='file' accept='image/*' name='art-pic' id='art-pic' autocomplete=off placeholder="Affiche" title="Veuillez sélectionner un visuel pour l'évènement" <?= !$edition ? 'required':"data-source-value='".$artData['picture_path']."'" ?>>
+								<input class='fileentry hidden' type='file' accept='image/*' name='art-pic' id='file' data-format="image/*" autocomplete=off placeholder="Affiche" title="Veuillez sélectionner un visuel pour l'évènement" <?= !$edition ? 'required':"data-source-value='".$artData['picture_path']."'" ?>>
 								<img class="visual" alt="Affiche de l'évènement" src="<?= $edition ? $fileData['url']:'' ?>" title="Cliquer pour changer d'image">
 								<div class="visual-overlay">
-									<div class='icon extra-large inline delete dynamic' onclick=""><span class='img'></span></div>
-									<div class='icon extra-large inline edit dynamic' onclick=""><span class='img'></span></div>
+									<div class='icon extra-large inline delete dynamic'></div>
+									<div class='icon extra-large inline edit dynamic'></div>
 								</div>
 							</div>
 							<div class='error file'></div>
@@ -329,16 +320,16 @@ if ($edition && !$artData) {
 						<input name='submit' id='submit' type="submit" hidden readonly>
 					</div>
 					
-					<div class='external form-action-wrap linear'>
-						<div class='form-action'>
+					<div class='external actions-wrap linear'>
+						<div class='action-container'>
 							<div class='action-btn publish spinnable' id="publish"><span class='text'><?= $edition ? ($artData['status'] !== 'published' ? 'Sauvegarder':'Publier') : 'Publier' ?></span><div class='spinner'></div></div>
 						</div>
 						<?php if (false && !$edition):?>
-						<div class='form-action'>
+						<div class='action-container'>
 							<div class='action-btn draft' id="draft">Brouillon</div>
 						</div>
 						<?php endif; ?>
-						<div class='form-action'>
+						<div class='action-container'>
 							<div class='action-btn reset' id="reset">Réinitialiser</div>
 						</div>
 					</div>
@@ -355,8 +346,8 @@ if ($edition && !$artData) {
 		
 		
 		<div id="admin-actions">
-			<div class='icon preview inline large dynamic hoverable' title="Voir l'article"><span class='img'></span></div>
-			<?php if ($edition): ?><div class='icon visualize inline large dynamic hoverable' title="Voir l'article"><span class='img'></span></div><?php endif; ?>
+			<div class='icon preview inline large dynamic hoverable' title="Voir l'article"></div>
+			<?php if ($edition): ?><div class='icon visualize inline large dynamic hoverable' title="Voir l'article"></div><?php endif; ?>
 			
 		</div>
 		
@@ -374,9 +365,9 @@ if ($edition && !$artData) {
 							<label class='label' for='filename'>Nom du fichier</label>
 						</div>
 						<div class='input-container'>
-							<input class='lineentry' type='text' name='filename' id='filename' value="<?= $edition ? implode('.', explode('.', $fileData['name'], -1)):'' ?>" data-name="<?= $edition ? $fileData['name']:'' ?>" autocomplete=off placeholder="Nom du fichier" title="Nom du fichier" <?= $edition ? 'readonly':'' ?> required>
+							<input class='lineentry small' type='text' name='filename' id='filename' value="<?= $edition ? implode('.', explode('.', $fileData['name'], -1)):'' ?>" data-name="<?= $edition ? $fileData['name']:'' ?>" autocomplete=off placeholder="Nom du fichier" title="Nom du fichier" <?= $edition ? 'readonly':'' ?> required>
 							<span>.</span>
-							<input class='lineentry' type='text' name='fileextension' id='fileextension' value="<?= $edition ? end(explode('.', $fileData['name'])):'' ?>" autocomplete=off placeholder="ext" title="Extension du fichier" style="width: 5em" required readonly>
+							<input class='lineentry small' type='text' name='fileextension' id='fileextension' value="<?= $edition ? end(explode('.', $fileData['name'])):'' ?>" autocomplete=off placeholder="ext" title="Extension du fichier" style="width: 5em" required readonly>
 						</div>
 					</div>
 					
@@ -389,8 +380,8 @@ if ($edition && !$artData) {
 						</div>
 					</div>
 
-					<div class='external form-action-wrap linear'>
-						<div class='form-action'>
+					<div class='external actions-wrap linear'>
+						<div class='action-container'>
 							<button class='action-btn validate' type='submit'>Poursuivre</button>
 						</div>
 					</div>
@@ -406,59 +397,60 @@ if ($edition && !$artData) {
 		<script>
 		const core = 'https://arcensiel.org/articles/'
 		let status = "<?= $edition ? 'edition':'creation' ?>"
-		let editsHistory = {};
-		let pendingAction = {};
-		let lockedEdit = true ;
-
+		let editsHistory = {}
+		let lockedEdit = true
+		
+		const converter = new showdown.Converter({
+											'tables': true,
+											'tasklists': true,
+											'emoji': true,
+											})
 
 	/// Actions management
 		// review edits
-		document.querySelectorAll(':is(input, select, textarea)').forEach(elem => {elem.onchange = e => editsManager(e.target)})
+		Block('article-form').inputs().forEach(elem => elem.onchange = editsManager)
 		
 		// show panel to save changes
 		Button('publish').onclick = e => {
-				if (e.target.getAttribute('disabled') !== null) return;
+				if (e.target.getAttribute('disabled') !== null) return
 				
 				Overlay('validate').child('span').textContent = "Enregistrer les modifications ?";
-				Overlay('validate').show();
-				pendingAction.function = submitForm;
+				Overlay('validate').show()
+				pendingAction.function = submitForm
 		}
 
 		// show panel to save changes
 		Button('reset').onclick = e => {
-				if (e.target.getAttribute('disabled') !== null) return;
+				if (e.target.getAttribute('disabled') !== null) return
 				
 				if (checkIntegrity()) {
 					resetForm()
 				} else {
 					Overlay('validate').child("span").textContent = "Rétablir le formulaire dans son état d'origine ?";
-					Overlay('validate').show();
-					pendingAction.function = resetForm;
+					Overlay('validate').show()
+					pendingAction.function = resetForm
 				}
 		}
 
 		<?php if ($edition): ?>
 		// go to view - validate - edition mode
 		Icon('visualize').onclick = e => {
-				btn = e.target.findParent('.icon')
 				if (checkIntegrity()) {
 					redirect(`/admin/tools/article/preview/<?= $artData['url'] ?>`)
 				} else {
 					Overlay('validate').child("span").textContent = "Poursuivre et abandonner les modifications non enregistrées ?";
-					Overlay('validate').show();
-					pendingAction.function = redirect;
+					Overlay('validate').show()
+					pendingAction.function = redirect
 					pendingAction.link = "/articles/<?= $artData['url'] ?>";
 				}
 		}
 		<?php endif; ?>
 		
 		// go to preview
-		Icon('preview').onclick = async e => {
-				btn = e.target.findParent('.icon')
-				
+		Icon('preview').onclick = async () => {
 				url = 'tmp-' + Math.random().toString(16).slice(2)
 
-				formData = generateFormData(document.querySelector('#article-form'))
+				formData = generateFormData(Block('article-form'))
 				formData.set('action', 'draft')
 				formData.set('tmp-url', url)
 
@@ -470,23 +462,18 @@ if ($edition && !$artData) {
 		// go on with requested action
 		Overlay('validate').button('validate').onclick = e => {
 				lockedEdit = false;
-				e.container().hide();
-				pendingAction.link ? pendingAction.function(pendingAction.link):pendingAction.function();
-				pendingAction = {};
+				transfer(e)
 		}
 
 		// cancel request action
-		Overlay('validate').button('cancel').onclick = e => {
-				e.container().hide();
-				pendingAction = {};
-		}
+		Overlay('validate').button('cancel').onclick = e => transfer(e, false)
 		
 		// existing file chosen
 		Overlay('filepicker').button('cancel').onclick = e => {
-				preview = e.container().childs('.file-element')
-				e.container().hide();
+				preview = e.target.parent('overlay').section('file-preview')
+				preview.parent('overlay').hide()
 
-				preview.forEach(tag => {tag.unset('selected')})
+				preview.parent('overlay').childs('.file-element').forEach(tag => tag.unset('selected'))
 				preview.firstElementChild.src = '';
 				preview.firstElementChild.alt = '';
 		}
@@ -496,569 +483,328 @@ if ($edition && !$artData) {
 		
 		// Reset form
 		function resetForm() {
-			document.querySelectorAll(':is(input,select,textarea)').forEach(elem => {
+			Block('article-form').inputs().forEach(elem => {
 										elem.value = editsHistory[elem.toSelector(true)].srcValue;
 										elem.checked = editsHistory[elem.toSelector(true)].srcChecked;
 									})
-			document.querySelector('.visual').src = editsHistory[document.querySelector('.visual').toSelector(true)].src;
+			Section('visual').src = editsHistory[Section('visual').toSelector(true)].src;
 			buttonsToggler(null, true)
 		}
 		
 		function resetEditsHistory() {
-			document.querySelectorAll(':is(input,select,textarea)').forEach(elem => {
-										editsHistory[elem.toSelector(true)] = {
-																				'srcValue': elem.value,
-																				'value': elem.value,
-																				'srcChecked': elem.checked,
-																				'checked': elem.checked,
-																				}
-									})
-			editsHistory[document.querySelector('.visual').toSelector(true)] = {'src': document.querySelector('.visual').src}
+			Block('article-form').inputs().forEach(elem => {
+					editsHistory[elem.toSelector(true)] = {
+							'srcValue': elem.value,
+							'value': elem.value,
+							'srcChecked': elem.checked,
+							'checked': elem.checked,
+							}
+				})
+			editsHistory[Section('visual').toSelector(true)] = {'src': Section('visual').src}
 		}
 
 		// check if it is edited
 		function checkIntegrity() {
-			integrity = true;
-			Object.values(editsHistory).forEach(val => {
-					integrity = integrity && (val.srcValue === val.value && val.srcChecked === val.checked)
-			})
-			return integrity
+			return Object.values(editsHistory).reduce((bool, item) => bool && item.srcValue === item.value && item.srcChecked === item.checked, true)
 		}
 
 		// manage button and edits
 		function editsManager(target, input=null) {
-					editsHistory[target.toSelector(true)].value = input === null ? target.value:input;
-					editsHistory[target.toSelector(true)].checked = target.checked;
+				tag = target.target ?? target;	// Allow event or node as argument
+				editsHistory[tag.toSelector(true)].value = input === null ? tag.value:input
+				editsHistory[tag.toSelector(true)].checked = tag.checked
 
-					buttonsToggler();
+				buttonsToggler()
 		}
 		
 		// disbale/enable submit buttons
 		function buttonsToggler(e, force=null) {
 			if ((force === null && checkIntegrity()) || force === true) {
-				Button('publish').disable();
-				Button('reset').disable();
+				Button('publish').disable()
+				Button('reset').disable()
 			} else {
-				Button('publish').enable();
-				Button('reset').enable();
+				Button('publish').enable()
+				Button('reset').enable()
 			}
 		}
 
 	/// FORM SUBMISSION ///
-		document.querySelector('#article-form').onsubmit = articleSend;
+		Block('article-form').onsubmit = articleSend
 		async function articleSend(e) {
-						e.preventDefault();
-						if (lockedEdit) return;
-						lockedEdit = true;
+						e.preventDefault()
+						if (lockedEdit) return
+						lockedEdit = true
+
+						const button = Button('publish')
+						const output = Section('output').section('clean')
+						const input = Input('art-url')
 						
 						// spinner in submit button
-						btn = Button('publish');
 						buttonsToggler(e, true)
-						btn.toggle();
+						button.toggle()
 						
-						// Raw form data
-						formData = generateFormData(e.target)
-						
-						// Parse in dictionary
-						srcdata = Object.fromEntries(formData.entries());
-						
-						// Response object
-						response = await fetchAPI('/admin/engine/article', formData)
+						const formData = generateFormData(e.target)
+						const response = await fetchAPI('/admin/engine/article', formData)
 
 						if (!response.ok) {// http code 400-500 reuturn false
-										notify("Erreur lors du téléversement", `Une erreur est survenue lors de l'ajout du fichier sélectionné sur le serveur. [Erreur HTTP ${response.httpcode}] ${response.body.error}`, 'red');
+										notify("Erreur lors du téléversement", `Une erreur est survenue lors de l'ajout du fichier sélectionné sur le serveur. [Erreur HTTP ${response.httpcode}] ${response.body.error}`, 'red')
 										
 										buttonsToggler(e, false)
-										btn.toggle()
-										
+										button.toggle()
 										return null
 										}
 						
-						output = document.querySelector('.output .output-text.clean');
-						urlIn = Input('art-url');
-						
 						output.innerHTML = '';
-						output.unset('error');
-						output.unset('success');
-						urlIn.unset('invalid');
+						output.unset('error')
+						output.unset('success')
+						input.unset('invalid')
 						
 						if (response.httpcode === 250) {// failed sql request
-							errorData = response.body.error;
-							errorCode = response.body.code;
+							errorData = response.body.error
+							errorCode = response.body.code
 							
 							output.innerHTML = `Error [${errorCode}]: ${errorData}`;
-							output.set('error');
-							urlIn.set('invalid');
-							urlIn.setAttribute('oldvalue', urlIn.value);
+							output.set('error')
+							input.set('invalid')
+							input.setAttribute('oldvalue', urlIn.value);
 							
 							buttonsToggler(e, false)
-							btn.toggle()
+							button.toggle()
 							notify("Échec de la mise à jour", `La mise à jour de l'article dans la base de données a échoué. [Error ${errorCode}]: ${errorData}`, 'red')
 							
 							return
 						} else {// correct sql response
-							artData = response.body['art-data'];
+							artData = response.body.data
 						}
 						
 						// make new tags permanent
-						document.querySelectorAll('.checkbox.new').forEach(tag => {
-																					wrap = tag.findParent('.tag-wrap')
-																					wrap.icon('delete').remove()
+						Inputs('checkbox.new').forEach(tag => {
+								wrap = tag.parent('.tag-wrap')
+								wrap.icon('delete').remove()
 
-																					// update keys in editsHistory
-																					value = editsHistory[tag.toSelector(true)]
-																					delete editsHistory[tag.toSelector(true)]
-																					tag.classList.toggle('new')
-																					editsHistory[tag.toSelector(true)] = value;
-																				})
+								// update keys in editsHistory
+								value = editsHistory[tag.toSelector(true)]
+								delete editsHistory[tag.toSelector(true)]
+								tag.classList.toggle('new')
+								editsHistory[tag.toSelector(true)] = value
+						})
 
-						output.set('success');
+						output.set('success')
 						output.innerHTML = `Success: article ${status === 'edition' ? 'updated':'created'} at url ${artData.url}`;
 						resetEditsHistory()
 
-						notify("Modifications enregistrées", "Les données de l'article ont été mises à jour.", 'green');
+						notify("Modifications enregistrées", "Les données de l'article ont été mises à jour.", 'green')
 
 						buttonsToggler(e, true)
-						btn.toggle();
+						button.toggle()
 					}
 		
 		function generateFormData(form) {
-				overlay = Overlay('metadata')
-				urlTag = Input('art-url');
-				picTag = Input('art-pic');
-				typeTag  = Input('art-type');
-				titleTag = Input('art-title');
-				state = urlTag.disabled;
-				urlTag.disabled = false;
-				
-				// extract form information
-				formData = new FormData(form);
-				urlTag.disabled = true;
+				const overlay = Overlay('metadata')
+				const urlTag  = Input('art-url')
+				const picTag  = Input('file')
+				const typeTag  = Input('art-type')
+				const titleTag = Input('art-title')
+				const formData = new FormData(form)
 				
 				// Update data
-				taglist = Array.from(document.querySelectorAll('.checkbox.option:checked')).map(e => {return {'slug': e.getAttribute('name'), 'name': e.value}});
-				formData.set('art-tags', JSON.stringify(taglist));
+				taglist = Array.from(Inputs('checkbox.option:checked')).map(e => ({'slug': e.getAttribute('name'), 'name': e.value}))
+				formData.set('art-tags', JSON.stringify(taglist))
 				formData.set('file-description', overlay.input('desc').value)
 				formData.set('filename', overlay.input('filename').value + '.' + overlay.input('fileextension').value)
-				formData.set('type', JSON.stringify({'slug': typeTag.value, 'name': typesMatch[typeTag.value], 'color': typeTag.querySelector(`option[value='${typeTag.value}']`).dataset.color, 'new': typeTag.classList.contains('new')}));
-				// formData.set('art-title', titleTag.textContent);
-				formData.set('art-url', formData.get('art-url').replace(core,''));
-				(picTag.value === '') ? formData.set('picture-path', picTag.nextElementSibling.getAttribute('src')):null;
-				status === 'edition' ? formData.set('pic-updated', picTag.dataset.sourceValue !== picTag.nextElementSibling.getAttribute('src')):null // if picture has been edited
-				status === 'edition' ? formData.set('og-pic-path', picTag.dataset.sourceValue):null // if picture has been edited
-				formData.set('status', status);
+				formData.set('type', JSON.stringify({'slug': typeTag.value, 'name': typesMatch[typeTag.value], 'color': typeTag.querySelector(`option[value='${typeTag.value}']`).dataset.color, 'new': typeTag.classList.contains('new')}))
+				formData.set('art-url', urlTag.value.replace(core,''))
+				picTag.value === ''  ? formData.set('picture-path', picTag.nextElementSibling.getAttribute('src')):null;
+				status === 'edition' ? formData.set('pic-updated', picTag.dataset.sourceValue !== picTag.nextElementSibling.getAttribute('src')):null;	// if picture has been edited
+				status === 'edition' ? formData.set('og-pic-path', picTag.dataset.sourceValue):null;	// if picture has been edited
+				formData.set('status', status)
 
 				return formData
 		}
 
 	/// TAGS MANAGEMENT ///
 		// add tag input
-		i_tag = 0;
-		function addTag() {
-						i_tag++;
+		let indexer = 0
+		function addInput(type, callback) {
+				indexer++
+				const adder = Input(`new-${type}-option`)
 
-						// input linked to 'add' label
-						adder = Input('new-tag-option');
-						
-						// allow only one new tage at a time
-						assertion = Input('art-tags').child('.tag-item.new') === null;
-						if (!assertion) {return}
-						
-						adder.disable() // lock add button
-						
-						span = document.createElement('span');
-						span.setAttribute('class','tag-wrap');
-						span.innerHTML = `<input class='lineentry new' type='input' id="newtag${i_tag}">`;
-						
-						adder.findParent('.input-container').insertBefore(span, adder.parentNode);
-						span.querySelector('.new').focus()
-						
-						span.querySelector('.new').onchange = function createTag(e) {
-																	// adder button
-																	adder = Input('#new-tag-option');
-																	
-																	// extract tags
-																	tag = e.target;
-																	wrapper = tag.findParent('.tag-wrap');
-																	
-																	// extract user input
-																	val = tag.value;
-																	
-																	// check uniqueness
-																	if (Object.keys(tagsMatch).includes(val.urlForm())) {
-																		tag.set('duplicate')
-																		return
-																	}
-																	tag.unset('duplicate')
-																	
-																	// add tags
-																	tagsMatch[val.urlForm()] = val;
-																	
-																	adder.enable() // unlock button
-																	tag.value = tag.value.trim();
-																	tag.setAttribute('name', val.urlForm());
-																	
-																	// update input tag params
-																	idt = tag.getAttribute('id');
-																	tag.setAttribute('type', 'checkbox')
-																	tag.classList.toggle('checkbox');
-																	tag.classList.toggle('option');
-																	tag.classList.toggle('lineentry');
-																	
-																	// append label + icon
-																	wrapper.innerHTML += `<label class='tag-item option orange' for="${idt}">${val}</label><div class='icon delete right small dynamic'><span class='img'></span></div>`;
-																	
-																	wrapper.querySelector('.icon.delete').onclick = e => {
-																																wrap = e.target.findParent('.tag-wrap');
-																																wrap.remove()
-																																delete editsHistory[wrap.firstElementChild.toSelector(true)]
-																																delete tagsMatch[wrap.firstElementChild.value]
-																																buttonsToggler()
-																																}
-																	
-																	// add it to edit editsHistory
-																	editsHistory[tag.toSelector(true)] = {
-																				'srcValue': tag.value,
-																				'value': tag.value,
-																				'srcChecked': false,
-																				'checked': false,
-																				}
-																	
-																	neotag = wrapper.firstElementChild;
-																	neotag.addEventListener('change', e => editsManager(e.target))
-																	neotag.checked = true;
-																	editsManager(neotag)
-																	};
-						}
-		Input('new-tag-option').onchange = addTag
-
-	// add tag input
-		i_type = 0;
-		function addType() {
-						i_tag++;
-
-						// input linked to 'add' label
-						adder = Input('new-type-option');
-						
-						// allow only one new tage at a time
-						assertion = Input('art-type').child('.type-option.new') === null;
-						if (!assertion) {return}
-						
-						adder.disable()
-						
-						span = document.createElement('span');
-						span.setAttribute('class','type-wrap');
-						span.innerHTML = `<input class='lineentry new' type='input' id="newtype${i_tag}" required><div class='icon colors medium dynamic inline hoverable livecheck'><span class='img'></span></div><input class='colorentry hidden' type='color' required><div class='icon validity medium dynamic inline hoverable'><span class='img'></span></div>`;
-						
-						adder.findParent('.checkboxes').insertBefore(span, adder.parentNode);
-						span.querySelector('.new').focus()
-						
-						span.icon('colors').onclick = e => e.target.findParent('.type-wrap').querySelector('.colorentry').click()
-						span.querySelector('.colorentry').oninput = e => e.target.dataset.changed = true
-
-						span.icon('validity').onclick = function createType(e) {
-																	// adder button
-																	adder = Input('new-type-option');
-																	
-																	// extract tags
-																	tag = e.target.findParent('.type-wrap').querySelector('.lineentry');
-																	ctag = e.target.findParent('.type-wrap').querySelector('.colorentry');
-																	wrapper = tag.findParent('.input-container').input('art-type');
-																	
-																	// extract user input
-																	val = tag.value;
-																	color = e.target.findParent('type-wrap').querySelector('.colorentry').value;
-
-																	option = document.createElement('option')
-																	option.classList.toggle('new')
-																	option.setAttribute('value', val.urlForm())
-																	option.dataset.color = color;
-																	option.innerText = val
-
-																	// check uniqueness
-																	if (val === '' || !ctag.dataset.changed || Object.keys(typesMatch).includes(val.urlForm())) {
-																		tag.set('duplicate')
-																		return
-																	}
-																	tag.findParent('.type-wrap').remove();
-																	
-																	// add type
-																	typesMatch[val.urlForm()] = val;
-																	
-																	// unlock button
-																	adder.enable()
-																	
-																	// append label + icon
-																	wrapper.append(option)
-																	
-																	neotag = option.parentNode;
-																	option.selected = true
-																	editsManager(neotag)
-																	};
-						}
-		Input('new-type-option').onchange = addType
+				// allow only one new tage at a time
+				if (!!Section('main-info').input(`.${type}-item.new`)) return
+				adder.disable()
+				
+				const span = document.createElement('span')
+				span.classList.toggle(`${type}-wrap`)
+				span.innerHTML = type === 'tag' ?
+				`<input class='lineentry new' type='input' id="newtag${indexer}">`
+				:
+				`<input class='lineentry new' type='input' id="newtype${indexer}" required>
+				<div class='icon colors dynamic inline hoverable livecheck'></div>
+				<input class='colorentry hidden' type='color' required>
+				<div class='icon validity dynamic inline hoverable'></div>`;
+				
+				adder.parent('container').insertBefore(span, adder.parentNode)
+				span.input('.new').focus()
+				span.input('.new').onchange = callback
+				
+				if (type === 'type') {
+					span.icon('colors').onclick = e => e.target.parent('.type-wrap').input('.colorentry').click()
+					span.input('.colorentry').oninput = e => e.target.dataset.changed = true
+					span.icon('validity').onclick = createType
+				}
+		}
+		Input('new-tag-option').onchange  = e => addInput('tag', createTag)
+		Input('new-type-option').onchange = e => addInput('type', createType)
 		
-		// update tags checkboxes requirement
-		Input('art-tags').onclick = () => {
-					document.querySelectorAll('.checkbox.option').forEach(e => {e.required = document.querySelector('.checkbox:checked') === null})
-					}
+		function createTag(e) {
+				const adder = Input('new-tag-option')
+				const input = e.target
+				const wrapper = input.parent('.tag-wrap')
+				const value = input.value
+				const id = input.id
+				
+				// check uniqueness
+				if (Object.keys(tagsMatch).includes(value.urlForm())) {
+					input.set('duplicate')
+					return
+				}
+				input.unset('duplicate')
+				
+				// add tags
+				tagsMatch[value.urlForm()] = value
+				
+				// update input tag params
+				input.type = 'checkbox'
+				input.value = value.trim()
+				input.name = value.urlForm()
+				input.checked = true
+				input.classList.toggle('checkbox')
+				input.classList.toggle('option')
+				input.classList.toggle('lineentry')
+				input.onchange = editsManager
+
+				// append label + icon
+				wrapper.innerHTML += `<label class='tag-item option orange' for="${id}">${value}</label><div class='icon delete right small dynamic'></div>`;
+				
+				wrapper.icon('delete').onclick = e => {
+							wrap = e.target.parent('.tag-wrap')
+							wrap.remove()
+							delete editsHistory[wrap.firstElementChild.toSelector(true)]
+							delete tagsMatch[wrap.firstElementChild.value]
+							buttonsToggler()
+						}
+				
+				// add it to edit editsHistory
+				editsHistory[input.toSelector(true)] = {
+							'srcValue': input.value,
+							'value': input.value,
+							'srcChecked': false,
+							'checked': false,
+							}																	
+				editsManager(input)
+				adder.enable()
+				}
+		
+		function createType(e) {
+				const adder = Input('new-type-option')
+				const input = e.target.parent('.type-wrap').input('.lineentry')
+				const color = e.target.parent('.type-wrap').input('.colorentry')
+				const wrapper = input.parent('box').input('art-type')
+				const value = input.value
+				const option = document.createElement('option')
+				
+				// check uniqueness
+				if (value === '' || !color.dataset.changed || Object.keys(typesMatch).includes(value.urlForm())) {
+					input.set('duplicate')
+					return
+				}
+				input.parent('.type-wrap').remove()
+
+				// add type
+				typesMatch[value.urlForm()] = value
+
+				option.classList.toggle('new')
+				option.value = value.urlForm()
+				option.dataset.color = color.value
+				option.innerText = value
+				option.selected = true
+				wrapper.append(option)
+
+				editsManager(option.parentNode)
+				adder.enable()
+		}
 
 	/// GENERAL ACTIONS ///
 		// on load actions
 		window.addEventListener('load', loader)
 		async function loader()  {
-									contentConverter();
-
-									resetEditsHistory();
-
-									buttonsToggler();
-
-									<?php if (!$edition): ?>titleManage({'target':Input('art-title')})<?php endif; ?>
-
-									fileSelectorLoad()
+									contentConverter()			// Initial markdown parsing
+									resetEditsHistory()			// Set default state
+									buttonsToggler()			// Set buttons
+									fileSelectorLoad('image')	// Load available images on server
+									titleManage(Input('art-title'))
 									}
 	
 	/// INPUT CHECKS ///
 		// url maker
-		Input('art-title').oninput = titleManage;
+		Input('art-title').oninput = titleManage
 		function titleManage(e) {
-					tag = e.target;
-					tag.innerText === '\n' || tag.innerText === '' ? tag.set('empty'):tag.unset('empty')
-					tag.nextElementSibling.value = tag.textContent;
+					const title = e.target ?? e // Allow tog or event
+					const url = Input('art-url')
+
+					title.innerText.strForm() === '' ? title.set('empty'):title.unset('empty')
+					title.nextElementSibling.value = title.textContent
 					
-					urltag = Input('art-url');
-					
-					(urltag.disabled && status === 'creation') ? urltag.value = core + tag.textContent.urlForm():null;
+					if (url.disabled && status === 'creation') url.value = core + title.textContent.urlForm()
 					
 					// simulate direct edition
-					tag.nextElementSibling.dispatchEvent(new Event('change'));
+					title.nextElementSibling.dispatchEvent(new Event('change'))
 					}
 		
 		<?php if (!$edition): ?>
 		// URL MANAGEMENT //
-		// url input check
-		Input('art-url').oninput = (e) => {
-												tag = e.target;
-												
-												// mark invalid value
-												error = tag.findParent('.box').error();
-												if (tag.value !== tag.getAttribute('oldvalue')) {
-													tag.unset('invalid');
-													error.hide();
-												} else {
-													tag.set('invalid');
-													error.show();
-												}
-												
-												// keeps uneditable part safe
-												!tag.value.includes(core) ? tag.value = core:null;
-											}
-				
-		
-		
-		
+		function submitAllower(force = false) {Input('submit').disabled = force || Input('art-url').dataset.validity === 'invalid'}
+
 		// check URL validity
-		Input('art-title').onblur = e => {Input('art-url').disabled ? checkURL(e):null;} // trigger check on title change
-		Input('art-url').onchange = checkURL		// trigger check on URL change
-		async function checkURL(e) {
-					urltag = Input('art-url');
-					spin = document.querySelector('.input-container:has(#art-url)').spinner();
-					btn = Input('submit');
-					url = urltag.disabled ? e.target.textContent.replace(core,'').urlForm():e.target.value.replace(core,'').urlForm();
-					error = urltag.findParent('.box').error();
-					
-					urltag.value = core + url;
-					urltag.setAttribute('oldvalue',core + url);
-					urltag.unset('valid');
-					urltag.unset('invalid');
-					error.hide();
-					spin.show();
-					
-					// terminate if no url
-					if (url === '') return;
-					
-					// edit mode
-					mode = urltag.disabled ? 'locked':'unlocked';
-					
-					await sleep(500);
-					
-					response = await fetchAPI(`/admin/engine/article?action=check&url=${url}&mode=${mode}&token=${csrfToken}`);
-					
-					if (!response.ok) {
-						urltag.set('invalid');
-						btn.disabled = true;
-						error.show();
-						spin.hide();
-					} else {
-						urltag.set('valid');
-						btn.disabled = false;
-						urltag.value = core + response.body.url;
-						urltag.unset('oldvalue');
-						error.hide();
-						spin.hide();
-					}
-				}
-		
+		Input('art-title').onblur = e => {if(Input('art-url').disabled) checkInput(Input('art-url'), '/admin/engine/article', 'url', core)}		// trigger check on title change
+		Input('art-url').onchange = e => checkInput(e.target, '/admin/engine/article', 'url', core)												// trigger check on URL change
+		Input('art-url').oninput  = e => compareWithOldValue(e, core)
+
 		// remove URL protection
-		Box('url').icon('edit').onclick = (e) => {
-					urltag = e.target.findParent('.input-container').querySelector('.livecheck');
-					
-					urltag.disabled = false;
-					}
+		Box('url').icon('edit').onclick = () => Input('art-url').disabled = false
+		
+		// update tags checkboxes requirement
+		Block('art-tags').onclick = () => Inputs('checkbox.option').forEach(tag => tag.required = Inputs('checkbox:checked').length === 0)
 		<?php endif; ?>
+		
+		Input('art-date').onchange = e => Input('art-end-date').setAttribute('min', e.target.value)
 
 		// FILE MANAGEMENT //
-		Input('art-pic').onchange = e => fileUploadManage(e.target);
-		
-		visual = document.querySelector('.visual')
-		visual.addEventListener('dragenter', allowDrop);
-		visual.addEventListener('dragleave', allowDrop);
-		
-		visual.ondragover = e => {e.preventDefault()}	// fires when a draggable object is over valid drag zone (repeats)
-		
-		document.querySelector('.frame .action-btn.new-file').onclick = e => {e.target.findParent('.frame').input().click()}	// fires when a draggable object is over valid drag zone (repeats)
-		document.querySelector('.frame .visual-overlay').icon('delete').onclick = e => {e.target.findParent('.frame').input().value='';e.target.findParent('.frame').input().required=true;e.target.findParent('.frame').hide();Overlay('metadata').child('form').reset()}	// fires when a draggable object is over valid drag zone (repeats)
-		document.querySelector('.frame .visual-overlay').icon('edit').onclick = e => Overlay('metadata').toggle()
-		document.querySelector('.frame .visual').onclick = e => {e.target.findParent('.frame').input().click()}	// fires when a draggable object is over valid drag zone (repeats)
-		
-		visual.ondrop = fileDropHandle;
-		
-		function fileDropHandle(e) {
-								allowDrop(e);
-								
-								data = e.dataTransfer;
-								files = data.files;
-								
-								input = Input('art-pic');
-								input.files = files;
-								fileUploadManage(input, undefined, 10)
-								}
-		
-		// check selected file validity
-		function fileUploadManage(input, format=/image\/.*/, maxsize = 2) {
-					tag = input;
-					overlay = Overlay('metadata')
-					
-					// extract files info
-					files = tag.files;
-					if (files.length === 0) {return} // quit if no file selected
-					
-					// extract file data
-					file = files[0];
-					
-					invalid = '';
-					if (files.length > 1) {
-						invalid = 'Déposez un seul fichier.';
-					} else if (file.type.match(format) === null) {// invalid file type
-						invalid = `Type de fichier non supporté : .${file.name.split('.')[file.name.split('.').length - 1]}`;
-					} else if (file.size > maxsize*1024*1024) {// invalid file size
-						invalid = 'Taille du fichier trop élevée.';
-					}
-					
-					error = Error('file');
-					frame = document.querySelector('.frame');
-					if (invalid !== '') {
-						error.innerText = invalid;
-						error.show();
-						frame.hide();
-						tag.value = '';
-						return;
-					} else {
-						error.hide()
-					}
-					
-					editsManager(tag)
-					frame.show();
-					Box('pic').child('.visual').src = URL.createObjectURL(file);
-					
-					// extract from file metadata
-					overlay.input('filename').readOnly = false;
-					overlay.input('filename').value = file.name.filename().filenameForm();
-					overlay.input('filename').dataset.name = file.name.filenameForm();
-					overlay.input('fileextension').value = file.name.extension();
-					overlay.input('desc').value = '';
-					
-
-					// display overlay
-					overlay.toggle()
+		Input('file').onchange = e => {
+			fileUploadManage(e)
+			editsManager(e.target)
+			Overlay('metadata').toggle()
 		}
+		
+		Section('frame').icon('delete').onclick = resetFileUpload
+		Section('frame').icon('edit').onclick = () => Overlay('metadata').toggle()
 		
 		//// EXISTING FILE
 		// show file selection panel
-		Button('exist-file').onclick = e => {
-				Overlay('filepicker').toggle();
-		}
+		Button('exist-file').onclick = () => Overlay('filepicker').toggle()
 
 		Overlay('filepicker').button('validate').onclick = e => {
-				overlay = e.container()
-				tag = overlay.child('.file-element[selected]')
-				error = Error('file-choice')
+					const url = filePickManage()
+					
+					Overlay('filepicker').section('file-preview').firstElementChild.src = '';
+					Overlay('filepicker').section('file-preview').firstElementChild.alt = '';
+					Box('pic').section('visual').src = url
 
-				if (tag === null) {
-					error.innerText = 'Sélectionnez une image pour continuer';
-					error.show();
-				} else {
-					error.hide();
-					overlay.hide();
-
-					overlay.childs('.file-element').forEach(tag => {tag.unset('selected')})
-					overlay.child('.file-preview').firstElementChild.src = '';
-					overlay.child('.file-preview').firstElementChild.alt = '';
-
-					url = tag.dataset.url;
-					Box('pic').child('.visual').src = url;
-					Box('pic').child('.frame').show();
-					Box('pic').child('.fileentry').required = false;
-
-					Overlay('metadata').input('filename').dataset.name = url.filename(true)
-					Overlay('metadata').input('filename').value = url.filename()
-					Overlay('metadata').input('fileextension').value = url.extension()
-					Overlay('metadata').input('desc').value = tag.dataset.alt;
-					Overlay('metadata').input('filename').readOnly = true;
-
-					editsManager(Box('pic').child('.fileentry'), url)
-				}
-		}
-
-		async function fileSelectorLoad() {
-				container = Overlay('filepicker').child('.files-list-container');
-				container.innerHTML = '<div class="spinner"></div>';
-
-				jsonData = JSON.stringify({'csrf':csrfToken, 'action':'fetch', 'filetype':'image'})
-				response = await fetchAPI('/admin/engine/files', jsonData)
-				
-				container.innerHTML = '';
-
-				response.body.forEach(file => {
-					wrap = document.createElement('div')
-					wrap.classList.toggle('file-element-wrap')
-
-					div = document.createElement('div');
-
-					div.dataset.url = file.url
-					div.dataset.alt = file.description
-					div.innerText = file.name
-					div.classList.toggle('file-element')
-					div.addEventListener('click', fileUpdateSelection)
-
-					wrap.append(div)
-					container.append(wrap)
-				})
-
-		}
-
-		function fileUpdateSelection(event) {
-				Overlay('filepicker').childs('.file-element').forEach(tag => {tag.unset('selected')})
-				target = event.target;
-				preview = Overlay('filepicker').child('.file-preview')
-
-				target.set('selected')
-				preview.firstElementChild.src = target.dataset.url
-				preview.firstElementChild.setAttribute('alt', target.dataset.alt);
+					editsManager(Box('pic').input('file'), url)
 		}
 
 		// file metadata submission
-		Overlay('metadata').child('form').onsubmit = e => {e.preventDefault(); e.container().toggle()}
+		Overlay('metadata').child('form').onsubmit = e => {e.preventDefault(); e.target.parent('overlay').toggle()}
 		
 		// filename input
 		Overlay('metadata').input('filename').oninput = e => {
@@ -1066,45 +812,26 @@ if ($edition && !$artData) {
 				e.target.value = e.target.value.filenameForm()
 				e.target.setSelectionRange(pos,pos)
 				}
-
-		// EDITABLE PARTS MANNAGEMENT //
-		converter = new showdown.Converter({
-											'tables': true,
-											'tasklists': true,
-											'emoji': true,
-											});
-		
-		// show placeholder if value is empty
-		
-		// prevent line breaks in title
-		document.querySelector('.title h1').onkeydown = e => {
-						if (e.key === 'Enter') {
-							e.preventDefault();
-						}
-						}
-		
-		// date input requirements
-		Input('art-date').onchange = e => Input('art-end-date').setAttribute('min', e.target.value)
 		
 	/// PREVIEW ///
 		// markdown <-> html
-		Input('art-content').oninput = e => {contentConverter('html')};
+		Input('art-content').oninput = e => contentConverter('html')
 		
 		function contentConverter(direction='html') {
 				mdTag = Input('art-content')
-				htmlTag = document.querySelector('.art-content .article-content');
+				htmlTag = Section('art-content').section('article-content.preview')
 				
-				if (direction==='html'){
-					md = mdTag.value;
-					html = converter.makeHtml(md);
+				if (direction === 'html'){
+					md = mdTag.value
+					html = converter.makeHtml(md)
 					
-					htmlTag.innerHTML = html;
+					htmlTag.innerHTML = html
 					
 				} else {
-					html = htmlTag.innerHTML;
-					md = converter.makeMarkdown(html);
+					html = htmlTag.innerHTML
+					md = converter.makeMarkdown(html)
 					
-					mdTag.value = md;
+					mdTag.value = md
 				}
 			}
 		</script>

@@ -7,6 +7,7 @@ let csrfToken;
 function scrResol() {dpi=null;for (i=0; i<600; i++) {window.matchMedia(`(resolution:${i}dpi)`).matches ? dpi=i:null};return dpi}
 
 // common variables
+let pendingAction = {}
 let typesMatch = {}
 let tagsMatch = {}
 let tagsList = {}
@@ -22,13 +23,40 @@ fetch('/tmp/categories.json').then(response => response.json()).then(data => cat
 // load images
 fetch('/files/icons/spinner.svg')
 
-// overlay dom config
+// Global utils
 window.addEventListener('load', config);
 function config()  {
-			body = document.body
+		body = document.body
+		csrfToken = Input('csrf')?.dataset.csrf
 
-			csrfToken = Input('csrf')?.dataset.csrf
+		/// Dynamic elements config ///
+		// handle banner
+		Section('banner-logo').onmouseenter = () => logoWaveToggle(false)
+		Section('banner-logo').onmouseleave = () => logoWaveToggle(true)
+		
+		// handle navbar logo
+		window.addEventListener('scroll', bannerManage)
+
+		// handle login form
+		if (window.matchMedia(`(hover: none)`).matches && Section('auth-wrap')) {
+			Section('nav-logo.login').parent('.nav-logo-wrap').onclick = authWrap
+			Section('auth-wrap').icon('cross').onclick = authWrap
 		}
+
+		// password input
+		Icons('toggle-pass').forEach(tag => tag.onclick = togglePassword)
+		
+		// handle navbar
+		Array.from(document.querySelectorAll('.nav-item:has(.sub-menu)')).forEach(navitem => {
+			if (window.matchMedia(`(hover:hover)`).matches) {
+				navitem.onmouseenter = toggleSubMenu
+				navitem.onmouseleave = toggleSubMenu
+			}
+			if (window.matchMedia(`(hover:none)`).matches) {
+				navitem.onclick = toggleSubMenu
+			}
+		})
+	}
 
 //// METHODS /////
 // Alias to filter arrays to unique values
@@ -37,88 +65,61 @@ Object.defineProperty(Array.prototype, 'filterUnique', {
   enumerable: false,
 })
 
-
 // Add wrap method to str to shorten str formatting
+	// normalise separate accentuated letters in {accent + base letter}
+	// \u0300-\u036f match accents range
 String.prototype.strForm = function () {return this.trimStart().trimEnd().toLowerCase()}
+String.prototype.urlForm = function () {return this.strForm().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s/g, '-')}
+String.prototype.filenameForm = function () {return this.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[\s\/<>:\*\?"\|\\]/g, '_')}
 
 // url/path utils
 String.prototype.filename = function (extension=false) {
-														result = this.split('/').slice(-1)[0];
-														
-														if (extension) {
-															return result
-														} else {
-															return result.split('.').length > 1 ? result.split('.').slice(0,-1).join('.') : result
-														}
-														}
+			result = this.split('/').slice(-1)[0];
+			return extension ? result : result.split('.').length > 1 ? result.split('.').slice(0,-1).join('.') : result
+			}
 String.prototype.extension = function () {
-										filename = this.split('/').slice(-1)[0];
-										return filename.split('.').length > 1 ? filename.split('.').slice(-1)[0] : ''
-										}
-
-// method to convert string to compatible Link
-	// normalise separate accentuated letters in {accent + base letter}
-	// \u0300-\u036f match accents range
-String.prototype.urlForm = function () {return this.strForm().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s/g, '-')}
-String.prototype.filenameForm = function () {return this.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[\s\-\/<>:\*\?"\|\\]/g, '_')}
+			filename = this.split('/').slice(-1)[0];
+			return filename.split('.').length > 1 ? filename.split('.').slice(-1)[0] : ''
+			}
 
 // Add method to str to turn a query selector to a list of selectors (the initial query must be only same-index-level query : no sibling/parent selectors)
 // If node name is given, is assumed to be the first element of the query
 String.prototype.toSelectorList = function () {
-												// creates aliases for classes and id to find them afterwards
-												text = this.replaceAll('.','.££').replaceAll('#','°°');
-												list = [];
-												text.split('.').forEach((l) => {
-																				l.split('#').forEach((e) => {
-																											e !==''? list.push(e.replace('££', '.').replace('°°','#')) : null;
-																											})
-																				})
-												return list
-												}
+			return this.replaceAll(' ','').split('#').map((item, i) => i === 0 ? item : `#${item}`).reduce((list, item) => [...list, ...item.split('.').map((item, i) => i === 0 ? item : `.${item}`)], []).filter(item => !!item)
+			}
 
 // Add method to create a text query for input element | argument is a boolean to choose list (flase) or concatenate input (true)
-Element.prototype.toSelector = function(conc) {
-											selector = conc ? '':[]
-											
-											// add node name
-											elName = this.nodeName.toLowerCase();
-											conc ? selector += elName : selector.push(elName);
-											
-											//add id
-											elId = this.id !== '' ? '#'+this.id:'';
-											conc ? (selector += elId):null;
-											!conc && elId !== '' ? (selector.push(elId)):null;
-											
-											// add class
-											this.getAttribute('class')?.split(' ').forEach((c) => {
-																						c = c !== '' ? '.'+c:'';
-																						conc ? selector += c:null;
-																						!conc && c ? selector.push(c):null;
-																						})
-											return selector
-											}
+Element.prototype.toSelector = function(concatenate) {
+			let selector = [this.nodeName.toLowerCase(), this.id ? `#${this.id}` : null, ...Object.values(this.classList).map(item => `.${item}`)]
+			
+			return concatenate ? selector.join('') : selector.filter(item => !!item)
+			}
 
-// Add method to find specified parent node | closest corresponding parent returned; assumes at least one parent exists
-// selector is for a single node : sibling/parents selectors like +>~ are ignored
-Element.prototype.findParent = function(selector) { 
-													selList = selector.toSelectorList()
-													
-													elm = this
-													while (elm.nodeName !== 'BODY') {
-																					check = true;
-																					currSel = elm.toSelector(false);
-																					
-																					// checks the presence of every provides selector in current element selectors
-																					selList.forEach((sel) =>   {
-																												// checks turns and remains false at first selector incompatibility
-																												check = (check && currSel.includes(sel)) ? true:false
-																												})
-																					
-																					// conclusion
-																					if (check) {return elm} else {elm = elm.parentNode}
-																					}
-													return document.querySelector('body')
-													}
+function selectorChecker(selector, parent, marker, complement = null, unique = true) {
+			let selectors = [complement].concat((!selector ? '' : (selector[0] === marker || !selector[0].match(/^[a-zA-Z_\-]/)) ? selector : marker + selector).toSelectorList()).filter(item => !!item)
+			
+			if (selectors.length === 0) return null
+			
+			return selectors.reduce((bool, item) => bool && (Array.isArray(item) ? item.reduce((subbool, subitem) => subbool && parent.toSelector().includes(subitem), true) : parent.toSelector().includes(item)), true) ? 
+				parent : unique ?
+				parent.querySelector((Array.isArray(complement) ? [`:is(${complement.join(',')})`, ...selectors.slice(1)]:selectors).join('')) : 
+				parent.querySelectorAll((Array.isArray(complement) ? [`:is(${complement.join(',')})`, ...selectors.slice(1)]:selectors).join(''))
+			}
+
+Element.prototype.is = function(selector) { 
+			if (!selector) return false
+
+			const constructorsList = [Box, Button, Error, Icon, Input, Overlay, Table]
+			const attributesList = ['active', 'disabled', 'hidden', 'valid', 'invalid', 'empty']
+
+			// Quick search for described tags
+			if (constructorsList.reduce((bool, Tag) => bool || Tag(selector, this) !== null, false)) return true
+			
+			// Quick search for common control attributes
+			if (attributesList.includes(selector) && this.getAttribute(selector) !== null) return true
+
+			return selector.toSelectorList().reduce((bool, item) => bool && this.toSelector().includes(item), true)
+			}
 
 // Alias method for querySelector
 Element.prototype.child = function(selector) {return this.querySelector(selector)}
@@ -136,220 +137,168 @@ Element.prototype.enable = function() {this.unset('disabled')}
 Element.prototype.disable = function() {this.set('disabled')}
 
 // Shortcut to find common tags
-function Overlay(selector, parent=document) {return parent.querySelector(`.body-overlay${selector ? '#overlay-':''}${selector}`)}
+function Box	(selector, parent=document.body) {return selector != null ? selectorChecker(selector, parent, '.', '.box') : null}
+function Block	(selector, parent=document.body) {return selector != null ? selectorChecker(selector, parent, '#') : null}
+function Button	(selector, parent=document.body) {return selector != null ? selectorChecker(selector, parent, '.', '.action-btn') : null}
+function Error	(selector, parent=document.body) {return selector != null ? selectorChecker(selector, parent, '.', '.error') : null}
+function Icon	(selector, parent=document.body) {return selector != null ? selectorChecker(selector, parent, '.', '.icon') : null}
+function Input	(selector, parent=document.body) {return selector != null ? selectorChecker(selector, parent, '#', ['input','textarea','select','[contenteditable]']) : null}
+function Overlay(selector, parent=document.body) {return selector != null ? selectorChecker(selector, parent, '#overlay-', '.body-overlay') : null}
+function Table	(selector, parent=document.body) {return selector != null ? selectorChecker(selector, parent, '#', '.table') : null}
+function Section(selector, parent=document.body) {return selector != null ? selectorChecker(selector, parent, '.') : null}
+function Spinner(parent=document.body) {return parent.querySelector('.spinner')}
 
-function Button(selector, parent=document) {return parent.querySelector(`.action-btn${selector ? '.':''}${selector}`)}
-Element.prototype.button = function(selector='') { 
-											return Button(selector, this)
+function Buttons(selector='', parent=document.body) {return selectorChecker(selector, parent, '.', '.action-btn', false)}
+function Errors	(selector='', parent=document.body) {return selectorChecker(selector, parent, '.', '.error', false)}
+function Icons	(selector='', parent=document.body) {return selectorChecker(selector, parent, '.', '.icon', false)}
+function Inputs	(selector='', parent=document.body) {return selectorChecker(selector, parent, '.', ['input','textarea','select','[contenteditable]'], false)}
+
+Element.prototype.box    = 	function(selector='') {return Box(selector, this)}
+Element.prototype.block  = 	function(selector='') {return Block(selector, this)}
+Element.prototype.button = 	function(selector='') {return Button(selector, this)}
+Element.prototype.error  = 	function(selector='') {return Error(selector, this)}
+Element.prototype.icon   = 	function(selector='') {return Icon(selector, this)}
+Element.prototype.input  = 	function(selector='') {return Input(selector, this)}
+Element.prototype.section = function(selector)	  {return Section(selector, this)}
+Element.prototype.spinner = function() {return Spinner(this)}
+
+Element.prototype.buttons = function(selector='') {return Buttons(selector, this)}
+Element.prototype.errors  = function(selector='') {return Errors(selector, this)}
+Element.prototype.icons   = function(selector='') {return Icons(selector, this)}
+Element.prototype.inputs  = function(selector='') {return Inputs(selector, this)}
+
+// Add method to find specified parent node | closest corresponding parent returned; assumes at least one parent exists
+// selector is for a single node : sibling/parents selectors like +>~ are ignored
+Element.prototype.parent = function(selector) { 
+			const commons = {
+							'icon': '.icon',
+							'button': '.action-btn',
+							'box': '.box',
+							'table': '.table',
+							'overlay': '.body-overlay',
+							'container': '.input-container'
+							}
+			
+			let selectors = selector.toSelectorList()
+			let node = this
+
+			selectors[0] = commons[selectors[0]] ?? selectors[0] // Overwrite first selector for common tags
+			
+			while (node.nodeName !== 'BODY') {
+											if (selectors.reduce((bool, item) => bool && node.toSelector(false).includes(item), true)) break
+											
+											node = node.parentNode
 											}
-
-function Icon(selector, parent=document) {return parent.querySelector(`.icon${selector ? '.':''}${selector}`)}
-Element.prototype.icon = function(selector='') { 
-											return Icon(selector, this)
-											}
-
-function Input(selector, parent=document) {return parent.querySelector(`${selector ? '#':'input'}${selector}`)}
-Element.prototype.input = function(selector='') { 
-											return Input(selector, this)
-											}
-
-function Error(selector, parent=document) {return parent.querySelector(`.error${selector ? '.':''}${selector}`)}
-Element.prototype.error = function(selector='') { 
-											return Error(selector, this)
-											}
-
-function Box(selector, parent=document) {return parent.querySelector(`.box${selector ? '.':''}${selector}`)}
-Element.prototype.box = function(selector='') { 
-											return Box(selector, this)
-											}
-
-function Table(selector, parent=document) {return parent.querySelector(`.table#${selector}`)}
-
-function Spinner(parent=document) {return parent.querySelector('.spinner')}
-Element.prototype.spinner = function() { 
-										return Spinner(this)
-										}
-
-// Find closest 'special' parent node (Box, Overlay), or itself if there is no upper container layer
-Element.prototype.container = function() { 
-											if (this.findParent('.box').nodeName !== 'BODY') {
-												return this.findParent('.box')
-											} else if (this.findParent('.body-overlay').nodeName !== 'BODY') {
-												return this.findParent('.body-overlay')
-											} else {
-												return this
-											}
-										}
-Event.prototype.container = function() {return this.target.container()}
+			return node !== document.body ? node : false
+			}
 
 //// FUNCTIONS ////
 // LAYOUT //
 // show navbar in tight-window mode
-function toggleNav(e) {
-						duration = 400;
-						e = e.findParent('.nav-toggle');
-						if (e.className.includes('down')) {
-														e.className = e.className.replace(' down','');
-														sliderUp(e, duration, '.nav-wrap', '.headers');
-						} else {
-								e.className += ' down';
-								sliderDown(e, duration, '.nav-wrap', '.headers');
-						}
+function toggleNav(tag, duration=400) {
+						const burger = tag.parent('.nav-toggle')
+						burger.is('active') ? sliderUp(burger, duration, '.nav-wrap', '.headers') : sliderDown(burger, duration, '.nav-wrap', '.headers')
+						burger.toggle()
 					}
 
 // show submenu
-function toggleSubMenu(e, force=false) {
-						duration=400;
-						const menu = e.findParent('.nav-item');
+function toggleSubMenu(e, duration=400) {
+						const menu = e.target.parent('.nav-item')
 						
-						if (menu.getAttribute('active') === null || force === 'in') {
-								menu.show();
-								sliderDown(menu, duration, '.nav-item', '.sub-menu');
-						} else if (menu.getAttribute('active') !== null || force === 'out') {
-								menu.hide();
-								sliderUp(menu, duration, '.nav-item', '.sub-menu');
+						if (menu.is('active')) {
+								menu.hide()
+								sliderUp(menu, duration, '.nav-item', '.sub-menu')
+						} else {
+								menu.show()
+								sliderDown(menu, duration, '.nav-item', '.sub-menu')
 						}
 						}
 
 
 // sliders
-function sliderUp(e, duration, father, cible) {
-								const targ = e.findParent(father).querySelector(cible)
-								targ.style.transition= `all ${duration}ms`;
-								targ.style.height = `${targ.offsetHeight}px`;
-								targ.style.overflow = 'hidden';
+function sliderUp(e, duration, parent, cible) {
+								const tag = e.parent(parent).querySelector(cible)
+								tag.style.transition= `all ${duration}ms`;
+								tag.style.height = `${tag.offsetHeight}px`;
+								tag.style.overflow = 'hidden';
 								
 								setTimeout(() => {
-									targ.style.height = 0;
+									tag.style.height = 0;
 									}, 5)
 								
 								setTimeout(() => {
-									targ.removeAttribute('style');
-									targ.setAttribute('hidden', 'true');
+									tag.removeAttribute('style')
+									tag.hide()
 									}, duration)
 								}
 
-function sliderDown(e, duration, father, cible) {
-								targ = e.findParent(father).querySelector(cible)
-								targ.style.visibility = 'hidden';
-								targ.setAttribute('hidden', 'false');;
-								targ.style.overflow = 'hidden';
-								let fullheight = targ.offsetHeight;
-								targ.style.transition= `all ${duration}ms, margin-top ${duration}ms`;
-								targ.style.height = 0;
-								targ.style.removeProperty('visibility');
+function sliderDown(e, duration, parent, cible) {
+								const tag = e.parent(parent).querySelector(cible)
+								tag.style.visibility = 'hidden';
+								tag.style.overflow = 'hidden';
+
+								tag.show()
+								let fullheight = tag.offsetHeight;
+
+								tag.style.transition= `all ${duration}ms, margin-top ${duration}ms`;
+								tag.style.height = 0;
+								tag.style.removeProperty('visibility');
 								
 								setTimeout(() => {
-									targ.style.height = `${fullheight}px`;
+									tag.style.height = `${fullheight}px`;
 									}, 5)
 								
 								setTimeout(() => {
-									targ.removeAttribute('style');
+									tag.removeAttribute('style');
 									}, duration)
 								}
 
 // handle banner visibility
 async function bannerManage()  {
-									y = window.scrollY;
-									logo = document.querySelector('.nav-logo.logo');
-									login = document.querySelector('.nav-logo.login');
-									
-									banner = document.querySelector('#banner');
-									bannerHeight = banner.offsetHeight;
-									bannerItems = banner.querySelectorAll('.banner-img');
-									
-									if (y > bannerHeight && !logo.className.includes('show')) {
-										logo.className = logo.className.replace('hide','show')
-									} else if (y <= bannerHeight && !banner.className.includes('hide')) {
-										logo.className = logo.className.replace('show', 'hide')
-									}
+								const y = window.scrollY
+								const logo = document.querySelector('.nav-logo.logo')
+								const bannerHeight = Block('banner').offsetHeight
+								
+								y > bannerHeight ? logo.show() : logo.hide()
 								}
 
 // banner movement
-async function logoWaveToggleToFlat() {
-							banner = document.querySelector('.banner-logo');
-							banner.className = 'banner-logo flat'
-								
+async function logoWaveToggle(reverse) {
+							const banner = Section('banner-logo')
+							banner.classList.toggle(reverse ? 'wave':'flat')
+							
 							await sleep(350)
 							for (i=1;i<10;i++) {
-								document.querySelector(`.banner-logo .banner-letter:nth-child(${i})`).setAttribute('mode','flat')
+								banner.child(`.banner-letter:nth-child(${i})`).setAttribute('mode', reverse ? 'wave':'flat')
 								await sleep(50)
 							}
 							
-							banner.className = banner.className.replace(' flat', '');
-							
-							outlocked = false;
+							banner.classList.toggle(reverse ? 'wave':'flat')
 						}
 
-async function logoWaveToggleToWave() {
-							banner = document.querySelector('.banner-logo');
-							banner.className = 'banner-logo flat'
-								
-							banner.className = 'banner-logo wave'
-								
-							await sleep(350)
-							for (i=1;i<10;i++) {
-								document.querySelector(`.banner-logo .banner-letter:nth-child(${i})`).setAttribute('mode','wave')
-								await sleep(50)
-							}
-							
-							banner.className = banner.className.replace(' wave', '')
-							}
-
 // GENENRAL CONFIG //
-window.onload = () => {
-	document.querySelector('.banner-logo').onmouseenter = logoWaveToggleToFlat;
-	document.querySelector('.banner-logo').onmouseleave = logoWaveToggleToWave;
-	
-	// handle banner shape
-	window.addEventListener('scroll', bannerManage);
-
-	// handle login form
-	try {
-		window.matchMedia(`(hover: none)`).matches ? document.querySelector('.nav-logo.login').findParent('.nav-logo-wrap').onclick = authWrap:null;
-		document.querySelector('.auth-wrap').icon('cross').onclick = authWrap;
-	} catch (error) {null}
-
-	// password input
-	document.querySelectorAll('.toggle-pass')?.forEach(tag => {tag.onclick = e => togglePassword('#'+ e.target.findParent('.icon').previousElementSibling.id)});
-	
-	// handle navbar
-	try {
-		Array.from(document.querySelectorAll('.nav-item:has(.sub-menu)')).forEach(navitem => {
-			if (window.matchMedia(`(hover:hover)`).matches) {
-				navitem.onmouseenter = e => toggleSubMenu(e.target, 'in');
-				navitem.onmouseleave = e => toggleSubMenu(e.target, 'out');
-			}
-			if (window.matchMedia(`(hover:none)`).matches) {
-				navitem.onclick = e => toggleSubMenu(e.target);
-			}
-		})
-	} catch (error) {null}
-}
-
 // Show auth Form
 function authWrap(e) {
-					wrap = document.querySelector('.nav-logo.login').findParent('.nav-logo-wrap');
+					const wrap = Section('nav-logo.login').parent('.nav-logo-wrap')
+					const auth = wrap.section('auth-wrap')
 					
-					auth = wrap.querySelector('.auth-wrap');
-					
-					Array.from(e.target.classList).includes('img') ? auth.hide():auth.show();
+					e.target.is('icon.cross') ? auth.hide():auth.show()
 					}
 
 // toggle password visibility
-function togglePassword(selector) {
-					input = document.querySelector(selector);
-					input.focus();
-					icon = input.nextElementSibling.firstElementChild;
+function togglePassword(e) {
+					const icon = e.target
+					const input = icon.previousElementSibling
 					
-					icon.toggle();
+					input.focus()
+					icon.toggle()
 					
-					if (icon.getAttribute('active') === null) {
-						input.setAttribute('type', 'password');
-						icon.setAttribute('title', 'Afficher le mot de passe');
+					if (icon.is('active')) {
+						input.setAttribute('type', 'text')
+						icon.setAttribute('title', 'Masquer le mot de passe')
 					} else {
-						input.setAttribute('type', 'text');
-						icon.setAttribute('title', 'Masquer le mot de passe');
+						input.setAttribute('type', 'password')
+						icon.setAttribute('title', 'Afficher le mot de passe')
 					}
 				}
 
@@ -358,11 +307,11 @@ function togglePassword(selector) {
 function formatDate() {
 					  const now = new Date();
 					  var date = {}
-					  date.year = now.getFullYear();
+					  date.year = now.getFullYear()
 					  date.month = now.getMonth() + 1;
-					  date.day = now.getDate();
-					  date.hours = now.getHours();
-					  date.minutes = now.getMinutes();
+					  date.day = now.getDate()
+					  date.hours = now.getHours()
+					  date.minutes = now.getMinutes()
 					  
 					  return date;
 					}
@@ -378,35 +327,41 @@ function formatBytes(bytes, decimals = 2) {
 
 // Redirection
 function redirect(link) {
-		window.location.href = link;
+		window.location.href = link
 }
 
 // Pop up tab
 function newTab(link) {
-		open(link);
+		open(link)
+}
+
+function transfer(e, bool=true) {
+		e.target.parent('overlay').hide()
+		if (bool) pendingAction.link ? pendingAction.function(pendingAction.link):pendingAction.function()
+		pendingAction = {}
 }
 
 // Download file
 function download(blob, name) {
-	c = document.createElement("a");
-	url = URL.createObjectURL(blob);
+	const c = document.createElement("a")
+	const url = URL.createObjectURL(blob)
 				
 	c.download = name;
 	c.href = url;
-	c.click();
-	setTimeout(function() { URL.revokeObjectURL(c.href); }, 1500);
+	c.click()
+	setTimeout(function() { URL.revokeObjectURL(c.href); }, 1500)
 }
 
 // API request
 async function fetchAPI(url, data=null) {
 	// config request
-	payload = data ? {method: "POST"} : null;
+	const payload = data ? {method: "POST"} : null;
 	data ? payload.body = data : null;
 	typeof data === 'string' ? payload.headers = { 'Content-Type': 'application/json' } : null;
 
 	// fetch data
-	response = await fetch(url, payload);
-	json = await response.json();
+	const response = await fetch(url, payload)
+	const json = await response.json()
 
 	// output
 	return {ok: response.ok, httpcode: response.status, body: json}
@@ -414,21 +369,21 @@ async function fetchAPI(url, data=null) {
 
 // Get file content
 async function fetchBlob(url) {
-	response = await fetch(url);
-	blob = await response.blob()
+	const response = await fetch(url)
+	const blob = await response.blob()
 
 	return blob
 }
 
 // get cursor position : start position of textContent
 function getCaret() {
-	var sel = document.getSelection();	// global API that handles selection (what is clicked, selected)
-	sel.modify("extend", "backward", "documentboundary");	// extend selection to beginning of current paragraph - granularity may be changed
+	var sel = document.getSelection()	// global API that handles selection (what is clicked, selected)
+	sel.modify("extend", "backward", "documentboundary")	// extend selection to beginning of current paragraph - granularity may be changed
 	
-	pos = sel.toString().length;		// get length = caret opffset position
-	if (sel.anchorNode != undefined) sel.collapseToEnd();	// collapse selection/cursor to end of selection : reset cusor to initial position
+	pos = sel.toString().length			// get length = caret offset position
+	if (sel.anchorNode != undefined) sel.collapseToEnd()	// collapse selection/cursor to end of selection : reset cusor to initial position
 	
-	return {'start': pos, 'node': sel.anchorNode.parentNode.toSelector(true)}; // anchorNode is a text node - so convert it to element Node to apply DOM logic
+	return {'start': pos, 'node': sel.anchorNode.parentNode.toSelector(true)}	// anchorNode is a text node - so convert it to element Node to apply DOM logic
 }
 
 // set cursor position
@@ -441,9 +396,9 @@ function setCaret(rootNode, start) {
 		if  (node.nodeType === Node.TEXT_NODE) {// nodeType gives num code of node typ, matched with text node code stored in Node API
 			// node length
 			if (node === rootNode.firstChild) {
-				len = node.textContent.replace(/^(\n*\t*)/,'').replaceAll('\n','').length; // manual trim for first node
+				len = node.textContent.replace(/^(\n*\t*)/,'').replaceAll('\n','').length;	// manual trim for first node
 			} else if (node === rootNode.lastChild) {
-				len = node.textContent.replace(/(\t*)$/, '').replaceAll('\n','').length; // manual trim for first node
+				len = node.textContent.replace(/(\t*)$/, '').replaceAll('\n','').length; 	// manual trim for first node
 			} else {
 				len = node.textContent.replaceAll('\n','').length;
 			}
@@ -457,7 +412,7 @@ function setCaret(rootNode, start) {
 				range.setStart(node, offset)			// config range
 				range.collapse(true)					// reduce selection to a point
 				selection.removeAllRanges()				// reset selection
-				selection.addRange(range)			// update selection
+				selection.addRange(range)				// update selection
 				
 				found = true; // prevent further caret move
 			}
@@ -466,43 +421,107 @@ function setCaret(rootNode, start) {
 		}
 	}
 	
-	navigate(rootNode);
+	navigate(rootNode)
 }
+
+function compareWithOldValue(e, core='') {
+			const input = e.target
+			const error = input.parent('box').error()
+			
+			if (input.value.replace(core, '') !== input.getAttribute('previous-value')) {
+				input.unset(input.dataset.validity)
+				error.hide()
+			} else {
+				input.set(input.dataset.validity ?? '')
+				if (input.dataset.validity === 'invalid') error.show()
+			}
+
+			if (!input.value.includes(core)) input.value = core
+		}
+
+async function checkInput(input, script, type, core='') {
+			// DOM elements
+			const spin = input.parent('container').spinner()
+			const error = input.parent('box').error()
+			const value = input.value.replace(core,'').urlForm()
+			const mode = input.disabled ? 'locked':'unlocked'
+
+			if (!new RegExp(input.getAttribute('pattern') ?? '').test(value)) {
+				input.setCustomValidity("Format incorrect")
+				input.reportValidity()
+				return
+			} else {input.setCustomValidity('')}
+			if (value === input.getAttribute('initial-value')) {
+				submitAllower(true)
+				return
+			}
+			if (value === input.getAttribute('previous-value')) {
+				submitAllower()
+				return
+			}
+			if (value === '') return
+			
+			// contents
+			if (!input.disabled) input.value = input.value.urlForm()		// overrides latest input
+			input.unset(input.dataset.validity)
+			error.hide()
+			spin.show()
+
+			await sleep(250)
+			
+			const response	= await fetchAPI(`${script}?action=check&type=${type}&mode=${mode}&content=${value}&token=${csrfToken}`)
+			
+			if (!response.ok) {
+				input.dataset.validity = 'invalid'
+				error.show()
+			} else {
+				input.dataset.validity = 'valid'
+				input.value = core + (response.body.value ?? value)
+			}
+
+			input.setAttribute('previous-value', response.body.value ?? value)
+			input.set(input.dataset.validity)
+			spin.hide()
+			submitAllower()
+		}
 
 // Check password input
 async function passwordChecker(selector='input#overlay-pswd') {
 					// pswd zone
-					tag = document.querySelector(selector);
-					pswd = tag.value;
+					const tag = document.querySelector(selector)
+					pswd = tag.value
 					
 					// error message
-					error = tag.findParent('.box').error();
+					const error = tag.parent('box').error()
 					
 					// action buttons
-					btn = Overlay('auth').button('validate');
-					btnbis = Overlay('auth').button('cancel');
-					btn.disabled = true;
-					btnbis.disable();
-					btn.toggle()
+					const validate = Overlay('auth').button('validate')
+					const cancel = Overlay('auth').button('cancel')
+					
+					// block buttons
+					validate.disabled = true
+					cancel.disable()
+					validate.toggle()
 					
 					// reset state
-					tag.unset('valid');
-					error.hide();
+					tag.unset('valid')
+					error.hide()
 					
-					await sleep(500);
+					await sleep(500)
 					
 					// update data
-					jsonData = JSON.stringify({'action':'auth', 'csrf':csrfToken, 'password':pswd})
-					response = await fetchAPI('/admin/engine/database', jsonData)
+					const jsonData = JSON.stringify({'action':'auth', 'csrf':csrfToken, 'password':pswd})
+					const response = await fetchAPI('/admin/engine/database', jsonData)
 
+					// restore buttons
 					tag.value = '';
-					btn.toggle();
-					btn.disabled = false;
-					btnbis.enable();
+					validate.toggle()
+					validate.disabled = false
+					cancel.enable()
 					
 					if (!response.ok) {
-						tag.set('invalid');
-						error.show();
+						tag.set('invalid')
+						error.show()
 
 						return false
 					} else {return true}
@@ -512,8 +531,8 @@ async function passwordChecker(selector='input#overlay-pswd') {
 // handle notifications
 async function notify(header, text, color='orange', duration=4000) {
 					// force local variables to prevent overwrite between simultaneous function calls
-					const notifTag = document.createElement('div');
-					const notifWrap = document.querySelector('#notifications');
+					const notifTag = document.createElement('div')
+					const notifWrap = Block('notifications')
 					
 					// HTML of notification
 					notifTag.innerHTML = `
@@ -524,12 +543,10 @@ async function notify(header, text, color='orange', duration=4000) {
 						</div>
 						<div class='notification-timer'>
 							<div class="notification-close icon cross small inline hoverable" forced>
-								<span class="img">
 								<svg class="timer" viewbox="0 0 1000 1000">
 									<circle cx="500" cy="500" r="450" stroke="silver" fill="none" stroke-width="75"></circle>
 									<circle class="timer-stroke" cx="500" cy="500" r="450"></circle>
 								</svg>
-								</span>
 							</div>
 							
 						</div>
@@ -547,12 +564,12 @@ async function notify(header, text, color='orange', duration=4000) {
 					
 					// closer
 					notifTag.icon('cross').onclick = async e => {
-						const tag = e.target.findParent('.item')
+						const tag = e.target.parent('.item')
 						
 						tag.style.transform = `translateX(20px)`	
 						tag.style.opacity = 0
 						
-						await sleep(300);
+						await sleep(300)
 						tag.remove()
 					}
 
@@ -574,6 +591,6 @@ async function notify(header, text, color='orange', duration=4000) {
 					notifTag.style.opacity = 0
 					
 					// destroy
-					await sleep(300);
-					notifTag.remove();
+					await sleep(300)
+					notifTag.remove()
 					}

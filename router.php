@@ -243,8 +243,8 @@ if (preg_match('#^/auth/#', $request_url)) {
     
     } elseif (preg_match('#/auth/.+$#', $request_url)) {
         $slug = end(explode('/', $request_url));
-        if (in_array($slug, ['login', 'logout', 'register', 'reset-credentials', 'update-credentials'])) {
-            $action = $_POST['action'] ?? $slug; //explode('-', $slug)[0];
+        if (in_array($slug, ['login', 'logout', 'register', 'reset-credentials', 'update-credentials', 'check'])) {
+            $action = $_POST['action'] ?? $_GET['action'] ?? $slug; //explode('-', $slug)[0];
 
             $_SESSION['reset-token'] = $url_parameters['token'] ?? null;
 
