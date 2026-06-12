@@ -435,6 +435,7 @@ form {
 		&.hide  {background-image: var(--icon-eye-mask);}
 		&.history {background-image: var(--icon-history);}
 		&.info {background-image: var(--icon-info);}
+		&.invalid {background-image: var(--icon-invalid);}
 		&.layout {background-image: var(--icon-grid);}
 			&.layout[active] {background-image: var(--icon-list);}
 		&.lock {background-image: var(--icon-lock);}

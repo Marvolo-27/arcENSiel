@@ -119,13 +119,18 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 						</p>
 						<ul class="<?= $slug ?>">
 							<?php foreach($category['documents'] as $doc) { ?>
-								<?php if ($doc['status']): ?>
+								<?php if ($doc['status'] || $status === 'edit'): ?>
 								<li>
 									<?php if ($status === 'edit'): ?>
 										<div class='icon change delete inline dynamic hoverable' data-icon-type='delete' title="Supprimer cette entrée"></div>
 										<div class='icon change edit inline dynamic hoverable' data-icon-type='edit' title="Modifier cette entrée"></div>
 									<?php endif; ?>
-									<a href="<?= $doc['url'] ?>" data-name="<?= $doc['name'] ?>" <?= $status === 'edit' ? "data-target-url='".$doc['url']."'":'' ?> download target="_blank_"><?= $doc['description'] ?></a> <small><i>(<?= formatBytes($doc['size'],1) ?>)</i></small>
+									<?php if ($doc['status']): ?>
+										<a class="item" href="<?= $doc['url'] ?>" data-name="<?= $doc['name'] ?>" <?= $status === 'edit' ? "data-target-url='".$doc['url']."'":'' ?> download target="_blank_"><?= $doc['description'] ?></a> <small><i>(<?= formatBytes($doc['size'],1) ?>)</i></small>
+									<?php endif; ?>
+									<?php if (!$doc['status']): ?>
+										<span class="item" href="<?= $doc['url'] ?>" data-name="<?= $doc['name'] ?>"><?= $doc['description'] ?></span><div class="icon invalid inline" title="Le fichier n'existe pas sur le serveur"></div>
+									<?php endif; ?>
 								</li>
 								<?php endif; ?>
 							<?php } ?>
@@ -212,7 +217,7 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 			Icons('change').forEach(icon => icon.onclick = e => changeEntryTrigger(e.target, e.target.dataset.iconType, e.target.parent('ul').className))
 			function changeEntryTrigger(tag, action, type) {
 						const overlay = Overlay('uploader')
-						const item    = tag.parent('li').querySelector('a')
+						const item    = tag.parent('li').child('.item')
 						const url     = item.getAttribute('href')		// .href gives absolute path, so not compatibe with DB format
 						const name    = item.dataset.name
 						
