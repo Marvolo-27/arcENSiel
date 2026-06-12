@@ -73,8 +73,12 @@ if ($_SESSION['username'] !== 'admin') {
 						<div class='output-text clean'></div>
 					</div>
 					
-					<div class='sql-response' style='display: none'>
-						<div class='label'>Raw output</div>
+					<div class='sql-response activable'>
+						<div class='label'>
+							<span>Raw output</span>
+							<div class='icon copy inline dynamic hoverable'></div>
+						</div>
+						
 						<div class='output-text raw'></div>
 					</div>
 				</div>
@@ -107,7 +111,8 @@ if ($_SESSION['username'] !== 'admin') {
 						
 						if (!response.ok) {// http code 400-500 reuturn false
 							notify("Erreur serveur", `La requête a échoué. [Error HTTP ${response.httpcode}] ${response.body.error}.`, 'red')
-						
+							raw.parent('.activable').hide()
+
 						} else if (response.httpcode === 250) {// failed sql request
 							// PDOException outputs a dict with key 'errorInfo' whose value is a (3-tuple)
 							// Data structure is response [Response object] => .json() [body content] => .error [key of dict sent by php script] => .errorInfo [key of dict paired with key 'error'] => [2] [third value of array paired with 'errorInfo' key]
@@ -125,19 +130,30 @@ if ($_SESSION['username'] !== 'admin') {
 							raw.innerText = JSON.stringify(result)
 							jsonview.renderJSON(JSON.stringify(result.filter(item => item.length !== 0)), output)
 							
-							raw.show()
+							raw.parent('.activable').show()
 							button.disabled = false;
 							button.toggle()
 						}
 					}
 		
 		Button('reset').onclick = () => {
-						output = Section('output').section('clean')
-						raw = Section('output').section('raw')
+						const output = Section('output').section('clean')
+						const raw = Section('output').section('raw')
 						
 						output.innerHTML = '';
 						raw.innerHTML = '';
 						Input('sql-query').value = '';
+						}
+
+		Icon('copy').onclick = async () => {
+						const output = Section('output').section('clean')
+						const raw = Section('output').section('raw')
+						const data = raw.textContent
+						
+						if (data !== '') {
+							await navigator.clipboard.writeText(data)
+							notify("Copie effectuée", "Le résultat de la requête a été copié dans le presse-papiers.", 'green')
+						}
 						}
 		</script>
 	</body>
