@@ -143,7 +143,7 @@ async function buildNewsFlow(start=0, n=5, script='/engine/news', params='', mod
 			
 			<div class="metadata">
 				<?php if ($date): ?>
-				<span class="meta-item illustrated date"><?= $date ?><?= $enddate ? " - ".$enddate : null ?></span>
+				<span class="meta-item illustrated pre date"><?= $date ?><?= $enddate ? " - ".$enddate : null ?></span>
 				<?php endif; ?>
 				
 				<span class="meta-item illustrated pre tags">

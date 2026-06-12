@@ -63,6 +63,7 @@
 		--icon-colors: url(/files/icons/colors.svg);
 		--icon-preview: url(/files/icons/preview.svg);
 		--icon-remove: url(/files/icons/remove.svg);
+		--icon-copy: url(/files/icons/copy.svg);
 		
 		/* UTILS COLORS */
 		--link-color:#e7495b;
@@ -176,13 +177,13 @@ header, nav, footer {z-index: 3; flex: 0}
 /*!! GENERAL TAGS !!*/
 /* Links */
 a {
-	color: black;
+	color: var(--link-color);
 	text-decoration: none;
 	cursor: pointer;
 	transition: color .25s;
 
 	/* &:hover {text-decoration: underline} */
-	&.colorful {color: var(--link-color)}
+	&.default {color: black}
 	&.dynamic:hover {color: var(--link-color)}
 	}
 
@@ -370,6 +371,7 @@ form {
 /* ICONS */
 .icon {
 		--coeff: 1;
+		display: inline-block;
 		position: absolute;
 		top: calc(1 / 2 * (100% - 1.4 * var(--coeff) * var(--standard-size)));
 		padding: calc(.2 * var(--standard-size));
@@ -384,6 +386,7 @@ form {
 		background-position: center;
 		background-size: 80%;
 		background-color: transparent;
+		vertical-align: middle;
 		
 		/* Position variations */
 		&.top {left: calc(1 / 2 * (100% - 1.4 * var(--coeff) * var(--standard-size))); top: calc(.4 * var(--standard-size))}
@@ -412,6 +415,7 @@ form {
 			@media (hover: hover) {&:not([forced]).cross {display: none}}
 		&.chevron {background-image: var(--icon-chevron);}
 		&.colors {background-image: var(--icon-colors);}
+		&.copy {background-image: var(--icon-copy);}
 		&.delete {background-image: var(--icon-delete);}
 		&.dots {background-image: var(--icon-dots);}
 		&.download {background-image: var(--icon-download);}
@@ -806,7 +810,12 @@ form {
 						border-top: 1px solid black;
 						margin: .5em 0;
 						}
-				
+				&   a {
+						color: black;
+						padding: .5em 1.25em;
+						display: inline-block;
+						}
+						
 				/* action button */
 				& .action-btn {
 						background: white;
@@ -854,12 +863,6 @@ form {
 									& .text {display: none;}
 									& .spinner {display: block; position: relative; z-index: 1;}
 									}
-								}
-
-						&   a {
-								color: black;
-								padding: .5em 1.25em;
-								display: inline-block;
 								}
 						}
 				}
@@ -971,11 +974,6 @@ form {
 		flex-direction: column;
 		gap: .75em;
 		
-		& .raw {
-				display: none;
-				&[active] {display: block}
-				}
-
 		& .output-text {
 				padding: .5em;
 				border: 2px solid silver;

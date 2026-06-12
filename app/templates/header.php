@@ -130,12 +130,12 @@
 				</div>
 				
 				<div class="panel-main">
-					<a href='/user' class='dynamic illustrated post external'>Mon profil</a>
+					<a href='/user' class='dynamic default illustrated post external'>Mon profil</a>
 				</div>
 				
 				<?php if ($_SESSION['role'] == "admin"): ?>
 					<div class="panel-main">
-						<a href='/admin' class='dynamic illustrated post external'>Dashboard</a>
+						<a href='/admin' class='dynamic default illustrated post external'>Dashboard</a>
 					</div>
 				<?php endif; ?>
 			<?php endif; ?>
