@@ -286,12 +286,12 @@ if ($_SESSION['role'] !== 'admin') {
 				e.target.parent('.files-wrap').hide()
 			}
 
-			async function updateData() {
+			async function updateData(force=false) {
 					filesList = await dataFetcher('files', null, 'files')
 					filesTable.setData(filesList).then(statusWizard)
 					gridContainer.innerHTML = '';
 					
-					await buildFilesFlow(3*nGridItems)
+					await buildFilesFlow(3*nGridItems, force)
 					fetchControl()
 
 					return filesList
@@ -362,7 +362,7 @@ if ($_SESSION['role'] !== 'admin') {
 								wrap.show()
 
 								if (type === 'unregistered') pendingFiles = data
-								await updateData()
+								await updateData(true)
 							}
 						})
 

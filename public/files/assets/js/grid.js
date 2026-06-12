@@ -177,7 +177,9 @@ async function buildNewsFlow(start=0, n=5, script='/engine/news', params='', mod
 	}
 
 // Add articles data to DOM
-async function buildFilesFlow(append) {
+async function buildFilesFlow(append, force=false) {
+		if (force) received = 0
+		
 		start = received;
 		received += append;
 		received = received > total ? total:received;
