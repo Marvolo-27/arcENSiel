@@ -175,7 +175,7 @@ function filesManager() {
 					break;
 				}
 			}
-			
+
 			// compare metadata
 			$check = true && $file['name'] === $ref['name'] && $file['size'] === $ref['size'];
 
@@ -189,6 +189,7 @@ function filesManager() {
 				$query->execute([':url' => $file['url']]);
 				logger('/log/files.log', queryMaker($sql, [':url' => $file['url']]), 'Update file status');
 			}
+		
 		} elseif ($status) {
 			// extract corresponding filedata of scanned file matching registered file
 			foreach ($scanned_data as $scan) {

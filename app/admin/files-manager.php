@@ -497,7 +497,7 @@ if ($_SESSION['role'] !== 'admin') {
 						const formData = new FormData(form)
 						
 						formData.set('mode', 'add')
-						formData.set('action', 'update')
+						formData.set('action', 'upload')
 						formData.set('og-url', url)
 						formData.set('url', url)
 						formData.set('filename', formData.get('filename')+'.'+Input('fileextension').value)
@@ -603,27 +603,6 @@ if ($_SESSION['role'] !== 'admin') {
 					pendingAction.function = resetTabledata
 					Overlay('validate').show()
 			}
-
-			async function saveCurrentData() {
-				table = activeTable.table
-
-				// select edited rows, with values different from original
-				const modifiedRows = Array.from(table.getEditedCells().concat(Object.values(autoEditedCells))).map(c => c.getValue() !== c.getInitialValue() ? c.getRow().getData():null).filterUnique()
-
-				// update fetch
-				const jsonData = JSON.stringify({'action':'placeholder', 'type':activeTable.type, 'csrf':csrfToken, 'data':modifiedRows})
-				const response = await fetchAPI('/admin/engine/files', jsonData)
-
-				if (!response.ok) {
-					notify("Échec de la mise à jour", `Des erreurs sont survenues lors de la mise à jour des métadonnées des fichiers. Consultez les logs pour plus d'informations.`, 'red')
-				
-				} else {
-					Block('main').section('actions-wrap').hide()
-					resetTableData(activeTable, true)
-
-					notify("Succès", "Les métadonnées des fichiers ont été mises à jour.", 'green')
-				}
-				}
 		</script>
 	</body>
 </html>

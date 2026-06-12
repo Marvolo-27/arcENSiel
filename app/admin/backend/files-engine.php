@@ -39,6 +39,55 @@ if ($action === 'scan') {
 	exit;
 }
 
+// FETCH FILES OF GIVEN CAT
+if ($action === 'fetch') {
+	// Update files status
+	filesManager();
+
+	// Extract data
+	$category = (array) $input['category'] ?? false;
+	$category_sql = $category ? ' AND categories.slug IN (:'.implode(',:', $category).')' : null;
+	$params = $category ? array_reduce($category, function ($carry, $item) {$carry[':'.$item] = $item; return $carry;}, []) : null;
+
+	$filetype = (array) $input['filetype'] ?? false;
+	$filetype_sql = $filetype ? preg_replace(['#/#','#-#'], '_', ' AND (LOCATE(:'.implode(', type) > 0 OR LOCATE(:', $filetype).', type) > 0)') : null;
+	$params = $filetype ? array_merge((array) $params, array_reduce($filetype, function ($carry, $item) {$carry[':'.preg_replace(['#-#','#/#'], '_', $item)] = $item; return $carry;}, [])) : $params;
+	
+	$sql = ($category || $filetype) ?
+	"SELECT files.id AS id, url, files.name AS name, description, GROUP_CONCAT(categories.slug SEPARATOR ',') AS categories
+	FROM files
+		LEFT JOIN files_categories ON files.id = file_id
+		LEFT JOIN categories ON categories.id = category_id
+	WHERE LOCATE('admin:///', files.url) = 0 ".($category ? $category_sql : '').($filetype ? $filetype_sql : '').
+	" GROUP BY files.id"
+	:
+	"WITH
+		references_list AS (
+			SELECT file_id, CONCAT('article/', slug) AS reference, NULL AS category
+			FROM articles_covers
+				JOIN articles ON article_id = articles.id
+			UNION ALL
+			SELECT file_id, CONCAT(sections.slug, '/', categories.slug) AS reference, categories.slug AS category
+			FROM files_categories
+				JOIN categories ON category_id = categories.id
+				JOIN sections ON section_id = sections.id)
+	SELECT files.id AS id, url, name, size, uploader, type, description, status, created_at, updated_at, COALESCE(GROUP_CONCAT(reference SEPARATOR ', '), '') AS usages, GROUP_CONCAT(category SEPARATOR ',') AS categories
+	FROM files
+		LEFT JOIN references_list ON files.id = file_id
+	GROUP BY files.id
+	ORDER BY name ASC;";
+
+	$query = $pdo->prepare($sql);
+	$query->execute($params);
+	$output = $query->fetchAll(PDO::FETCH_ASSOC);
+	
+	// logger('/log/files.log', 'Source: '.PHP_EOL.queryMaker($sql, $params), 'Fetch files');
+
+	http_response_code(200);
+	echo json_encode($output);
+	exit;
+}
+
 // REMOVE UNREGISTERED FILE FROM SERVER
 if ($action === 'delete') {
 	$files = $input['files'];
@@ -112,19 +161,6 @@ if ($action === 'remove') {
 	exit;
 }
 
-// DOWNLOAD ADMIN FILE
-if ($action === 'encode') {
-	ini_set('memory_limit', '512M');
-	$raw_url = $input['url'];
-	$url = preg_replace('#^admin://#', $root.'/app/admin', $raw_url);
-
-	$source = file_get_contents($url);
-	$base64 = base64_encode($source);
-	http_response_code(200);
-	echo json_encode(['base64' => $base64]);
-	exit;
-}
-
 // INSERT UNREGISTERED FILES
 if ($action === 'insert') {
 	$files = $input['files'];
@@ -170,54 +206,18 @@ if ($action === 'insert') {
 	exit;
 }
 
-// FETCH FILES OF GIVEN CAT
-if ($action === 'fetch') {
-	// Update files status
-	filesManager();
+// DOWNLOAD ADMIN FILE
+if ($action === 'encode') {
+	ini_set('memory_limit', '512M');
+	$raw_url = $input['url'];
+	$url = preg_replace('#^admin://#', $root.'/app/admin', $raw_url);
 
-	// Extract data
-	$category = (array) $input['category'] ?? false;
-	$category_sql = $category ? ' AND categories.slug IN (:'.implode(',:', $category).')' : null;
-	$params = $category ? array_reduce($category, function ($carry, $item) {$carry[':'.$item] = $item; return $carry;}, []) : null;
-
-	$filetype = (array) $input['filetype'] ?? false;
-	$filetype_sql = $filetype ? preg_replace(['#/#','#-#'], '_', ' AND (LOCATE(:'.implode(', type) > 0 OR LOCATE(:', $filetype).', type) > 0)') : null;
-	$params = $filetype ? array_merge((array) $params, array_reduce($filetype, function ($carry, $item) {$carry[':'.preg_replace(['#-#','#/#'], '_', $item)] = $item; return $carry;}, [])) : $params;
-	
-	$sql = ($category || $filetype) ?
-	"SELECT url, files.name AS name, description, GROUP_CONCAT(categories.slug SEPARATOR ',') AS categories
-	FROM files
-		LEFT JOIN files_categories ON files.id = file_id
-		LEFT JOIN categories ON categories.id = category_id
-	WHERE LOCATE('admin:///', files.url) = 0 ".($category ? $category_sql : '').($filetype ? $filetype_sql : '').
-	" GROUP BY files.id"
-	:
-	"WITH
-		references_list AS (
-			SELECT file_id, CONCAT('article/', slug) AS reference, NULL AS category
-			FROM articles_covers
-				JOIN articles ON article_id = articles.id
-			UNION ALL
-			SELECT file_id, CONCAT(sections.slug, '/', categories.slug) AS reference, categories.slug AS category
-			FROM files_categories
-				JOIN categories ON category_id = categories.id
-				JOIN sections ON section_id = sections.id)
-	SELECT url, name, size, uploader, type, description, status, created_at, updated_at, COALESCE(GROUP_CONCAT(reference SEPARATOR ', '), '') AS usages, GROUP_CONCAT(category SEPARATOR ',') AS categories
-	FROM files
-		LEFT JOIN references_list ON files.id = file_id
-	GROUP BY files.id
-	ORDER BY name ASC;";
-
-	$query = $pdo->prepare($sql);
-	$query->execute($params);
-	$output = $query->fetchAll(PDO::FETCH_ASSOC);
-	
-	// logger('/log/files.log', 'Source: '.PHP_EOL.queryMaker($sql, $params), 'Fetch files');
-
+	$source = file_get_contents($url);
+	$base64 = base64_encode($source);
 	http_response_code(200);
-	echo json_encode($output);
+	echo json_encode(['base64' => $base64]);
 	exit;
-	}
+}
 
 
 // MANAGE REFERENCES FOR GIVEN FILE
@@ -245,7 +245,7 @@ if ($action === 'reference') {
 }
 
 // UPDATE DATA FOR A FILE / UPLOAD NEW FILE
-if ($action === 'update') {
+if ($action === 'upload') {
 	// request extract
 	$mode = $_POST['mode'];
 	$adminmode = $_POST['admin'] == 'true';

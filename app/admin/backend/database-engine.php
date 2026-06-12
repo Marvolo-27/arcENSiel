@@ -132,7 +132,7 @@ if ($action === 'auth') {
 if ($action === 'update') {
 	// request extract
 	$raw_data = $input['data'];
-	$section = $type === 'users' ? 'users':'articles';
+	$section = $type === 'users' ? 'users' : ($type === 'files' ? 'files':'articles');
 	$failure = false;
 	
 	foreach ($raw_data as $row) {
@@ -183,6 +183,7 @@ if ($action === 'update') {
 				$row['id'] ? $params[':id'] = $row['id']:null;
 				$query = $pdo->prepare($sql);
 				$query->execute($params);
+			
 			} elseif ($type === 'types') {
 				$sql = "INSERT INTO types (id, name, slug, color) VALUES (".($row['id'] ? ':id' : 'NULL').", :name, :slug, :color) ON DUPLICATE KEY UPDATE name = VALUES(name), slug = VALUES(slug), color = VALUES(color)";
 				$params = [
@@ -193,6 +194,7 @@ if ($action === 'update') {
 				$row['id'] ? $params[':id'] = $row['id']:null;
 				$query = $pdo->prepare($sql);
 				$query->execute($params);
+			
 			} elseif ($type === 'categories') {
 				$sql = "INSERT INTO categories (id, name, slug, section_id, removable) SELECT ".($row['id'] ? ':id' : 'NULL').", :name, :slug, (SELECT id FROM sections WHERE slug = :section), :removable ON DUPLICATE KEY UPDATE name = VALUES(name), slug = VALUES(slug)";
 				$params = [
@@ -204,7 +206,30 @@ if ($action === 'update') {
 				$row['id'] ? $params[':id'] = $row['id']:null;
 				$query = $pdo->prepare($sql);
 				$query->execute($params);
+
+			} elseif ($type === 'files') {
+				$sql = "UPDATE files SET name = :name, url = :url, description = :desc, uploader = :uploader, updated_at = :time WHERE id = CAST(:id AS UNSIGNED)";
+				$params =  [
+							':name' => $row['name'].'.'.$row['extension'],
+							':url' => str_replace($row['basename'], $row['name'], $row['url']),
+							':desc' => $row['description'],
+							':uploader' => $row['uploader'],
+							':id' => $row['id'],
+							':time' => date('Y-m-d H:i:s', time())
+							];
+				$query = $pdo->prepare($sql);
+				$query->execute($params);
+
+				// Rename file
+				if ($row['name'] !== $row['basename']) {
+					if ($serverroot.rename($row['url'], $serverroot.str_replace($row['basename'], $row['name'], $row['url']))) {
+						logger('\/log\/files.log', "Le fichier '".$row['basename']."' a été renommé '".$row['name']."'.", 'Rename file');
+					} else {
+						logger('\/log\/files.log', "Le fichier '".$row['basename']."' n'a pas pu être renommé.", '[ERROR] Failed: Rename file');
+					}
+				}
 			}
+
 			logger('\/log\/'.$section.'.log', queryMaker($sql, $params), 'Update data');
 		
 		http_response_code(200);
@@ -213,6 +238,10 @@ if ($action === 'update') {
 			$failure = true;
 			logger('\/log\/'.$section.'.log', 'Source: '.queryMaker($sql, $params).';'.PHP_EOL.json_encode($e), '[ERROR] Failed: Update data');
 		}
+	}
+
+	if ($type === 'files') {
+		filesManager();
 	}
 
 	if ($failure) {

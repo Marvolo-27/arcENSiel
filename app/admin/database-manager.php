@@ -247,44 +247,6 @@ $artTypes = getTypes();
 
 		// actions that require authentification
 		Overlay('auth').child('form').onsubmit = e => e.preventDefault()
-		async function saveCurrentData() {
-				const table = activeTable.table
-				const type = activeTable.type
-
-				// select edited rows, with values different from original
-				const modifiedRows = Array.from(table.getEditedCells().concat(Object.values(autoEditedCells))).map(c => c.getValue() !== c.getInitialValue() ? c.getRow().getData():null).filterUnique();
-
-				// update fetch
-				const jsonData = JSON.stringify({'action':'update', 'type':type, 'csrf':csrfToken, 'data':modifiedRows})
-				const response = await fetchAPI('/admin/engine/database', jsonData)
-
-				if (!response.ok) {
-					notify("Échec de la mise à jour", `Des erreurs sont survenues lors de la mise à jour des données de la table '${type}'. Consultez les logs pour plus d'informations.`, 'red')
-					return
-				} else {
-					Block('main').section('data-actions').hide()
-					
-					// Make new rows non-removable
-					if (activeTable.appendable) activeTable.table.getColumn('actions').getCells().forEach(cell => cell.setValue(false))
-					
-					// Reset table source to current data
-					resetTabledata(activeTable, true)
-
-					// Update config Objects
-					if (['tags', 'types'].includes(type)) {
-						if (type === 'tags') {
-							tableMatch.tags.table.getData().forEach(row => tagsList[row.id] = {'slug':row.slug, 'name':row.name})
-						} else if (type === 'types') {
-							tableMatch.types.table.getData().forEach(row => typesList[row.id] = {'slug':row.slug, 'name':row.name, 'color':row.color})
-						}
-
-						// Update data in articles table
-						tableMatch.articles.table.getRows().forEach(row => row.reformat())
-					}
-
-					notify("Succès", `Les données de la table '${activeTable.type}' ont été mises à jour.`, 'green')
-				}
-		}
 		
 		// refresh tables data
 		Icon('refresh').onclick = databaseUpdater

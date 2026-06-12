@@ -79,7 +79,7 @@ async function fetchFiles(target) {
 					{column:"name", dir:"asc"}
 				],
 				columns: [
-					{ title: "", field: "actions", mutator: function (value, data) {return data.url}, formatter: function (cell) {
+					{ title: "", field: "actions", mutator: (value, data) => data.url, formatter: function (cell) {
 							rowdata = cell.getRow().getData();
 							v_type = rowdata.type.match(/(application\/pdf|image\/.*)/)
 							return `<span>
@@ -87,7 +87,8 @@ async function fetchFiles(target) {
 										<div class='icon delete inline dynamic hoverable' title="Supprimer ${rowdata.status ? 'le fichier':"l'entrée"}"></div>
 										<div class='icon inline ${rowdata.status ? 'download dynamic hoverable':''}' title="Télécharger le fichier"></div>
 									</span>`}, cellClick: (e, cell) => actionSwitch(e, cell), resizable: false, frozen: true},
-					{ title: "Nom du fichier", field: "name", mutator: value => value.filename(), formatter: cell => cell.getValue() + '.' + cell.getRow().getData().extension, editor: 'input', validator: 'unique', vertAlign: 'middle'},
+					{ title: "Nom du fichier", field: "name", mutator: value => value.filename().filenameForm(), formatter: cell => cell.getValue() + '.' + cell.getRow().getData().extension, editor: 'input', validator: ['unique', 'required'], vertAlign: 'middle'},
+					{ title: "Nom initial", field: "basename", visible: false, mutator: (value, data) => data.url.filename()},
 					{ title: "Extension", field: "extension", visible: false, mutator: (value, data) => data.url.extension()},
 					{ title: "Localisation", field: "url", vertAlign: 'middle'},
 					{ title: "Description", field: "description", editor: "input", mutator: value => value || '',  hozAlign: 'center'},
@@ -97,7 +98,7 @@ async function fetchFiles(target) {
 					{ title: "Propriétaire", field: "uploader", editor: "list", editorParams: {values:users}, hozAlign: 'center'},
 					{ title: "Date d'ajout", field: "created_at", hozAlign: 'center'},
 					{ title: "Date de modification", field: "updated_at", hozAlign: 'center'},
-					{ title: "Accessible", field: "status", mutator: value => value === 1 ? true:false, formatter: "tickCross", hozAlign: 'center'},
+					{ title: "Accessible", field: "status", mutator: value => !!value, formatter: "tickCross", hozAlign: 'center'},
 				]})
 			
 			function actionSwitch(e, cell) {
@@ -633,6 +634,45 @@ async function dataFetcher(type, extra=null, engine='database') {
 
 		    return data
 		}
+
+async function saveCurrentData() {
+			const table = activeTable.table
+			const type = activeTable.type
+
+			// select edited rows, with values different from original
+			const modifiedRows = Array.from(table.getEditedCells().concat(Object.values(autoEditedCells))).map(c => c.getValue() !== c.getInitialValue() ? c.getRow().getData():null).filterUnique();
+
+			// update fetch
+			const jsonData = JSON.stringify({'action':'update', 'type':type, 'csrf':csrfToken, 'data':modifiedRows})
+			const response = await fetchAPI('/admin/engine/database', jsonData)
+
+			if (!response.ok) {
+				notify("Échec de la mise à jour", `Des erreurs sont survenues lors de la mise à jour des données de la table '${type}'. Consultez les logs pour plus d'informations.`, 'red')
+				return
+			} else {
+				Block('main').section('data-actions').hide()
+				
+				// Make new rows non-removable
+				if (activeTable.appendable) activeTable.table.getColumn('actions').getCells().forEach(cell => cell.setValue(false))
+				
+				// Reset table source to current data
+				resetTabledata(activeTable, true)
+
+				// Update config Objects
+				if (['tags', 'types'].includes(type)) {
+					if (type === 'tags') {
+						tableMatch.tags.table.getData().forEach(row => tagsList[row.id] = {'slug':row.slug, 'name':row.name})
+					} else if (type === 'types') {
+						tableMatch.types.table.getData().forEach(row => typesList[row.id] = {'slug':row.slug, 'name':row.name, 'color':row.color})
+					}
+
+					// Update data in articles table
+					tableMatch.articles.table.getRows().forEach(row => row.reformat())
+				}
+
+				notify("Succès", `Les données de la table '${activeTable.type}' ont été mises à jour.`, 'green')
+			}
+	}
 
 // restore table data
 async function resetTabledata(table = activeTable, force = false, source = null) {
