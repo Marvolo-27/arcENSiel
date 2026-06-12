@@ -84,6 +84,7 @@ if (isset($_SESSION['message'])) {
 								<span class="icon spinner right"></span>
 							</div>
 							<div class='error username'>Nom d'utilisateur indisponible.</div>
+							<div class='error pattern'>Nom d'utilisateur invalide.</div>
 						</div>
 
 						<div class='box email'>
@@ -177,7 +178,9 @@ if (isset($_SESSION['message'])) {
 									if (body.dataset.error === 'invalid-credentials') {
 										Error('validation').show()
 									}
-									
+									if (body.dataset.error === 'bad-pattern') {
+										Error('pattern').show()
+									}
 									if (body.dataset.error === 'locked-username') {
 										notify("Opération interdite", "Le login n'est pas modifiable pour le compte admin", 'red')
 									}

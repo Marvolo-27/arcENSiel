@@ -140,6 +140,7 @@ if ($status === 'pending-check') {
 
 	switch ($action) {
 		case 'register':	// register account
+			// Username unicity
 			$query = $pdo->prepare("SELECT id FROM users WHERE username = ?");	// prepare SQL request with placeholder - check user presence
 			$query->execute([$username]);		// execute request with expected values
 			
@@ -150,7 +151,28 @@ if ($status === 'pending-check') {
 				$dest = "/auth/register?method=local";
 				break;
 			}
+
+			// Email unicity
+			$query = $pdo->prepare("SELECT id FROM users WHERE mail = ?");	// prepare SQL request with placeholder - check user presence
+			$query->execute([$email]);		// execute request with expected values
 			
+			if ($query->fetch()) {// entry found : email exists
+				http_response_code(400);
+				$response = ['error' => "Email indisponible."];
+				$_SESSION['error'] = "used-mail";
+				$dest = "/auth/register?method=local";
+				break;
+			}
+			
+			// Pattern match
+			if (!preg_match('/[a-zA-Z_]+[a-zA-Z0-9_-]{2,}/', $username)) {
+				http_response_code(400);
+				$response = ['error' => "Nom d'utilisateur invalid."];
+				$_SESSION['error'] = "bad-pattern";
+				$dest = "/auth/register?method=local";
+				break;
+			}
+
 			// Hash password with default php algo
 			$hash = password_hash($password_token . $password, PASSWORD_DEFAULT);
 			
@@ -257,7 +279,16 @@ if ($status === 'pending-check') {
 							$dest = "/user/myaccount";
 							break;
 					}
-				
+
+					// Username validity
+					if (!preg_match('/[a-zA-Z_]+[a-zA-Z0-9_-]{2,}/', $username)) {// entry found : username exists
+						http_response_code(400);
+						$response = ['error' => "Nom d'utilisateur invalid."];
+						$_SESSION['error'] = "bad-pattern";
+						$dest = "/auth/register?method=local";
+						break;
+					}
+					
 					$query = $pdo->prepare("UPDATE users SET username = :username WHERE id = :userid;");
 					$query->execute([':username' => $new_username, ':userid' => $_SESSION['user_id']]);
 
@@ -480,6 +511,7 @@ unset($_SESSION['message']);
 								<span class="spinner icon right"></span>
 							</div>
 							<div class='error username'>Nom d'utilisateur indisponible.</div>
+							<div class='error pattern'>Nom d'utilisateur invalide.</div>
 						</div>
 						<?php endif; ?>
 						
@@ -590,10 +622,16 @@ unset($_SESSION['message']);
 		window.addEventListener('load', loader)
 		async function loader()  {
 									if (body.dataset.error === 'used-login') {
-										Error('username').style.removeProperty('dispaly')
+										Error('username').show()
+									}
+									if (body.dataset.error === 'used-mail') {
+										Error('mail').show()
+									}
+									if (body.dataset.error === 'bad-pattern') {
+										Error('pattern').show()
 									}
 									if (body.dataset.error === 'invalid-credentials') {
-										Error('password').style.removeProperty('display')
+										Error('password').show()
 									}
 									if (body.dataset.message === 'registered') {
 										notify('Bienvenue !', 'Compte créé avec succès.', 'green')
