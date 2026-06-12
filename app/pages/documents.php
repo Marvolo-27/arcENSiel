@@ -14,6 +14,9 @@ if ($_SESSION['role'] === 'admin') {
 // Section to display
 $section ??= 'documents';
 
+// Update files status
+filesManager();
+
 // Fetch categories of section
 $query=$pdo->prepare("SELECT categories.slug AS slug, name, removable, sections.slug AS section FROM categories JOIN sections ON sections.id = section_id");
 $query->execute();

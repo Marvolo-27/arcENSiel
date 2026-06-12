@@ -33,120 +33,8 @@ if ($_SESSION['CSRF'] !== $csrf || !$csrf) {
 
 // SCAN FILE STATUS
 if ($action === 'scan') {
-	// assign variables
-	$webpath = '/files/uploads';
-	$path = $serverroot . $webpath;
-	
-	/// fetch registered files
-	$query = $pdo->prepare("SELECT * from files;");
-	$query->execute();
-	$registered_data = $query->fetchAll(PDO::FETCH_ASSOC);
-	$registered_list = array_map(function ($item){return $item['url'];}, $registered_data);
-	
-	/// fetch physically existing files
-	function scanner($work_path, $search, $replace='') {
-		// variables
-		global $images_types;
-		$data = [];
-
-		// scan cwd
-		$work_data = scandir($work_path);
-		
-		// recursive scan
-		if ($work_data) {// scan successfull
-			$work_data = array_diff($work_data, ['.', '..']);
-
-			foreach($work_data as $filename) {
-				$file = $work_path.'/'.$filename;
-				$cwd = str_replace($search, $replace, $work_path);
-				$ext = end(array: explode('.', $filename));
-				$type = $ext === 'pdf' ? 'application' : (in_array($ext, $images_types) ? 'image':'unknown');
-
-				if (is_file($file)) {
-					$data[] =  [
-								"name" => $filename,
-								"size" => filesize($file),
-								"type" => $type.'/'.$ext,
-								"created_at" => date("Y-m-d H:i:s", fileatime($file)),
-								"url" => $cwd.'/'.$filename,
-								"uploader" => "UNKNOWN",
-								];
-				} else {
-					$data =  array_merge($data, scanner($file, $search, $replace));
-				}
-			}
-		}
-		return $data;
-	}
-	$scanned_data = scanner($path, $serverroot);
-	$scanned_data = array_merge($scanned_data, scanner($root.'/app/admin/files', $root.'/app/admin', 'admin://'));
-	$scanned_list = array_map(function ($item){return $item['url'];}, $scanned_data);
-
-	/// Compare
-	// find existing not in registered, registered not in existing (update status = 0), correct files (update status = 1)
-	// in fronted, proposer d'ajouter les fichiers unregistered
-	$invalid_list = [];
-	$unregistered_list = [];
-	$recovered_list = [];
-	$changed_list = []; // based on file size
-	foreach($registered_data as $file) {// Detect recovered and invalid files - based on db
-		$status = in_array($file['url'], $scanned_list);
-		
-		if (!$status && $file['status']) {// file not available but supposed to be
-			$invalid_list[] = ['name' => $file['name'], 'path' => $file['url']];
-
-			// update status in db
-			$sql = "UPDATE files SET status = FALSE WHERE url = :url;";
-			$query = $pdo->prepare($sql);
-			$query->execute([':url' => $file['url']]);
-			logger('/log/files.log', queryMaker($sql, [':url' => $file['url']]), 'Update file status');
-		
-		} elseif ($status && !$file['status']) {// unavailable filepath actually scanned
-			// extract corresponding filedata of scanned file matching registered file
-			foreach ($scanned_data as $scan) {
-				if ($scan['url'] === $file['url']) {
-					$ref = $scan; // ref is necesserally defined because a match was found
-					break;
-				}
-			}
-			
-			// compare metadata
-			$check = true;
-			$check = $check && $file['name'] === $ref['name'];
-			$check = $check && $file['size'] === $ref['size'];
-
-			// conclude
-			if ($check) {
-				$recovered_list[] = ['name' => $file['name'], 'path' => $file['url']];
-
-				// update status in db
-				$sql = "UPDATE files SET status = TRUE WHERE url = :url;";
-				$query = $pdo->prepare($sql);
-				$query->execute([':url' => $file['url']]);
-				logger('/log/files.log', queryMaker($sql, [':url' => $file['url']]), 'Update file status');
-			}
-		} elseif ($status) {
-			// extract corresponding filedata of scanned file matching registered file
-			foreach ($scanned_data as $scan) {
-				if ($scan['url'] === $file['url']) {
-					$ref = $scan; // ref is necesserally defined because a match was found
-					break;
-				}
-			}
-
-			// conclude
-			if ($file['size'] !== $ref['size']) {// file in db different from file on server
-				$changed_list[] = ['name' => $file['name'], 'path' => $file['url']];
-			}
-		}
-	}
-	foreach($scanned_data as $file) {// Detect unregistered files - based on scan
-		$status = in_array($file['url'], $registered_list);
-		$status ? null:$unregistered_list[] = ['name' => $file['name'], 'path' => $file['url']];
-	}
-
 	http_response_code(200);
-	$sendback = ['invalid' => $invalid_list, 'unregistered' => $unregistered_list, 'recovered' => $recovered_list, 'changed' => $changed_list];
+	$sendback = filesManager();
 	echo json_encode($sendback);
 	exit;
 }
@@ -284,6 +172,10 @@ if ($action === 'insert') {
 
 // FETCH FILES OF GIVEN CAT
 if ($action === 'fetch') {
+	// Update files status
+	filesManager();
+
+	// Extract data
 	$category = (array) $input['category'] ?? false;
 	$category_sql = $category ? ' AND categories.slug IN (:'.implode(',:', $category).')' : null;
 	$params = $category ? array_reduce($category, function ($carry, $item) {$carry[':'.$item] = $item; return $carry;}, []) : null;
