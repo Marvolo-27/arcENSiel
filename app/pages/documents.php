@@ -50,7 +50,7 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 <!DOCTYPE html>
 <html>
 	<head>
-		<title>Documents associatifs</title>
+		<title><?= $section === 'documents' ? 'Documents associatifs':'Ressources utiles' ?></title>
 		
 		<link rel="icon" href="/files/icons/arcensiel.ico">
 		<meta name="theme-color" content="">
@@ -70,7 +70,7 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 		
 		<div id='main'>
             <h1>
-                Documents associatifs
+                <?= $section === 'documents' ? 'Documents associatifs':'Ressources utiles' ?>
             </h1>
 
 			<?php if($section === 'documents'): ?>
@@ -109,7 +109,7 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 			<?php endif; ?>
 
 			<div class="categories-wrap">
-				<h3>Bilans et compte-rendus</h3>
+				<h3><?= $section === 'documents' ? 'Bilans et compte-rendus':'Ressources diverses' ?></h3>
 				
 				<?php foreach($files_list as $slug => $category) { ?>
 					<div class="category-wrap">
@@ -155,10 +155,10 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 		<?php if($_SESSION['role'] === 'admin'): ?>
 		<div id="admin-actions">
 			<?php if($status === 'view'): ?>	
-				<a class='icon edit inline large dynamic' href="/admin/tools/edit/documents" title="Modifier les fichiers"></a>
+				<a class='icon edit inline large dynamic' href="/admin/tools/edit/<?= $section ?>" title="Modifier les fichiers"></a>
 			<?php endif; ?>
 			<?php if($status === 'edit'): ?>
-				<a class='icon toggle-pass inline large dynamic hoverable' href="/documents" title="Retourner en mode spectacteur"></a>
+				<a class='icon toggle-pass inline large dynamic hoverable' href="/<?= $section ?>" title="Retourner en mode spectacteur"></a>
 			<?php endif; ?>
 			<input name='csrf-token' id='csrf' data-csrf='<?= $_SESSION['CSRF'] ?>' value='<?= $_SESSION['CSRF'] ?>' required hidden readonly>
 		</div>
@@ -240,9 +240,11 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 							mode = 'update'
 						}
 					}
-			
+		
+		<?php if($section === 'documents'): ?>
 			// Statuts update switcher
 			Input('update-time').onchange = e => e.target.value !== e.target.dataset.source ? Button('new-file[data-category="statuts"]').enable() : Button('new-file[data-category="statuts"]').disable()
+		<?php endif; ?>
 
 			// update file description on server
 			async function descUpdate(form) {

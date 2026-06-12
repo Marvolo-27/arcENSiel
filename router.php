@@ -103,7 +103,8 @@ if (preg_match('#^/admin/#', $request_url)) {
             
             // fetch manager script
             $status = 'edit';
-            require $root . "/app/pages/$request.php";
+            $section = $request;
+            require $root . "/app/pages/documents.php";
             exit;
 
         // private pages edition
@@ -304,7 +305,12 @@ switch ($request_url) {
     case '/legals':
         header("Location: /mentions-legales"); 
         break;
-		
+	
+    case '/ressources':
+        $section = 'ressources';
+        require $root . '/app/pages/documents.php';
+        break;
+    
 	// ADMIN - dashboard
     case '/admin':
         header("Location: /admin/dashboard"); 
