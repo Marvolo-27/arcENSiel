@@ -427,6 +427,7 @@ form {
 		&.file {background-image: var(--icon-add-file);}
 		&.filters {background-image: var(--icon-filters);}
 		&.go-back  {background-image: var(--icon-back-arrow);}
+		&.hide  {background-image: var(--icon-eye-mask);}
 		&.history {background-image: var(--icon-history);}
 		&.info {background-image: var(--icon-info);}
 		&.layout {background-image: var(--icon-grid);}

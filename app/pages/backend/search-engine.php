@@ -13,6 +13,7 @@ $author = $_GET['author'] ?? null; // author filtering (not exact)
 $type = $_GET['type'] ?? null; // type filtering (exact)
 $from = $_GET['from'] ?? null; // low-limit date
 $to = $_GET['to'] ?? null; // high-limit date
+$mode = $_SESSION['role'] === 'admin' ? ($_GET['mode'] ?? null) : null; // show all results
 $rawtags = $_GET['tags'] ?? null;
 if ($rawtags) {
 	$rawtags = explode(',', $rawtags);
@@ -29,7 +30,7 @@ $n = (int) $_GET['n'] ?? 0;
 $start = (int) $_GET['start'] ?? 0;
 
 // base of SQL request
-$fetchcore = "WITH tags_list AS (SELECT article_id, GROUP_CONCAT(tag_id SEPARATOR ',') AS tags FROM articles_tags GROUP BY article_id) SELECT articles.slug AS url, title, COALESCE(files.url, '/files/placeholder.png') AS picture_path, summary, tags_list.tags AS tags, types.name AS type, author, date, end_date, color FROM articles LEFT JOIN types ON types.id = COALESCE(articles.type, 0) LEFT JOIN tags_list ON articles.id = tags_list.article_id LEFT JOIN articles_covers ON articles.id = articles_covers.article_id LEFT JOIN files ON file_id = files.id WHERE";
+$fetchcore = "WITH tags_list AS (SELECT article_id, GROUP_CONCAT(tag_id SEPARATOR ',') AS tags FROM articles_tags GROUP BY article_id) SELECT articles.slug AS url, title, COALESCE(files.url, '/files/placeholder.png') AS picture_path, summary, tags_list.tags AS tags, types.name AS type, author, date, end_date, color, articles.status = 'published' AS published FROM articles LEFT JOIN types ON types.id = COALESCE(articles.type, 0) LEFT JOIN tags_list ON articles.id = tags_list.article_id LEFT JOIN articles_covers ON articles.id = articles_covers.article_id LEFT JOIN files ON file_id = files.id WHERE";
 $countcore = "SELECT COUNT(*) FROM articles LEFT JOIN types ON types.id = articles.type WHERE";
 $params = [];
 
@@ -74,8 +75,11 @@ if ($sql === '') {
 	exit;
 }
 
+// Restrict results
+if (!$mode) $sql = $sql." AND articles.status = 'published'";
+
 // sorting
-$sql = $sql." AND articles.status = 'published' ORDER BY date DESC";
+$sql = $sql." ORDER BY date DESC";
 
 // number of results
 $amount = '';

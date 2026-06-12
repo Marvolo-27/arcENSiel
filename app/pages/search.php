@@ -132,15 +132,16 @@ $arguments = ($type || $author || $from || $to || $tags !== [null] || $query);
 		<div id='main'>
 			<form id="search-form" action="/engine/search">
 				<div class='box search linear'>
-					<div class='icon filters inline large hoverable dynamic' <?= ($type || $author || $from || $to || $tags !== [null]) ? 'active':'' ?>></div>
+					<div class='icon filters inline large hoverable dynamic'></div>
 					<div class='input-container'>
 						<div class='icon search left'></div>
 						<input class='lineentry decorated' type='search' name='query' value="<?= $search ?>" id='textsearch' value="<?= $query_slug ?>" autocomplete=on <?= ($type || $author || $from || $to || $tags !== [null]) ? '':'required' ?> placeholder="Recherche...">
 					</div>
 					<button class='icon send large inline dynamic hoverable' type='submit'></button>
+					<?php if ($_SESSION['role'] === 'admin'): ?><div class='icon results visualize large inline dynamic hoverable' title="Afficher tous les articles ?"></div><?php endif; ?>
 				</div>
 				
-				<div class="filters-wrap">					
+				<div class="filters-wrap" <?= ($type || $author || $from || $to || $tags !== [null]) ? 'active':'' ?>>					
 					<div id="filters">
 						<div class="box tags condensed">
 							<div class="input-container">
@@ -269,6 +270,7 @@ $arguments = ($type || $author || $from || $to || $tags !== [null] || $query);
 			params += data.from ? '&from=' + data.from : ''
 			params += data.to ? '&to=' + data.to : ''
 			params += data.tags ? '&tags=' + data.tags : ''
+			params += Icon('results')?.is('hide') ? '&mode=admin' : ''
 
 			window.location.href = `/search?${params}`
 		}
@@ -285,6 +287,13 @@ $arguments = ($type || $author || $from || $to || $tags !== [null] || $query);
 
 		// filters panel management
 		Icon('filters').onclick = e => e.target.parent('#search-form').section('filters-wrap').toggle()
+
+	<?php if ($_SESSION['role'] === 'admin'): ?>
+		Icon('results').onclick = e => {
+			e.target.classList.toggle('visualize')
+			e.target.classList.toggle('hide')
+		}	
+	<?php endif; ?>
 		</script>
 	</body>
 </html>

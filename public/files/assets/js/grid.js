@@ -98,6 +98,7 @@ async function buildNewsFlow(start=0, n=5, script='/engine/news', params='', mod
 				type   = article.type;
 				slugtype = article.typeslug;
 				imgURL = article['picture_path'];
+				published = parseInt(article.published ?? 1);
 				
 				// HTML code for one article
 				div = document.createElement('div')
@@ -113,7 +114,7 @@ async function buildNewsFlow(start=0, n=5, script='/engine/news', params='', mod
 			<div class="meta-item illustrated pre tags">${tagsHTML}</div>
 		</div>
 	</div>
-	<div class='grid-item'>
+	<div class='grid-item' ${!published ? 'invalid':''}>
 		<div class='article-poster poster-bg'>
 			<img loading="eager" src="${imgURL}">
 		</div>
@@ -179,7 +180,7 @@ async function buildNewsFlow(start=0, n=5, script='/engine/news', params='', mod
 // Add articles data to DOM
 async function buildFilesFlow(append, force=false) {
 		if (force) received = 0
-		
+
 		start = received;
 		received += append;
 		received = received > total ? total:received;
@@ -252,7 +253,8 @@ async function buildFilesFlow(append, force=false) {
 
 // go to chosen article
 function articleGet(e) {
-		const url = e.target.parent('.grid-item').section('article-poster.poster-fg').child('img').dataset.url;
+		const container = e.target.parent('.grid-item')
+		const url = container.section('article-poster.poster-fg').child('img').dataset.url;
 		
-		window.location.href = `/articles/${url}`;
+		window.location.href = (container.is('invalid') ? '/admin/tools/preview/article/':'/articles/') + url;
 	}
