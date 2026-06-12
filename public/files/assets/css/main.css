@@ -238,8 +238,13 @@ form {
 		align-items: center;
 		text-align: center;
 		flex-flow: column;
+		}
 
-		&.linear {flex-direction: row;}
+.linear {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: .25em;
 		}
 
 /* Add icon before or ater */

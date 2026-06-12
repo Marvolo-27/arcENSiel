@@ -343,12 +343,12 @@ async function fetchLogs(target) {
 				rowHeight: 36,
 				columns: [
 					{ title: "Time", field: "time", resizable: false},
-					{ title: "IP", field: "ip", resizable: false},
-					{ title: "Localization", field: "localization", resizable: false},
 					{ title: "User", field: "user"},
 					{ title: "Type", field: "section"},
 					{ title: "Title", field: "message"},
-					{ title: "Message", field: "content"}
+					{ title: "Message", field: "content"},
+					{ title: "IP", field: "ip", resizable: false},
+					{ title: "Localization", field: "localization", resizable: false},
 					],
 				})
             

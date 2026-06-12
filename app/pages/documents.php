@@ -15,7 +15,7 @@ if ($_SESSION['role'] === 'admin') {
 $section ??= 'documents';
 
 // Fetch categories of section
-$query=$pdo->prepare("SELECT categories.slug AS slug, name, sections.slug AS section FROM categories JOIN sections ON sections.id = section_id");
+$query=$pdo->prepare("SELECT categories.slug AS slug, name, removable, sections.slug AS section FROM categories JOIN sections ON sections.id = section_id");
 $query->execute();
 $categories_raw = $query->fetchAll(PDO::FETCH_ASSOC);
 $categories = array_filter($categories_raw, fn($item) => $item['section'] === $section);
@@ -30,7 +30,8 @@ $documents = $query->fetchAll(PDO::FETCH_ASSOC);
 $files_list = array_reduce($categories, function($carry, $item) use ($documents) {
 		if ($item['slug'] === 'statuts') return $carry; // skip statuts as specific structure
 		$carry[$item['slug']] = [
-			'name' => $item['name'], 
+			'name' => $item['name'],
+			'removable' => $item['removable'],
 			'documents' => array_filter($documents, function($doc) use ($item) {return $doc['category'] === $item['slug'];})
 			] ;return $carry;}, []);
 
@@ -111,7 +112,11 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 				<h3>Bilans et compte-rendus</h3>
 				
 				<?php foreach($files_list as $slug => $category) { ?>
-					<p><strong><?= $category['name'] ?></strong> 
+					<div class="category-wrap">
+						<p class="linear">
+							<?php if ($status === 'edit' && $category['removable']): ?><span class="icon delete section inline dynamic hoverable"></span><?php endif; ?>
+							<strong><?= $category['name'] ?></strong>
+						</p>
 						<ul class="<?= $slug ?>">
 							<?php foreach($category['documents'] as $doc) { ?>
 								<?php if ($doc['status']): ?>
@@ -132,7 +137,7 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 								</div>
 							</div>
 						<?php endif; ?>
-					</p>
+					</div>
 				<?php } ?>
 			</div>
 			
@@ -165,8 +170,8 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 					<h4 class="title">
 						Confirmation de suppression
 					</h4>
-					<span>Confirmer la suppression de : </span><span class="filename"></span>
-					<div><small><it>Le fichier ne sera pas supprimé du serveur</it></small></div>
+					<span>Confirmer la suppression de : </span><span class="name"></span>
+					<div class="activable"><small><it>Le fichier ne sera pas supprimé du serveur</it></small></div>
 				</div>
 				
 				<div class='external actions-wrap linear'>
@@ -211,17 +216,18 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 						const url     = item.getAttribute('href')		// .href gives absolute path, so not compatibe with DB format
 						const name    = item.dataset.name
 						
-						currentFile = {'tag':linkTag, 'url':url, 'category':type}
+						currentFile = {'tag':item, 'url':url, 'category':type}
 						
 						if (action === 'delete') {// delete file from list							
-							Overlay('deletion').child('.filename').innerText = name;
+							Overlay('deletion').child('.name').innerText = name;
+							Overlay('deletion').child('.activable').show()
 							Overlay('deletion').toggle()
 
 						} else if (action === 'edit') {// edit pour changer description ou fichier
 							overlay.child('.title').innerText = "Modification d'une entrée"
 							overlay.child('.selected-file').innerText = name;
 
-							overlay.input('desc').value = linkTag.innerText;
+							overlay.input('desc').value = item.innerText;
 							overlay.input('filename').dataset.name = url.filename(true)
 							overlay.input('filename').value = url.filename()
 							overlay.input('fileextension').value = url.extension()
@@ -297,16 +303,16 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 							}
 						} else {
 							if (data.data.path != null) {// new file
-								tag.href = data.data.path;
-								tag.dataset.name = data.data.name;
-								tag.dataset.targetUrl = data.data.path;
-								tag.innerText = data.data.desc;
-								tag.nextElementSibling.firstElementChild.innerText = '('+formatBytes(data.data.size, 1)+')'
+								item.href = data.data.path;
+								item.dataset.name = data.data.name;
+								item.dataset.targetUrl = data.data.path;
+								item.innerText = data.data.desc;
+								item.nextElementSibling.firstElementChild.innerText = '('+formatBytes(data.data.size, 1)+')'
 							} else {
-								tag.innerText = data.data.decsription;
+								item.innerText = data.data.decsription;
 							}
 						}
-						fileTag.value = '';
+						item.value = '';
 						fileSelectorLoad('pdf')
 					}
 
@@ -358,7 +364,7 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 
 			Overlay('deletion').button('validate').onclick = e => {
 				Overlay('deletion').hide()
-				removeElement()
+				Overlay('deletion').child('.activable').is('active') ? removeElement() : removeSection()
 			}
 
 			// filename input
@@ -398,7 +404,7 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 			}
 
 			Overlay('filepicker').button('validate').onclick = e => {
-					const url = filePickManage()
+					const [url, tag] = filePickManage()
 
 					if (url) {
 						Overlay('uploader').child('.selected-file').innerText = url.filename(true)
@@ -427,7 +433,7 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 										<div class='icon validity dynamic inline hoverable'></div>
 										<div class='input-container'>
 											<strong class="editable" id="new-section" contenteditable placeholder='Section' empty></strong>
-											<input name='section' type="text" required hidden>
+											<input name='section' id="new-category" type="text" required hidden>
 										</div>
 									</div>`
 				container.append(editor)
@@ -439,8 +445,8 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 				}
 
 				Box('section').icon('validity').onclick = async e => {
-					const box = e.parent('box')
-					const value = box.input().value
+					const box = e.target.parent('box')
+					const value = box.input('new-category').value
 
 					if (!value) {
 						notify("Saisie vide", "Veuillez entrer un nom de section avant de valider.", 'red')
@@ -462,10 +468,14 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 						return
 					}
 					
-					Box('section').remove()
+					Box('section').parentNode.remove()
+					Button('new-section').enable()
 
-					const wrap = document.createElement('p')
-					wrap.innerHTML =   `<strong>${value}</strong> 
+					const wrap = document.createElement('div')
+					wrap.innerHTML =   `<p class="linear">
+											<span class="icon delete section inline dynamic hoverable"></span>
+											<strong>${value}</strong> 
+										</p>
 										<ul class="${value.urlForm()}">
 										</ul>
 										<div class="actions-wrap linear left-align">
@@ -473,11 +483,45 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 												<button class="action-btn new-file" data-category="<?= $slug ?>" data-mode="add">Ajouter un fichier</button>
 											</div>
 										</div>`
+					wrap.classList.toggle('category-wrap')
 					wrap.button('new-file').onclick = newEntry
+					wrap.icon('delete.section').onclick = deleteSectionTrigger
 					
 					Section('categories-wrap').append(wrap)
 					notify("Section ajoutée", "La nouvelle section a été créée.", 'green')
 				}
+			}
+		
+		Icons('delete.section')?.forEach(icon => icon.onclick = deleteSectionTrigger)
+		
+		async function deleteSectionTrigger(e) {
+				const container = e.target.parent('.category-wrap')
+				const category  = container.button('new-file').dataset.category
+				const name = container.child('strong').textContent
+
+				currentFile = {'url': category, 'tag': container}
+				Overlay('deletion').child('.name').innerText = name
+				Overlay('deletion').child('.activable').hide()
+				Overlay('deletion').toggle()
+		}
+
+		async function removeSection() {
+				const value = currentFile.url
+				const section = currentFile.tag
+				currentFile = {}
+
+				notify("Suppression", "La section est en cours de suppression.", 'orange')
+
+				const jsonData = JSON.stringify({'csrf':csrfToken, 'action':'delete', 'type':'categories', 'slug':value})
+				const response = await fetchAPI('/admin/engine/database', jsonData)
+
+				if (!response.ok) {
+					notify("Échec de la suppression", `La suppression de la section '${value.urlForm()}' a échoué. Veuillez réessayer.`, 'red')
+					return
+				}
+
+				section.remove()
+				notify("Suppression terminée", `La section '${value.urlForm()}' a été supprimée.`, 'green')
 			}
 		<?php endif; ?>
 		</script>

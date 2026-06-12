@@ -115,7 +115,7 @@ function filePickManage() {
 			overlay.input('filename').readOnly = true
 			upload.required = false
 			
-			return url
+			return [url, file]
 		}
 	}
 

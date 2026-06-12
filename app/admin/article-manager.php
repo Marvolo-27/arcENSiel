@@ -794,7 +794,7 @@ if ($edition && !$artData) {
 		Button('exist-file').onclick = () => Overlay('filepicker').toggle()
 
 		Overlay('filepicker').button('validate').onclick = e => {
-					const url = filePickManage()
+					const [url, tag] = filePickManage()
 					
 					Overlay('filepicker').section('file-preview').firstElementChild.src = '';
 					Overlay('filepicker').section('file-preview').firstElementChild.alt = '';
