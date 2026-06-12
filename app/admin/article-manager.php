@@ -115,12 +115,7 @@ if ($edition && !$artData) {
 			
 			/* boxes adapted margins - sizes */
 			.box.author {margin: 1.5em 0 1em 0}
-			#art-type {
-						width: 14em;
-						border:none;
-						outline:none;
-						}
-				select::picker {float:left}
+
 			#art-author {padding: 0 0 0 .25em; border-radius: 0}
 			
 			/* metadata section style */
@@ -130,10 +125,6 @@ if ($edition && !$artData) {
 					gap: 1em;
 					margin-left: 1em;
 					}
-
-			.output-text.raw {pointer-events: none}
-
-			.input-container.checkboxes span {position: relative;}
 			
 			/*::-webkit-scrollbar {display: block !important;}*/
 			
@@ -147,12 +138,60 @@ if ($edition && !$artData) {
 			}
 
 			.type-wrap {display: flex; gap: .5em;}
+			
+			#art-type {
+						width: 16em;
+						border:none;
+						outline:none;
+						appearance: base-select;
+						align-items: center;
+						
+						&::picker-icon {transition: rotate .3s;}
+						&:open::picker-icon {
+							display: flex;
+							rotate: 180deg;
+							}
+						
+						&::picker(select) {
+							appearance: base-select;
+							border-radius: 6px;
+							border: none;
+							}
+						
+						& option {
+							transition: all .3s;
+							display: flex;
+							align-items: center;
+							gap: .5em;
+							padding: .5em .5em;
+							border: 1px solid silver;
+							width: 16em;
+							box-sizing: border-box;
+							cursor: pointer;
 
+							&:nth-of-type(1) {display: none;}
+							&:nth-of-type(2) {display: none;}
+							&:nth-of-type(3) {border-radius: 6px 6px 0 0;}
+							&:last-of-type {border-radius: 0 0 6px 6px;}
 
-			select::picker-icon {transition: rotate .3s;}
-			select:open::picker-icon {rotate: 180deg;}
-
-			option {background-color: attr(data-color);}
+							:is(&:is(:checked,:hover),selectedcontent) .checkmark {opacity: 1}
+							/* &:checked {font-weight: bold} */
+							
+							&::checkmark {display: none}
+							
+							:is(&, selectedcontent) .checkmark {
+								display: block;
+								opacity: 0;
+								width: 1em;
+								height: 1em;
+								border-radius: 50%;
+								transition: opacity .25s;
+								flex-shrink: 0;
+								background: var(--color);
+							}
+							}
+						
+						}
 		</style>
 	</head>	
 	
@@ -213,9 +252,14 @@ if ($edition && !$artData) {
 						<div class='box type condensed'>
 							<div class='input-container vertical'>	
 								<select name='art-type' id='art-type' class='boxentry' required>
+									<button><selectedcontent class="centered linear"></selectedcontent></button>
+									
 									<option value='' <?= !$edition ? 'selected':'' ?> disabled hidden>Type d'évènement</option>
 									<?php foreach($typesRaw as $type) { ?>
-										<option value='<?= $type['slug'] ?>' <?= ($edition && $artData['type'] === $type['id']) ? 'selected':'' ?> data-color="<?= $type['color'] ?>" <?= $type['slug'] === 'undefined' ? 'disabled hidden':'' ?>><?= $type['name'] ?></option>
+										<option value='<?= $type['slug'] ?>' <?= ($edition && $artData['type'] === $type['id']) ? 'selected':'' ?> data-color="<?= $type['color'] ?>" <?= $type['slug'] === 'undefined' ? 'disabled hidden':'' ?>>
+											<span class="checkmark" style="--color: <?= $type['color'] ?>"></span>
+											<span><?= $type['name'] ?><span>
+										</option>
 									<?php } ?>
 								</select>
 								<span class="input-container vertical checkboxes">
@@ -726,7 +770,8 @@ if ($edition && !$artData) {
 				option.classList.toggle('new')
 				option.value = value.urlForm()
 				option.dataset.color = color.value
-				option.innerText = value
+				option.innerHTML = `<span class="checkmark" style="--color: ${color.value}"></span>
+									<span>${value}<span>`
 				option.selected = true
 				wrapper.append(option)
 

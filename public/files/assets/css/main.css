@@ -585,7 +585,7 @@ form {
 						max-width: var(--main-width);
 						overflow-x: auto;
 
-						/* & > span {position: relative} */
+						& > span {position: relative}
 						}
 
 				& :is(input, select, textarea) {
@@ -711,6 +711,22 @@ form {
 						
 						&.dateentry {
 								width: 9em;
+								
+								&.filter-item {
+										height: 2em;
+										}
+								}
+						
+						&.timeentry {
+								width: 3em;
+								
+								&.filter-item {
+										height: 2em;
+										}
+								}
+						
+						&.datetimeentry {
+								width: 12em;
 								
 								&.filter-item {
 										height: 2em;
@@ -998,6 +1014,8 @@ form {
 						color: green;
 						font-weight: bold;
 						}
+				
+				& .raw {pointer-events: none;}
 				}
 		}
 
