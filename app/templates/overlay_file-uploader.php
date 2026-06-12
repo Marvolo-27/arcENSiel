@@ -27,7 +27,7 @@
 							<?php endif; ?>
 						</div>
 						
-						<div class='overlay-panel rounded frame-overlay centered'>
+						<div class='frame-overlay rounded centered'>
 							<span>Lâcher le fichier pour l'ajouter</span>
 							<div class='icon extra-large inline file'><span class='img'></span></div>
 						</div>

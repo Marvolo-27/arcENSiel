@@ -96,7 +96,7 @@ function filePickManage() {
 		const upload = frame.input('file')
 		const url  = file?.dataset.targetUrl
 		
-		if (input === null) {
+		if (file === null) {
 			error.innerText = 'Sélectionnez un fichier pour continuer';
 			error.show()
 			return false
@@ -111,7 +111,7 @@ function filePickManage() {
 			overlay.input('filename').dataset.name = url.filename(true).filenameForm()
 			overlay.input('filename').value = url.filename().filenameForm()
 			overlay.input('fileextension').value = url.extension().filenameForm()
-			overlay.input('desc').value = input.dataset.alt
+			overlay.input('desc').value = file.dataset.alt
 			overlay.input('filename').readOnly = true
 			upload.required = false
 			

@@ -238,6 +238,8 @@ form {
 		align-items: center;
 		text-align: center;
 		flex-flow: column;
+
+		&.linear {flex-direction: row;}
 		}
 
 /* Add icon before or ater */
@@ -918,24 +920,23 @@ form {
 				
 				/* what is shown when dragged over */
 				& .frame-overlay {
-						display: flex;
 						position: absolute;
 						top: 0;
+						pointer-events: none;
 						width: 100%;
 						height: 100%;
 						border-radius: 1.5em;
 						opacity: 0;
 						background: #fafafa;
 						transition: all .4s;
-						z-index: 0;
 						border: 2px solid silver;
 						border-radius: 1.5em;
 						box-sizing: border-box;
 						}
 					&.dragged .frame-overlay {
-							z-index: 1 !important;
 							opacity: .95; 
 							border: 2px dashed var(--form-color);
+							pointer-events: all;
 							}
 				}
 		
@@ -949,12 +950,9 @@ form {
 		.visual-overlay {
 				width: 100%;
 				height: 100%;
-				justify-content: center;
-				align-items: center;
 				position: absolute;
 				top: 0;
 				left: 0;
-				display: flex;
 				pointer-events: none;
 				opacity: 0;
 				background: #fafafa7a;
@@ -1360,6 +1358,8 @@ nav    {
 		overflow-x: auto;
 		display: block;
 		height: 1.5em;
+		
+		&, & a {color: var(--metadata-icons-color);}
 		}
 
 /*!!! NOTIFICATIONS CENTER !!!*/

@@ -272,7 +272,7 @@ if ($edition && !$artData) {
 										</div>
 									</div>
 									
-									<div class='overlay-panel rounded frame-overlay centered'>
+									<div class='frame-overlay rounded centered'>
 										<span>Lâcher le fichier pour l'ajouter</span>
 										<div class='icon extra-large inline file'></div>
 									</div>
@@ -280,7 +280,7 @@ if ($edition && !$artData) {
 								
 								<input class='fileentry hidden' type='file' accept='image/*' name='art-pic' id='file' data-format="image/*" autocomplete=off placeholder="Affiche" title="Veuillez sélectionner un visuel pour l'évènement" <?= !$edition ? 'required':"data-source-value='".$artData['picture_path']."'" ?>>
 								<img class="visual" alt="Affiche de l'évènement" src="<?= $edition ? $fileData['url']:'' ?>" title="Cliquer pour changer d'image">
-								<div class="visual-overlay">
+								<div class="visual-overlay centered linear">
 									<div class='icon extra-large inline delete dynamic'></div>
 									<div class='icon extra-large inline edit dynamic'></div>
 								</div>
