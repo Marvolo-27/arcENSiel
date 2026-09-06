@@ -23,6 +23,26 @@ $options = [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION];	// make SQL errors thr
 
 
 //// FUNCTIONS
+/// get password
+function decode($name) {
+	global $root;
+
+	$mask = file_get_contents($root . '/.private/' . $name . '.key');
+	$data = file_get_contents($root . '/.private/' . $name . '.dat');
+	$meta = file_get_contents($root . '/.private/' . $name . '.meta');
+
+	$meta = unpack('Voffset/Vlength', $meta);
+
+	$masked_password = substr($data, $meta['offset'], $meta['length']);
+	$password = '';
+
+	for ($i=0; $i<strlen($mask); $i++) {
+		$password .= $masked_password[$i] ^ $mask[$i];
+	}
+
+	return $password;
+}
+
 // log
 function logger($file, $content, $action, $ip = true, $db_access = true) {
 	global $root;
