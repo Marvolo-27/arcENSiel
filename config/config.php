@@ -15,7 +15,7 @@ use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
 //// CREDENTIALS
-require_once $root . '/.private/credentials.php';
+require_once $root . '/config/credentials.php';
 
 // Connecting distant db with PDO (php method to use SQL)
 $db_server_connection = "mysql:host=$host;dbname=$db;charset=$charset";
@@ -56,7 +56,7 @@ function logger($file, $content, $action, $ip = true, $db_access = true) {
 	try {
 		$client = new IPinfo($ip_access_token);
 		$details = $client->getDetails();
-	} catch (Exception $e) {$details = false;}
+	} catch (\Exception $e) {$details = false;}
 
 	if ($ip && $details) {
 		$ip_data = [
