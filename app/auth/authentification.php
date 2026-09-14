@@ -66,7 +66,7 @@ if ($action === 'check') {
 if (isset($_SESSION['user_id'])) {// logged in
 	if ($action === 'login') {// no action - send back user info
 		http_response_code(200);
-		$response = ['logged_in' => true, 'username' => $_SESSION['username'], 'role' => $_SESSION['role']];
+		$response = ['username' => $_SESSION['username'], 'role' => $_SESSION['role']];
 	
 	} else if ($action === 'logout') {
 		$_SESSION = [];
@@ -167,7 +167,7 @@ if ($status === 'pending-check') {
 			// Pattern match
 			if (!preg_match('/[a-zA-Z_]+[a-zA-Z0-9_-]{2,}/', $username)) {
 				http_response_code(400);
-				$response = ['error' => "Nom d'utilisateur invalid."];
+				$response = ['error' => "Nom d'utilisateur invalide."];
 				$_SESSION['error'] = "bad-pattern";
 				$dest = "/auth/register?method=local";
 				break;
@@ -193,7 +193,7 @@ if ($status === 'pending-check') {
 
 				http_response_code(200);
 				$response = ['error' => null];
-				$dest = "/auth/registered";
+				$dest = "/auth/register";
 			}
 
 			break;
