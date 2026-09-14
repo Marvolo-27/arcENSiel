@@ -103,10 +103,12 @@ CREATE TABLE `categories` (
   `id` int NOT NULL AUTO_INCREMENT,
   `slug` varchar(255) NOT NULL,
   `name` varchar(255) NOT NULL,
+  `sort_order` int,
   `section_id` int NOT NULL,
   `removable` tinyint(1) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `slug` (`slug`),
+  UNIQUE KEY `sort` (`section_id`, `sort_order`),
   CONSTRAINT `categories_ibfk_1` FOREIGN KEY (`section_id`) REFERENCES `sections` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=347 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -160,8 +162,10 @@ DROP TABLE IF EXISTS `files_categories`;
 CREATE TABLE `files_categories` (
   `file_id` int NOT NULL,
   `category_id` int NOT NULL,
+  `sort_order` int,
   KEY `category_id` (`category_id`),
   PRIMARY KEY (`file_id`, `article_id`)
+  UNIQUE KEY `sort` (`category_id`, `sort_order`),
   CONSTRAINT `files_categories_ibfk_1` FOREIGN KEY (`file_id`) REFERENCES `files` (`id`) ON DELETE CASCADE,
   CONSTRAINT `files_categories_ibfk_2` FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=347 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;

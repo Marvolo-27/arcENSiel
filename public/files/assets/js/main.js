@@ -152,6 +152,7 @@ function Buttons(selector='', parent=document.body) {return selectorChecker(sele
 function Errors	(selector='', parent=document.body) {return selectorChecker(selector, parent, '.', '.error', false)}
 function Icons	(selector='', parent=document.body) {return selectorChecker(selector, parent, '.', '.icon', false)}
 function Inputs	(selector='', parent=document.body) {return selectorChecker(selector, parent, '.', ['input','textarea','select','[contenteditable]'], false)}
+function Sections(selector, parent=document.body) {return selectorChecker(selector, parent, '.', null, false)}
 
 Element.prototype.box    = 	function(selector='') {return Box(selector, this)}
 Element.prototype.block  = 	function(selector='') {return Block(selector, this)}
@@ -166,6 +167,7 @@ Element.prototype.buttons = function(selector='') {return Buttons(selector, this
 Element.prototype.errors  = function(selector='') {return Errors(selector, this)}
 Element.prototype.icons   = function(selector='') {return Icons(selector, this)}
 Element.prototype.inputs  = function(selector='') {return Inputs(selector, this)}
+Element.prototype.sections = function(selector='') {return Sections(selector, this)}
 
 // Add method to find specified parent node | closest corresponding parent returned; assumes at least one parent exists
 // selector is for a single node : sibling/parents selectors like +>~ are ignored

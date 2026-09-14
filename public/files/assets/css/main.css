@@ -64,10 +64,13 @@
 		--icon-preview: url(/files/icons/preview.svg);
 		--icon-remove: url(/files/icons/remove.svg);
 		--icon-copy: url(/files/icons/copy.svg);
+		--icon-move: url(/files/icons/move.svg);
 		
 		/* UTILS COLORS */
 		--link-color:#e7495b;
 		--bg-color-main: #26007c;
+		--bg-color-main-light: #404aa6;
+		/* --bg-color-main-light: #1c288c; */
 		--bg-color-secondary: #0d6367;
 		--body-bg-color: white;
 		--form-color: #871b2e;
@@ -440,6 +443,7 @@ form {
 			&.layout[active] {background-image: var(--icon-list);}
 		&.lock {background-image: var(--icon-lock);}
 		&.mail {background-image: var(--icon-mail);}
+		&.move {background-image: var(--icon-move);}
 		&.preview {background-image: var(--icon-preview);}
 		&.receipt {background-image: var(--icon-receipt);}
 		&.refresh  {background-image: var(--icon-refresh);}

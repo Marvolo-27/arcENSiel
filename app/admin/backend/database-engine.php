@@ -267,7 +267,7 @@ if ($action === 'insert') {
 		$name = $input['name'];
 		$section = $input['section'];
 
-		$sql = "INSERT INTO categories (slug, name, section_id, removable) SELECT :slug, :name, (SELECT id FROM sections WHERE slug = :section), 1";
+		$sql = "INSERT INTO categories (slug, name, section_id, sort_order, removable) SELECT :slug, :name, (SELECT id FROM sections WHERE slug = :section), (SELECT MAX(sort_order) + 1 FROM categories), 1";
 		$params = [
 					':slug' => $slug,
 					':name' => $name,
@@ -284,6 +284,85 @@ if ($action === 'insert') {
 			http_response_code(500);
 			logger('/log/files.log', "Source:".queryMaker($sql, $params).PHP_EOL.json_encode($e), '[ERROR] Failed: new file category');
 			$sendback = ['error' => 'Failed to create new category.'];
+		}
+	}
+
+	echo json_encode($sendback);
+}
+
+if ($action === 'sort') {
+	$type = $input['type'];
+
+	// redudancy to prevent SQL injection
+	$typematch = ['categories'];
+	if (!in_array($type, $typematch)) $type = 'categories';
+
+	if ($type === 'categories') {
+		$data = $input['data'];
+		$categories = $data['categories'];
+		$files = $data['files'];
+		$section = $input['section'];
+
+		$updated_categories = array_filter($categories, function($cat) {return $cat['initialIndex'] !== $cat['currentIndex'];});
+		$updated_files = array_filter($files, function ($file) {return $file['initialIndex'] !== $file['currentIndex'] || $file['initialCategory'] !== $file['currentCategory'];});
+
+		if ($updated_categories) {
+			// Reset values to prevent duplicate keys
+			$sql = "UPDATE categories SET sort_order = NULL WHERE slug IN (".str_repeat('?,', count($updated_categories) -1)."?)";
+			$params = array_reduce($updated_categories, function($carry, $item) {$carry[] = $item['category']; return $carry;});
+			$query = $pdo->prepare($sql);
+			$query->execute($params);
+
+			foreach ($updated_categories as $category) {
+				$sql = "UPDATE categories SET sort_order = :rank WHERE slug = :slug";
+				$params =  [
+							':rank' => $category['currentIndex'],
+							':slug' => $category['category']
+				];
+				
+				try {
+					$query = $pdo->prepare($sql);
+					$query->execute($params);
+					http_response_code(200);
+					logger('/log/files.log', "Reorder categories in ".$section.".", "Sort categories in ".$section);
+					$sendback = ['message' => 'Items sorted.'];
+				} catch (PDOException $e) {
+					http_response_code(500);
+					logger('/log/files.log', "Source:".queryMaker($sql, $params).PHP_EOL.json_encode($e), '[ERROR] Failed: Sort '.$section);
+					$sendback = ['error' => 'Failed to sort items.'];
+				}
+
+			}
+		}
+
+		if ($updated_files) {
+			// Reset values to prevent duplicate keys
+			$sql = "UPDATE files_categories SET sort_order = NULL WHERE file_id IN (".str_repeat('?,', count($updated_files) - 1)."?)";
+			$params = array_reduce($updated_files, function($carry, $item) {$carry[] = $item['id']; return $carry;});
+			$query = $pdo->prepare($sql);
+			$query->execute($params);
+
+			foreach ($updated_files as $file) {
+				$sql = "UPDATE files_categories SET files_categories.sort_order = :rank, category_id = (SELECT id from categories WHERE slug = :category) WHERE file_id = CAST(:id AS UNSIGNED)";
+				$params =  [
+							':rank' => $file['currentIndex'],
+							':category' => $file['currentCategory'],
+							':id' => $file['id']
+				];
+
+				try {
+					$query = $pdo->prepare($sql);
+					$query->execute($params);
+					http_response_code(200);
+					logger('/log/files.log', "Reorder files in ".$section.".", "Sort files in ".$section);
+					$sendback = ['message' => 'Items sorted.'];
+				} catch (PDOException $e) {
+					http_response_code(500);
+					logger('/log/files.log', "Source:".queryMaker($sql, $params).PHP_EOL.json_encode($e), '[ERROR] Failed: Sort '.$section);
+					$sendback = ['error' => 'Failed to sort items.'];
+				}
+				
+			}
 		}
 	}
 

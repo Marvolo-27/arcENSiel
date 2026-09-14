@@ -18,14 +18,14 @@ $section ??= 'documents';
 filesManager();
 
 // Fetch categories of section
-$query=$pdo->prepare("SELECT categories.slug AS slug, name, removable, sections.slug AS section FROM categories JOIN sections ON sections.id = section_id");
+$query=$pdo->prepare("SELECT categories.slug AS slug, name, removable, sections.slug AS section FROM categories JOIN sections ON sections.id = section_id ORDER BY sort_order ASC");
 $query->execute();
 $categories_raw = $query->fetchAll(PDO::FETCH_ASSOC);
 $categories = array_filter($categories_raw, fn($item) => $item['section'] === $section);
 file_put_contents($root . '/.temp/categories.json', json_encode($categories_raw));
 
 // Fetch documents list
-$query=$pdo->prepare("SELECT url, description, files.name AS name, status, size, categories.slug AS category FROM files JOIN files_categories ON files.id = file_id JOIN categories ON categories.id = category_id JOIN sections ON section_id = sections.id WHERE sections.slug = '".$section."'");
+$query=$pdo->prepare("SELECT files.id as id, url, description, files.name AS name, status, size, categories.slug AS category FROM files JOIN files_categories ON files.id = file_id JOIN categories ON categories.id = category_id JOIN sections ON section_id = sections.id WHERE sections.slug = '".$section."'");
 $query->execute();
 $documents = $query->fetchAll(PDO::FETCH_ASSOC);
 
@@ -66,6 +66,7 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 		
 		<script src='/files/assets/js/main.js'></script>
 		<?php if ($status === 'edit'): ?><script src='/files/assets/js/upload.js'></script><?php endif; ?>
+		<?php if ($status === 'edit'): ?><script src='/files/assets/js/Sortable.js'></script><?php endif; ?>
 	</head>	
 	
 	<body>
@@ -112,24 +113,29 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 			<?php endif; ?>
 
 			<div class="categories-wrap">
-				<h3><?= $section === 'documents' ? 'Bilans et compte-rendus':'Ressources diverses' ?></h3>
+				<div class="categories-header">
+					<h3><?= $section === 'documents' ? 'Bilans et compte-rendus':'Ressources diverses' ?></h3>
+				</div>
 				
+				<div class="categories-content">
 				<?php foreach($files_list as $slug => $category) { ?>
 					<div class="category-wrap">
 						<p class="linear">
+							<?php if ($status === 'edit'): ?><span class="icon move inline dynamic hoverable"></span><?php endif; ?>
 							<?php if ($status === 'edit' && $category['removable']): ?><span class="icon delete section inline dynamic hoverable"></span><?php endif; ?>
 							<strong><?= $category['name'] ?></strong>
 						</p>
-						<ul class="<?= $slug ?>">
+						<ul class="<?= $slug ?>" data-category="<?= $slug ?>">
 							<?php foreach($category['documents'] as $doc) { ?>
 								<?php if ($doc['status'] || $status === 'edit'): ?>
 								<li>
 									<?php if ($status === 'edit'): ?>
+										<span class="icon move inline dynamic hoverable"></span>
 										<div class='icon change delete inline dynamic hoverable' data-icon-type='delete' title="Supprimer cette entrée"></div>
 										<div class='icon change edit inline dynamic hoverable' data-icon-type='edit' title="Modifier cette entrée"></div>
 									<?php endif; ?>
 									<?php if ($doc['status']): ?>
-										<a class="item" href="<?= $doc['url'] ?>" data-name="<?= $doc['name'] ?>" <?= $status === 'edit' ? "data-target-url='".$doc['url']."'":'' ?> download target="_blank_"><?= $doc['description'] ?></a> <small><i>(<?= formatBytes($doc['size'],1) ?>)</i></small>
+										<a class="item" href="<?= $doc['url'] ?>" data-name="<?= $doc['name'] ?>" <?= $status === 'edit' ? "data-target-url='".$doc['url']."'":'' ?> <?= $status === 'edit' ? "data-id='".$doc['category'].'-'.$doc['id']."'":'' ?> download target="_blank_"><?= $doc['description'] ?></a> <small><i>(<?= formatBytes($doc['size'],1) ?>)</i></small>
 									<?php endif; ?>
 									<?php if (!$doc['status']): ?>
 										<span class="item" href="<?= $doc['url'] ?>" data-name="<?= $doc['name'] ?>"><?= $doc['description'] ?></span><div class="icon invalid inline" title="Le fichier n'existe pas sur le serveur"></div>
@@ -147,6 +153,7 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 						<?php endif; ?>
 					</div>
 				<?php } ?>
+				</div>
 			</div>
 			
 			<?php if ($status === 'edit'): ?>
@@ -162,6 +169,9 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 		
 		<?php if($_SESSION['role'] === 'admin'): ?>
 		<div id="admin-actions">
+			<?php if($status === 'edit'): ?>
+				<a class='icon save inline large dynamic hoverable activable' title="Sauvegarder l'ordre"></a>
+			<?php endif; ?>
 			<?php if($status === 'view'): ?>	
 				<a class='icon edit inline large dynamic' href="/admin/tools/edit/<?= $section ?>" title="Modifier les fichiers"></a>
 			<?php endif; ?>
@@ -205,6 +215,7 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 			let category
 			let mode
 			let currentFile = {}	// {tag:tag, url:url}
+			let initialSort
 
 		/// GENERAL ACTIONS
 			// on load actions
@@ -212,12 +223,14 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 			async function loader()  {
 										fileSelectorLoad('pdf')
 
+										initialSort = getSort()
+
 										Overlay('filepicker').section('file-preview').toggle()
 										Overlay('filepicker').button('fetch-all').toggle()
 										}
 
 			// trigger entry update
-			Icons('change').forEach(icon => icon.onclick = e => changeEntryTrigger(e.target, e.target.dataset.iconType, e.target.parent('ul').className))
+			Icons('change').forEach(icon => icon.onclick = e => changeEntryTrigger(e.target, e.target.dataset.iconType, e.target.parent('ul').dataset.category))
 			function changeEntryTrigger(tag, action, type) {
 						const overlay = Overlay('uploader')
 						const item    = tag.parent('li').child('.item')
@@ -263,7 +276,7 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 						
 						formData.set('mode', mode)
 						formData.set('source', 'uploads/pdf/')
-						formData.set('action', 'update')
+						formData.set('action', 'upload')
 						formData.set('section', 'documents')
 						formData.set('category', category)
 						formData.set('og-url', sourceURL)
@@ -304,12 +317,16 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 							} else {
 								li = document.createElement('li');
 								li.innerHTML = `
+										<span class="icon move inline dynamic hoverable"></span>
 										<div class='icon change delete inline dynamic hoverable'" data-icon-type='delete' title="Supprimer cette entrée"></div>
 										<div class='icon change edit inline dynamic hoverable'" data-icon-type='edit' title="Modifier cette entrée"></div>
-										<a href="${data.data.path}" data-name="${data.data.name}" target="_blank_" download>${data.data.desc}</a> <small><i>(${formatBytes(data.data.size, 1)})</i></small>
+										<a class="item" href="${data.data.path}" data-name="${data.data.name}" data-id="${data.data.category}-${data.data.id}" target="_blank_" download>${data.data.desc}</a> <small><i>(${formatBytes(data.data.size, 1)})</i></small>
 									`
-								li.icons('change').forEach(icon => icon.onclick = e => changeEntryTrigger(e.target, e.target.dataset.iconType, e.target.parent('ul').className))
+								li.icons('change').forEach(icon => icon.onclick = e => changeEntryTrigger(e.target, e.target.dataset.iconType, e.target.parent('ul').dataset.category))
 								Section(category).append(li)
+
+								// update sort
+								initialSort.files[`${data.data.category}-${data.data.id}`] = {'file': data.data.name, 'initialCategory': data.data.category, 'initialIndex': [...li.parentElement.children].indexOf(li)}
 							}
 						} else {
 							if (data.data.path != null) {// new file
@@ -333,7 +350,7 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 						currentFile = {}
 
 						// update data on server
-						const jsonData = JSON.stringify({'csrf':csrfToken, 'action':'reference', 'mode':'delete', 'url':url, 'category':category})
+						const jsonData = JSON.stringify({'csrf':csrfToken, 'action':'reference', 'mode':'delete', 'url':url, 'category':tag.parent('ul').dataset.category})
 						const response = await fetchAPI('/admin/engine/files', jsonData)
 
 						if (!response.ok) {
@@ -341,6 +358,7 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 						} else {
 							notify("Document retiré", `Le fichier ${url.filename()} a été supprimé de la liste des ${category}`, 'green')
 							tag.parentNode.remove()
+							delete initialSort[tag.section('item').dataset.id]
 						}
 					}
 
@@ -436,10 +454,11 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 		/// SECTION MANAGEMENT
 			Button('new-section').onclick = e => {
 				e.target.disable()
-				const container = Block('main').section('categories-wrap')
+				const container = Block('main').section('categories-content')
 				
 				const editor = document.createElement('p')
 				editor.innerHTML = `<div class='box section linear condensed'>
+										<span class="icon move inline dynamic hoverable"></span>
 										<div class='icon validity dynamic inline hoverable'></div>
 										<div class='input-container'>
 											<strong class="editable" id="new-section" contenteditable placeholder='Section' empty></strong>
@@ -483,21 +502,26 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 
 					const wrap = document.createElement('div')
 					wrap.innerHTML =   `<p class="linear">
+											<span class="icon move inline dynamic hoverable"></span>
 											<span class="icon delete section inline dynamic hoverable"></span>
 											<strong>${value}</strong> 
 										</p>
-										<ul class="${value.urlForm()}">
+										<ul class="${value.urlForm()}" data-category="${value.urlForm()}">
 										</ul>
 										<div class="actions-wrap linear left-align">
 											<div class="action-container">
-												<button class="action-btn new-file" data-category="<?= $slug ?>" data-mode="add">Ajouter un fichier</button>
+												<button class="action-btn new-file" data-category="${value.urlForm()}" data-mode="add">Ajouter un fichier</button>
 											</div>
 										</div>`
 					wrap.classList.toggle('category-wrap')
 					wrap.button('new-file').onclick = newEntry
 					wrap.icon('delete.section').onclick = deleteSectionTrigger
 					
-					Section('categories-wrap').append(wrap)
+					Section('categories-content').append(wrap)
+
+					sorter(wrap.child('ul')) // config sorter
+					initialSort.categories[value.urlForm()] = {'category': value.urlForm(), 'initialIndex': [...Section('categories-content').children].indexOf(wrap)}
+
 					notify("Section ajoutée", "La nouvelle section a été créée.", 'green')
 				}
 			}
@@ -533,6 +557,79 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 				section.remove()
 				notify("Suppression terminée", `La section '${value.urlForm()}' a été supprimée.`, 'green')
 			}
+		
+		//// SWAP ORDER LOGIC
+		const sorter = node => new Sortable(node, {
+			group: 'files',
+			animation: 150,
+			filter: '.ignore',
+			handle: '.icon.move',
+			fallbackOnBody: true,
+			swapThreshold: 0.65,
+
+			onMove: function(e) {
+				// Accept if same nesting level and no duplicate file in a category
+				return e.from.nodeName === e.to.nodeName && (e.to.nodeName === 'UL' ? !Array.from(e.to.children).reduce((list, item) => item === e.dragged ? list : [...list, item.section('item').dataset.id.split('-').slice(-1)[0]], []).includes(e.dragged.section('item').dataset.id.split('-').slice(-1)[0]) : true)
+			},
+
+			onSort: function (e) {
+				// CHECK IF SAME AS INITIAL, IF YES HUDE SAVE IF NO RESET INITIAL SORT AND TOGGLE UBTTOND
+				const sort = getSort(initialSort)
+				if (sort.files.reduce((bool, v) => bool && v.initialCategory === v.currentCategory && v.initialIndex === v.currentIndex, true) && sort.categories.reduce((bool, v) => bool && v.initialIndex === v.currentIndex, true)) {
+					Block('admin-actions').icon('save').hide()
+				} else {
+					Block('admin-actions').icon('save').show()
+				}
+			},
+		})
+		
+		sorter(Section('categories-content'))
+		Sections('category-wrap').forEach(s => sorter(s.child('ul')))
+		
+		function getSort(ref = null) {
+			/*
+			If init, generate a dict {id:{parameters], }}
+			If not, generate a list [{parameters}, ] using a ref to keep initial values
+			*/
+			const init = ref === null
+			var sort = init ? {'categories': {}, 'files': {}} : {'categories':[], 'files': []}
+			
+			Section('categories-content').childs('ul').forEach(cat =>
+				cat.childs('li').forEach(li => init ?
+					sort.files[li.section('item').dataset.id] = {'file': li.section('item').dataset.name, 'initialCategory': cat.dataset.category, 'initialIndex': [...cat.children].indexOf(li)}
+					:
+					sort.files.push({'file': li.section('item').dataset.name, 'initialCategory': ref.files[li.section('item').dataset.id].initialCategory, 'currentCategory': cat.dataset.category, 'initialIndex': ref.files[li.section('item').dataset.id].initialIndex, 'currentIndex': [...cat.children].indexOf(li), 'id': li.section('item').dataset.id.split('-').slice(-1)[0]})
+				)
+			)
+
+			Sections('category-wrap').forEach(cat => init ?
+				sort.categories[cat.child('ul').dataset.category] = {'category': cat.child('ul').dataset.category, 'initialIndex': [...cat.parentElement.children].indexOf(cat)}
+				:
+				sort.categories.push({'category': cat.child('ul').dataset.category, 'initialIndex': ref.categories[cat.child('ul').dataset.category].initialIndex, 'currentIndex': [...cat.parentElement.children].indexOf(cat)})
+			)
+			
+
+			return sort
+		}
+
+		Block('admin-actions').icon('save').onclick = saveSort
+
+		async function saveSort(e) {
+			sort = getSort(initialSort, true)
+
+			notify("Tri", "L'ordre des éléments est en cours d'enregistrement.", 'orange')
+
+			const jsonData = JSON.stringify({'csrf':csrfToken, 'action':'sort', 'type':'categories', 'section':'<?= $section ?>', 'data': sort})
+			const response = await fetchAPI('/admin/engine/database', jsonData)
+
+			if (!response.ok) {
+				notify("Échec lors de la sauvegarde", `L'ordre actuel des fichers et catégories n'a pas pu être enregistré.`, 'red')
+			} else {
+				notify("Élements triés", `L'ordre actuel a été sauvegardé.`, 'green')
+				Block('admin-actions').icon('save').hide()
+				initialSort = getSort()
+			}
+		}
 		<?php endif; ?>
 		</script>
     </body>

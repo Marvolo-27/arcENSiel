@@ -361,7 +361,7 @@ if ($action === 'upload') {
 
 		// reference new file
 		if (($file_updated || $mode === 'add') && $category) {
-			$sql = "INSERT INTO files_categories (file_id, category_id) SELECT (SELECT id FROM files WHERE url = :url), (SELECT id FROM categories WHERE slug = :slug) ON DUPLICATE KEY UPDATE file_id = file_id";
+			$sql = "INSERT INTO files_categories (file_id, category_id, sort_order) SELECT (SELECT id FROM files WHERE url = :url), (SELECT id FROM categories WHERE slug = :slug), (SELECT MAX(files_categories.sort_order) + 1 FROM files_categories LEFT JOIN categories ON category_id = categories.id WHERE slug = :slug) ON DUPLICATE KEY UPDATE file_id = file_id";
 			$params = [
 						':url' => $path,
 						':slug' => $category,
@@ -380,7 +380,7 @@ if ($action === 'upload') {
 		}
 
 		// fetch updated data
-		$sql = "SELECT name, size FROM files WHERE url = :url";
+		$sql = "SELECT id, name, size FROM files WHERE url = :url";
 		$query = $pdo->prepare($sql);
 		$query->execute([':url' => $path]);
 		$file = $query->fetch();
@@ -392,7 +392,7 @@ if ($action === 'upload') {
 			exit;
 	}
 
-	$sendback = ['message' => 'done', 'data' => ['path' => $path, 'name' => $src_filename, 'size' => $file['size'], 'desc' => $description], 'source' => $_POST];
+	$sendback = ['message' => 'done', 'data' => ['path' => $path, 'name' => $src_filename, 'size' => $file['size'], 'desc' => $description, 'id' => $file['id'], 'category' => $category], 'source' => $_POST];
 	echo json_encode($sendback);
 	exit;
 }
