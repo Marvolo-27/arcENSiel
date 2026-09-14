@@ -276,8 +276,9 @@ if (preg_match('#^/([a-zA-Z\-_0-9]+)$#', $request_url, $matches)) { // pattern(?
 // EXTENSION PRUNER
 // At this point, the .php is not useful
 if (in_array(end(explode('.', $request_url)), ['php', 'html'])) {
-    $request_url = preg_replace('#\.(php|html)$#', '', $request_url);
+    [$full_url, $request_url] = [$request_url, preg_replace('#\.(php|html)$#', '', $request_url)];
     header("Location: $request_url");
+    if (is_file($serverroot.$full_url)) require_once($serverroot.$full_url);
     exit;
 }
 
