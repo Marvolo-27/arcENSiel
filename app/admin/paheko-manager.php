@@ -147,7 +147,7 @@ if ($_SESSION['role'] !== 'admin') {
 							'subscriptions': {'table': subscriptionsTable, 'node': Table('subscriptions'), 'source': JSON.stringify(subscriptionsTable.getData()), 'call': fetchSubscriptions, 'selector': '#subscriptions', 'type': 'subscriptions'},
 							'stocks': {'table': stocksTable, 'node': Table('stocks'), 'source': JSON.stringify(stocksTable.getData()), 'call': fetchStocks, 'selector': '#stocks', 'type': 'stocks'},
 							}
-				activeTable = tableMatch[activeTable.type] // Force active table update
+				activeTable = tableMatch[activeTable?.type] // Force active table update
 
 				tablesListener(false, '.input-container.checkboxes.mainsection')
 				}

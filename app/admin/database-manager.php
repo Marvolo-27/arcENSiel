@@ -123,7 +123,7 @@ $artTypes = getTypes();
 							'types': {'table': typesTable, 'node': Table('types'), 'source': JSON.stringify(typesTable.getData()), 'call': fetchTypes, 'selector': '#types', 'type': 'types', 'appendable': true},
 							'categories': {'table': categoriesTable, 'node': Table('categories'), 'source': JSON.stringify(categoriesTable.getData()), 'call': fetchCategories, 'selector': '#categories', 'type': 'categories', 'appendable': true}
 				}
-				activeTable = tableMatch[activeTable.type] // Force active table update
+				activeTable = tableMatch[activeTable?.type] // Force active table update
 
 				tablesListener(true)
 				Block('main').section('data-actions').hide()				

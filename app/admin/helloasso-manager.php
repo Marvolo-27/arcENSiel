@@ -102,7 +102,7 @@ if ($_SESSION['role'] !== 'admin') {
 							'goodies': {'table': goodiesTable, 'node': Table('goodies'), 'source': JSON.stringify(goodiesTable.getData()), 'call': fetchGoodies, 'type': 'goodies', 'selector': '#goodies'},
 							'dq7': {'table': dq7Table, 'node': Table('dq7'), 'source': JSON.stringify(dq7Table.getData()), 'call': fetchDQ7, 'type': 'dq7', 'selector': '#dq7'}
 							}
-				activeTable = tableMatch[activeTable.type] // Force active table update
+				activeTable = tableMatch[activeTable?.type] // Force active table update
 
 				tablesListener(true)				
 		}
