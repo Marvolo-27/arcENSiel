@@ -1,11 +1,6 @@
 <?php
-// initialize php session - allow to keep login state throughput site navigation
-// each session is associtated with a cookie containing chosen data allowing to identify user on navgation
-session_start();
-
-// global variables
-$serverroot = $_SERVER['DOCUMENT_ROOT'];
-require_once $serverroot . "/../config/config.php";
+// Database connection and common variables
+require_once $_SERVER['DOCUMENT_ROOT'] . "/config/config.php";
 
 if (!isset($_SESSION['user_id'])) {
 	echo "<h1>Unauthorized</h1>The requested ressource is not accessible.";

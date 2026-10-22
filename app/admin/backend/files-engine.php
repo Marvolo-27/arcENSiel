@@ -1,6 +1,8 @@
 <?php
-session_start();
 header('Content-Type: application/json');
+
+// Database connection and common variables
+require_once $_SERVER['DOCUMENT_ROOT'] . "/config/config.php";
 
 // extract sent data
 $input = json_decode(file_get_contents("php://input"), true);

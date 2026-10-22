@@ -1,6 +1,4 @@
 <?php
-session_start();
-
 // must be connected
 if (!isset($_SESSION['user_id'])) {
 	$response = ['response_code' => 401, 'success' => false, 'message' => "Unauthorized"];

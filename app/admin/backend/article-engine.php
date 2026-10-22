@@ -1,6 +1,8 @@
 <?php
-session_start();
 header('Content-Type: application/json');
+
+// Database connection and common variables
+require_once $_SERVER['DOCUMENT_ROOT'] . "/config/config.php";
 
 $csrf = $_POST['csrf-token'] ?? null;
 if (!$csrf) {$csrf = $_GET['token'] ?? null;}

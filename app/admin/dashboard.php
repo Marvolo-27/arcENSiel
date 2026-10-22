@@ -1,8 +1,6 @@
 <?php
-session_start();
-
-$serverroot = $_SERVER['DOCUMENT_ROOT'];
-require_once $serverroot . "/../config/config.php";
+// Database connection and common variables
+require_once $_SERVER['DOCUMENT_ROOT'] . "/config/config.php";
 
 // Restrict to admins
 if (!isset($_SESSION['user_id'])) {

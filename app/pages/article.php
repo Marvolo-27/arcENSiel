@@ -1,5 +1,6 @@
 <?php
-session_start();
+// Database connection and common variables
+require_once $_SERVER['DOCUMENT_ROOT'] . "/config/config.php";
 
 // extract passed argument
 $raw_url = $slug ?? $_GET['slug'] ?? '';

@@ -1,6 +1,4 @@
 <?php
-session_start();
-
 $error = $_SESSION['contact-error'] ?? false;
 unset($_SESSION['contact-error']);
 

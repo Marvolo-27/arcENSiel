@@ -1,4 +1,7 @@
 <?php
+// Database connection and common variables
+require_once $_SERVER['DOCUMENT_ROOT'] . "/config/config.php";
+
 // extract auth token
 $input = json_decode(file_get_contents("php://input"), true);
 $csrf = $input['csrf'] ?? null;

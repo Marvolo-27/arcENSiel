@@ -1,6 +1,4 @@
 <?php
-session_start();
-
 // Restrict to admins
 if (!isset($_SESSION['user_id'])) {
    echo "<h1>Unauthorized</h1>The requested ressource is not accessible.";

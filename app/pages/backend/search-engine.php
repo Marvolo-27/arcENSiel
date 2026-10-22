@@ -1,6 +1,11 @@
 <?php
-session_start();
 header('Content-Type: application/json');
+
+// Database connection and common variables
+require_once $_SERVER['DOCUMENT_ROOT'] . "/config/config.php";
+
+// Database connection and common variables
+require_once $_SERVER['DOCUMENT_ROOT'] . "/config/config.php";
 
 if ($_SERVER['HTTP_X_REQUESTED_WITH'] !== 'fetch') {
 		http_response_code(403);

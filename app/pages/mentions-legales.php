@@ -1,9 +1,6 @@
 <?php
-session_start();
-
-// global variables
-$serverroot = $_SERVER['DOCUMENT_ROOT'];
-require_once $serverroot . "/../config/config.php";
+// Database connection and common variables
+require_once $_SERVER['DOCUMENT_ROOT'] . "/config/config.php";
 ?>
 
 <!DOCTYPE html>

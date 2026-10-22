@@ -1,7 +1,6 @@
 <?php
-session_start();
-$root = $_SERVER['DOCUMENT_ROOT'] . DIRECTORY_SEPARATOR . '..';
-$serverroot = $_SERVER['DOCUMENT_ROOT'];
+$root = $_SERVER['DOCUMENT_ROOT'];
+$serverroot = $_SERVER['DOCUMENT_ROOT'] . DIRECTORY_SEPARATOR . 'public';
 
 //// VARIABLES
 $server_content_file = $root.'/app/pages/backend/content.json';
@@ -129,7 +128,7 @@ function scanner($work_path, $search, $replace='') {
 		foreach($work_data as $filename) {
 			$file = $work_path.'/'.$filename;
 			$cwd = str_replace($search, $replace, $work_path);
-			$ext = end(array: explode('.', $filename));
+			$ext = end(explode('.', $filename));
 			$type = $ext === 'pdf' ? 'application' : (in_array($ext, $images_types) ? 'image':'unknown');
 			if (is_file($file)) {
 				$data[] =  [
@@ -394,8 +393,9 @@ function sendMail($in, $from, $to, $name, $subject, $body, $savedir = null, $rep
 try {
 	$pdo = new PDO($db_server_connection, $user, $pass, $options);
 } catch (PDOException $e) {
-	http_response_code(250); // access authorized so success but failed to ouput sql
-	echo json_encode(['error' => $e]);
+	http_response_code(500);
+	echo "No connection to database could be established. Access to website impossible.";
+	echo $e;
 	logger('/log/sql.log', json_encode($e), '[ERROR] Failed: establish connection to database', true, false);
 	exit;
 }

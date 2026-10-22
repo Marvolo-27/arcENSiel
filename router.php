@@ -1,19 +1,15 @@
 <?php
-session_start();
 // Server is started with 'public' as root directory.
 // Therefore, all direct user-made url requests to files outside public will fail.
 // These files can only be reached from server/fetch requests.
 // `require` peut uniquement appeler une url de fichier sans paramètres.
 // Cependant, require un fichier ne change pas l'URL courante - donc les paramètres sont tjrs accessibles dans le fichier appelé via $_GET
 
-// Define a global constant to detect calls going through router.php :
-    // files that exist are rendered directly by the server w/o handling by router.php
-    // So APP_ENTRY undefined and allow to force php requests through router
-define('APP_ENTRY', true);  
+session_start();
 
-
-// Import global variables
-require_once "config/config.php";
+// Application directory 
+$root = $_SERVER['DOCUMENT_ROOT'];
+$serverroot = $_SERVER['DOCUMENT_ROOT'] . DIRECTORY_SEPARATOR . 'public';
 
 // Parse URL
 $raw_request_url = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH); // extrait le chemin de l'URL d'accès à ce fichier (redirigé vers le routeur) SANS paramètres GET
@@ -24,6 +20,22 @@ $request_url = preg_match('#.+/$#', $raw_request_url) ? substr($raw_request_url,
 
 if ($request_url !== $raw_request_url) {
     header("Location: $request_url");
+    exit;
+}
+
+// ignore redirection for media files
+if (preg_match('#^/files/#', $request_url, $match)) {
+    $mimes = [
+            'css' => 'text/css',
+            'js' => 'text/javascript',
+            'svg' => 'image/svg+xml',
+            'png' => 'image/png',
+            'jpg' => 'image/jpg',
+            'json' => 'application/json'
+            ];
+
+    header('Content-Type: ' . ($mimes[end(explode('.', $request_url))] ?? 'text/plain'));
+    echo file_get_contents($serverroot . $request_url);
     exit;
 }
 
@@ -39,11 +51,6 @@ if (preg_match('#^/(admin|api)#', $request_url)) {
         exit;
     }
 }
-
-// ignore redirection for media files
-if (preg_match('#^/files/#', $request_url, $match)) {
-	return false;
-    }
 
 // ADMIN ACTIONS
 if (preg_match('#^/admin/#', $request_url)) {

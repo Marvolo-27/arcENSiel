@@ -1,6 +1,9 @@
 <?php
 header('Content-Type: application/json');
 
+// Database connection and common variables
+require_once $_SERVER['DOCUMENT_ROOT'] . "/config/config.php";
+
 // load helloasso sdk
 require $root . "/libraries/vendor/autoload.php";
 
@@ -72,10 +75,15 @@ class HATokenManager {
 
 					return $this->saveToken($newToken);
 				} catch (Exception $e) {// invalid / expired resfresh token
-					$token = $this->provider->getAccessToken('client_credentials');
 					logger('/log/helloasso.log', "Refresh token invalid: wew OAuth token generated with API credentials.", 'Token generation');
-
-					return $this->saveToken($token);
+					
+					try {
+						$token = $this->provider->getAccessToken('client_credentials');
+						return $this->saveToken($token);
+					} catch (IdentityProviderException $e) {
+						logger('/log/helloasso.log', "Could not fetch token: ".$e, 'Failed: Token generation');
+						return false;
+					}
 				}
 			}
 		
