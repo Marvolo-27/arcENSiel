@@ -4,8 +4,6 @@ header('Content-Type: application/json');
 // Database connection and common variables
 require_once $_SERVER['DOCUMENT_ROOT'] . "/config/config.php";
 
-use Symfony\Component\HttpFoundation\File\Exception\CannotWriteFileException;
-
 if ($_SERVER['HTTP_X_REQUESTED_WITH'] !== 'fetch') {
 		http_response_code(403);
 		exit('403: Forbidden');
@@ -19,13 +17,17 @@ if ($action === 'fetch') {
 	$n = (int) $_GET['n'] ?? 0;
 	$start = (int) $_GET['start'] ?? 0;
 
-	$sql = "SELECT articles.slug AS url, description, title, tags, date, author, COALESCE(types.name, 'Indéfini') AS type, COALESCE(files.url, '/files/placeholder.png') AS picture_path, color
+	$sql = "WITH
+				tags_list AS (
+					SELECT article_id, GROUP_CONCAT(tag_id SEPARATOR ',') AS tags
+					FROM articles_tags GROUP BY article_id)SELECT articles.slug AS url, description, title, tags_list.tags AS tags, date, author, COALESCE(types.name, 'Indéfini') AS type, COALESCE(files.url, '/files/placeholder.png') AS picture_path, color
 			FROM bookmarks
 				JOIN articles ON bookmarks.article_id = articles.id
+				LEFT JOIN tags_list ON articles.id = tags_list.article_id
 				LEFT JOIN types on COALESCE(articles.type, 0) = types.id
 				LEFT JOIN articles_covers ON articles_covers.article_id = articles.id
 				LEFT JOIN files ON file_id = files.id
-			WHERE user_id = :userid AND status = 'published'
+			WHERE user_id = :userid AND articles.status = 'published'
 			ORDER BY added_on DESC";
 	
 	if ($n === 0) {
