@@ -42,6 +42,11 @@ $HAManager = new HATokenManager(
 );
 $accessToken = $HAManager->getToken();
 
+if (!$accessToken) {
+    http_response_code(500); // access authorized so success but failed to ouput sql
+	echo json_encode(['error' => 'Unable to get access token for HelloAsso.']);
+}
+
 // Configure OAuth2 access token for authorization: OAuth2
 $config = OpenAPI\Client\Configuration::getDefaultConfiguration()->setAccessToken($accessToken);
 

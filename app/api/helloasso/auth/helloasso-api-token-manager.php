@@ -9,17 +9,18 @@ require $root . "/libraries/vendor/autoload.php";
 
 // load libraries
 use League\OAuth2\Client\Provider\GenericProvider;
+use \League\OAuth2\Client\Provider\Exception\IdentityProviderException;
 
 // class to wrap token management and make clean calls
 class HATokenManager {
 	// declare private variables to restrict their access to within the class
-	private string $clientID;		// api token
-	private string $clientSecret;	// api token password
-	private string $APIurl;			// api url to be auth
-	private string $file;			// file to save token info
+	private string $clientID;			// api token
+	private string $clientSecret;		// api token password
+	private string $APIurl;				// api url to be auth
+	private string $tokenFile;			// file to save token info
+	private GenericProvider $provider;	// oauth wrapper
 	
 	public function __construct($clientID, $clientSecret, $APIurl = 'https://api.helloasso.com/oauth2/token', $file = __DIR__ . '/../../../../.private/token.json') {// constructor : run  at each instance creation to declare core variables
-		// are private var, so can't be accessed from outside the instance
 		$this->clientID = $clientID;
 		$this->clientSecret = $clientSecret;
 		$this->APIurl = $APIurl;
