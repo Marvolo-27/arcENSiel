@@ -30,6 +30,8 @@ function tablesListener(watcher=false, selector='.input-container') {
 		Array.from(document.querySelector(selector).children).forEach(
 				item => {
 					item.addEventListener('change', e => {
+						if (!!e.target.parent('.subsection')) return // Prevent nested buttons from triggering a switch
+
 						tkn = e.target.parent('span').input().value;
 						toggleTable(tkn)
 						activeTable=tableMatch[tkn];
@@ -107,7 +109,7 @@ async function fetchFiles(target) {
 
 				if (icon.is('visualize.view')) {
 					viewFile(data.url)
-				
+					
 				} else if (icon.is('delete')) {
 					const overlay = Overlay('deletion')
 					const captionTag = overlay.section('header').child('span')
@@ -689,5 +691,5 @@ async function resetTabledata(table = activeTable, force = false, source = null)
 function toggleTable(query) {
 	        Object.values(tableMatch).forEach(table => table.node.id === query ? table.node.show():table.node.hide())
 
-			tableMatch[query].appendable ? Button('add-row')?.show() : Button('add-row')?.hide()
+			tableMatch[query]?.appendable ? Button('add-row')?.show() : Button('add-row')?.hide()
 		}
