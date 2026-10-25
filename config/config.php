@@ -391,7 +391,7 @@ function sendMail($in, $from, $to, $name, $subject, $body, $savedir = null, $rep
 //// MAIN
 // Connect to SQL db
 try {
-	$pdo = new PDO($db_server_connection, $user, $pass, $options);
+	$pdo = new PDO($db_server_connection, $db_main_user, $db_main_pass, $options);
 } catch (PDOException $e) {
 	http_response_code(500);
 	echo "No connection to database could be established. Access to website impossible.";

@@ -18,10 +18,13 @@ $paheko_client_id = decode('paheko_id');
 $paheko_address = "https://arcensiel.paheko.frama.space/api";
 
 // Server DB connection settings
+$mysql_secret = decode('mysql_root_secret');
 $host = 'localhost';
 $db = 'arcensiel';
-$user = 'root';
-$pass = decode('database_secret');
+$db_main_user = 'arcensiel';
+$db_main_pass = decode('database_arcensiel_secret');
+$db_mail_user = 'mailer';
+$db_mail_pass = decode('database_mail_secret');
 $charset = 'utf8mb4';
 
 // Password token
