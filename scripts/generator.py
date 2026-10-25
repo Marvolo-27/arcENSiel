@@ -31,8 +31,6 @@ offset = secrets.randbelow(buffer_size - credential_length + 1)
 mask = secrets.token_bytes(credential_length)
 credential_masked = bytes(c ^ m for c, m in zip(credential, mask))
 
-print(credential, args.password)
-
 # export files
 output = args.directory / args.name
 with open(f'{output}.key', 'wb') as f:
@@ -46,3 +44,5 @@ with open(f'{output}.meta', 'wb') as f:
 with open(f'{output}.dat', 'wb') as f:
     buffer[offset : offset + credential_length] = credential_masked
     f.write(buffer)
+
+print(f'Obfuscation files generated in {output.parent} for {output.name}.')
