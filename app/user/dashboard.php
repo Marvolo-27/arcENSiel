@@ -1,9 +1,9 @@
 <?php
 // must be connected
 if (!isset($_SESSION['user_id'])) {
-	$response = ['response_code' => 401, 'success' => false, 'message' => "Unauthorized"];
-	echo json_encode($response);
+	$response = ['response_code' => 401, 'error' => "Unauthorized"];
 	header("Location: /");
+	echo json_encode($response);
 	exit;
 }
 ?>

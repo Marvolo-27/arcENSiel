@@ -78,8 +78,8 @@ if (isset($_SESSION['user_id'])) {// logged in
 		$response = ['error' => "Invalid call."];
 	}
 
+	header("Location: /");
 	echo json_encode($response ?? ['message' => null]);
-	header("Location: /"); 
 	exit;
 }
 
@@ -402,9 +402,8 @@ if ($status === 'pending-check') {
 		}
 	
 	if ($dest) {
-		// send response
-		echo json_encode($resetstatus);
 		header("Location: $dest");
+		echo json_encode($resetstatus);
 		exit;
 	}
 }

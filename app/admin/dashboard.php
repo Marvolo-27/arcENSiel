@@ -173,7 +173,7 @@ if ($_SESSION['role'] !== 'admin') {
 					</div>
 
 					<div class='grid-item-wrap'>
-						<a href="https://arcensiel.paheko.frama.space" target="_blank_">
+						<a href="https://paheko.arcensiel.org" target="_blank_">
 							<div class='grid-item'>
 								<div class='article-poster poster-fg icon-style'>
 									<img src="/files/icons/logo_paheko.png">

@@ -395,7 +395,6 @@ try {
 } catch (PDOException $e) {
 	http_response_code(500);
 	echo "No connection to database could be established. Access to website impossible.";
-	echo $e;
 	logger('/log/sql.log', json_encode($e), '[ERROR] Failed: establish connection to database', true, false);
 	exit;
 }

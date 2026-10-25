@@ -2,12 +2,6 @@
 // Database connection and common variables
 require_once $_SERVER['DOCUMENT_ROOT'] . "/config/config.php";
 
-require $root . "/libraries/vendor/autoload.php";
-
-use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\Exception;
-
-
 //// article data
 $name = $_POST['name'];
 $topic = $_POST['topic'];
@@ -37,7 +31,6 @@ if ($delivery['status'] === 0) {
 
 	header('Location: /contact');
 }
-
 
 exit;
 ?>

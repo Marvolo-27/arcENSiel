@@ -3,9 +3,9 @@
 require_once $_SERVER['DOCUMENT_ROOT'] . "/config/config.php";
 
 if (!isset($_SESSION['user_id'])) {
-	echo "<h1>Unauthorized</h1>The requested ressource is not accessible.";
+	$response = ['response_code' => 401, 'error' => "Unauthorized"];
 	header("Location: /");
-	exit;
+	echo json_encode($response);
 }
 
 if (isset($_SESSION['error'])) {
