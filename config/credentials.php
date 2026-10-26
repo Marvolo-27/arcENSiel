@@ -11,7 +11,7 @@ $ha_client_id = decode('ha_secret');
 $paheko_admins = ['admin', 'marvolo'];
 $paheko_client_secret = decode('paheko_secret');
 $paheko_client_id = decode('paheko_id');
-$paheko_address = "https://arcensiel.paheko.frama.space/api";
+$paheko_address = "https://paheko.arcensiel.org/api";
 
 // Server DB connection settings
 $mysql_secret = decode('mysql_root_secret');
