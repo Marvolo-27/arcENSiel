@@ -52,7 +52,7 @@ $MYSQL -u arcensiel -p$main_pwd -D arcensiel < $WEBROOT/scripts/arcensiel_genera
 # database content
 if [[ -n $(grep 'populate' <<< $args) ]]; then
     if [[ -f "$WEBROOT/scripts/arcensiel_populator.sql" ]]; then
-        $MYSQL -u arcensiel -p$main_pwd -D arcensiel < $WEBROOT/scripts/arcensiel_generator.sql
+        $MYSQL -u arcensiel -p$main_pwd -D arcensiel < $WEBROOT/scripts/arcensiel_populator.sql
     else 
         echo "ERROR: Missing 'scripts/arcensiel_populator.sql' to populate database."
         exit 1
