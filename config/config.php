@@ -1,5 +1,5 @@
 <?php
-$root = $_SERVER['DOCUMENT_ROOT'];
+$root = $ROOT ?? $_SERVER['DOCUMENT_ROOT'];
 $serverroot = $_SERVER['DOCUMENT_ROOT'] . DIRECTORY_SEPARATOR . 'public';
 
 //// VARIABLES
@@ -106,7 +106,7 @@ function logger($file, $content, $action, $ip = true, $db_access = true) {
 					':section' => $section[0],
 					':message' => $action,
 					':content' => $content,
-					':user' => $_SESSION['username'] ? $_SESSION['username']:'PUBLIC'
+					':user' => $_SESSION['username'] ?: 'PUBLIC'
 					];
 		$query = $pdo->prepare($sql);
 		$query->execute($params);

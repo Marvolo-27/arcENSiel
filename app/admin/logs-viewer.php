@@ -76,6 +76,10 @@ if ($_SESSION['role'] !== 'admin') {
 						<label class='tag-item option blue' for="paheko-btn">Paheko</label>
 					</span>
 					<span>
+						<input class='checkbox' type='radio' id="mail-btn" name="table" value="mail">
+						<label class='tag-item option blue' for="mail-btn">Mail</label>
+					</span>
+					<span>
 						<input class='checkbox' type='radio' id="queries-btn" name="table" value="queries">
 						<label class='tag-item option blue' for="queries-btn">Requêtes</label>
 					</span>
