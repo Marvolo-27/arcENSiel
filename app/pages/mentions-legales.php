@@ -31,13 +31,17 @@ require_once $_SERVER['DOCUMENT_ROOT'] . "/config/config.php";
             <h3>
                 Éditeur
             </h3>
-
+            
             <p>
-                <strong>Directeur de publication :</strong> Marc ZUCCALLI, président d'arcENSiel.   
+                Site web de arcENSiel, association Queer et LGBTI+ de l'ENS de Lyon, association loi 1901 déclarée à la préfecture du Rhône sous le numéro RNA W691091204 (SIREN : 994 914 299). ArcENSiel est domiciliée au 15 Parvis René Descartes, 69007 Lyon, France.
             </p>
                 
             <p>
-                <strong>Hébergement :</strong> ENS de Lyon, 15 parvis René Descartes, BP 7000, 69342 Lyon Cedex 07
+                Ce site est hébergé à titre gratuit par l'École Normale Supérieure de Lyon, 15 parvis René Descartes, BP 7000 69342, Lyon Cedex 07, France.
+            </p>
+
+            <p>
+                La publication des contenus est dirigée par la Présidence d'arcENSiel. Vous pouvez nous contacter par <a href="mailto:contact@arcensiel.org">mail</a> ou via notre <a href="/contact">page de contact</a>.
             </p>
 
             <p>
@@ -49,17 +53,24 @@ require_once $_SERVER['DOCUMENT_ROOT'] . "/config/config.php";
             </h3>
                 Site conçu et réalisé par Marc ZUCCALLI.
 
-                <p><strong>Bibliothèques :</strong> 
+                <p><strong>Bibliothèques :</strong>
                     <ul>
-                        <li><a href="https://github.com/showdownjs/showdown">showdown</a></li>
-                        <li><a href="https://github.com/pgrabovets/jsonview">jsonview</a> - pgrabovets</li>
-                        <li><a href="https://tabulator.info">Tabulator</a> - © Oli Folkerd</li>
+                        <li><a target="_blank_" href="https://github.com/showdownjs/showdown">Showdown</a></li>
+                        <li><a target="_blank_" href="https://github.com/pgrabovets/jsonview">JSON-view</a></li>
+                        <li><a target="_blank_" href="https://github.com/SortableJS/Sortable">Sortable</a></li>
+                        <li><a target="_blank_" href="https://tabulator.info">Tabulator</a></li>
                     </ul>
                 </p>
                 
-                <p><strong>Assets :</strong> 
+                <p><strong>Assets :</strong>
                     <ul>
-                        <li>Text Divider by <a href="https://www.vecteezy.com/free-vector/text-divider">Vecteezy</a></li>
+                        <li>Icônes de <a target="_blank_" href="https://www.svgrepo.com" target="_blank">SVG Repo</a>.</li>
+                    </ul>
+                </p>
+
+                <p><strong>Code source :</strong>
+                    <ul>
+                        <li>Consultable sur le dépôt <a target="_blank_" href="https://github.com/Marvolo-27/arcENSiel">GitHub</a>.</li>
                     </ul>
                 </p>
                 
@@ -72,7 +83,7 @@ require_once $_SERVER['DOCUMENT_ROOT'] . "/config/config.php";
                 </p>
 
                 <p>
-                    En application de la loi 78_17 du 6 janvier 1978 relative à l’informatique, aux fichiers et aux libertés, ENvertS garantit un droit d’accès, de modification, de rectification et de suppression des données qui concernent ses visiteurs et intervenants. Pour exercer ce droit, il suffit d’exprimer sa demande par courriel.
+                    En application de la loi 78_17 du 6 janvier 1978 relative à l’informatique, aux fichiers et aux libertés, arcENSiel garantit un droit d’accès, de modification, de rectification et de suppression des données qui concernent ses visiteurs et intervenants. Pour exercer ce droit, il suffit d’exprimer sa demande par <a href="mailto:contact@arcensiel.org">courriel</a>.
                 </p>
 
                 <p>
