@@ -370,7 +370,7 @@ if ($status === 'pending-check') {
 					</div>";
 					
 					// send mail
-					$delivery = sendMail(0, 'arcensiel.noreply@ens-lyon.fr', $email, 'Noreply arcENSiel', $subject, $body, 'Associatif/arcENSiel/Website Requests');
+					$delivery = sendMail(to: [$email], subject: $subject, body: $body, confidential: true);
 				}
 				
 				$_SESSION['tmp-data'] = ['mail' => $email];

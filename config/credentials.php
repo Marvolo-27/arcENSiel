@@ -2,10 +2,6 @@
 // IP Info
 $ip_access_token = decode('ip_access');
 
-// SMTP ENS
-$mail_pass = decode('mail_secret');
-$mail_id = decode('mail_id');
-
 // HelloAsso
 $ha_admins = ['admin', 'marvolo'];
 $ha_client_secret = decode('ha_client');

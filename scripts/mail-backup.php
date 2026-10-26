@@ -47,10 +47,10 @@ foreach ($untreated_mails as $mail_file) {
     $mail = new MailMimeParser()->parse(fopen($mail_file, 'r'), true);
     
     $id         = $mail->getHeaderValue('Message-ID');
-    $from       = json_encode([$mail->getHeaderValue('From') => $mail->getHeader('From')->getPersonName() ?? '<'.$mail->getHeaderValue('From').'>'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
-    $recipient  = $mail->getHeaderValue('X-Original-To');
-    $to         = json_encode(array_reduce($mail->getHeader('To')?->getAddresses() ?? [], fn($carry, $item) => [...$carry, $item->getEmail() => preg_replace('/<?'.preg_quote($item->getEmail(), '/').'<?/', '', $item->getValue()) ?: '<'.$mail->getHeaderValue('From').'>'], []), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);    
-    $cc         = json_encode(array_reduce($mail->getHeader('Cc')?->getAddresses() ?? [], fn($carry, $item) => [...$carry, $item->getEmail() => preg_replace('/<?'.preg_quote($item->getEmail(), '/').'<?/', '', $item->getValue()) ?: '<'.$mail->getHeaderValue('From').'>'], []), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
+    $from       = json_encode([($mail->getHeader('From')->getPersonName() ?? '<'.$mail->getHeaderValue('From').'>') => $mail->getHeaderValue('From')], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
+    $recipient  = json_encode([$mail->getHeaderValue('X-Original-To') => $mail->getHeaderValue('X-Original-To')]);
+    $to         = json_encode(array_reduce($mail->getHeader('To')?->getAddresses() ?? [], fn($carry, $item) => [...$carry, (preg_replace('/<?'.preg_quote($item->getEmail(), '/').'>?/', '', $item->getValue()) ?: '<'.$item->getEmail().'>') => $item->getEmail()], []), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);    
+    $cc         = json_encode(array_reduce($mail->getHeader('Cc')?->getAddresses() ?? [], fn($carry, $item) => [...$carry, (preg_replace('/<?'.preg_quote($item->getEmail(), '/').'>?/', '', $item->getValue()) ?: '<'.$item->getEmail().'>') => $item->getEmail()], []), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
     $subject    = $mail->getHeaderValue('Subject');
     $text       = $mail->getTextContent();
     $html       = $mail->getHtmlContent();
@@ -58,7 +58,7 @@ foreach ($untreated_mails as $mail_file) {
     $sent       = $mail->getHeader('Date')->getDateTime()?->format('Y-m-d H:i:s');
     $received   = $mail->getHeader('Received')->getDateTime()?->format('Y-m-d H:i:s');
     
-    $sql = "INSERT INTO mails (sha256, message_id, sender, mail, recipients, cc, subject, sent_at, received_at, text_body, html_body, attachments, size) VALUES(:sha, :id, :from, :recipient, :to, :cc, :subject, :sent, :received, :text, :html, :attach, CAST(:size AS UNSIGNED));";
+    $sql = "INSERT INTO mails (sha256, message_id, sent_from, send_to, recipients, cc, subject, sent_at, received_at, text_body, html_body, attachments, size) VALUES(:sha, :id, :from, :recipient, :to, :cc, :subject, :sent, :received, :text, :html, :attach, CAST(:size AS UNSIGNED));";
     $params = [
                 ':sha' =>       $hash,
                 ':id'  =>       $id,

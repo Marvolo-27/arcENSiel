@@ -8,7 +8,7 @@ $topic = $_POST['topic'];
 $email = $_POST['mail'];
 $content = $_POST['content'];
 
-$delivery = sendMail(0, $email, 'marc.zuccalli@ens-lyon.fr', $name, $topic, $content, 'Associatif/arcENSiel/Website Requests', $email);
+$delivery = sendMail(from: [$name => 'contact-request@arcensiel.org'], to: ['arcensiel.bureau@ens-lyon.fr'], reply: [$name => $email], subject: $topic, body: $content);
 
 if ($delivery['status'] === 0) {
 	$_SESSION['contact-message'] = 'sent';

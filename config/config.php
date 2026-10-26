@@ -1,5 +1,6 @@
 <?php
 $root = $ROOT ?? $_SERVER['DOCUMENT_ROOT'];
+$home = $HOME ?? $root . '/../..';
 $serverroot = $_SERVER['DOCUMENT_ROOT'] . DIRECTORY_SEPARATOR . 'public';
 
 //// VARIABLES
@@ -296,7 +297,20 @@ function getTypes() {
 	return $artTypes;
 }
 
-function sendMail($in, $from, $to, $name, $subject, $body, $savedir = null, $reply = null) {
+function pruneMail($email) {
+	return str_replace(['\r', '\n'], '', $email);
+}
+
+function checkMail($email) {
+	$char_list = "a-zA-Z0-9!#$%&'*+\/=?^_{|}~`";
+
+	$test_glob = preg_match("/^[$char_list][$char_list\-\.]*[$char_list]?@[a-zA-Z0-9][a-zA-Z0-9\-\.]*[a-zA-Z0-9]?\.[a-zA-Z0-9]{2,63}$/", $email);		// general shape	
+	$test_fine = preg_match('/(\.\.|\.@|-@)/', $email);		// refinement
+
+	return ($test_glob && !$test_fine);
+}
+
+function sendMail($from = ['arcENSiel' => 'noreply@arcensiel.org'], $to = [], $reply = null, $cc = ['enforce' => false, 'mails' => []], $subject = null, $body = null, $attachments = [], $confidential = false) {
 	/*
 	retuns {status:status, context:context}
 
@@ -304,87 +318,123 @@ function sendMail($in, $from, $to, $name, $subject, $body, $savedir = null, $rep
 	status 1 - failed to send mail
 	status 2 - bad email format
 
-	in : 0 = mail sent from arcensiel ; 1 = mail received by arcensiel
+	$from: 	[$name => $mail]
+	$reply: [$name => $mail]
+	$to:	[$mail1, $mail2, ...]
+	$cc:	[enforce => bool, mails => []]
+
 	*/
+	global $pdo;
+	global $home;
 
-	global $mail_id;
-	global $mail_pass;
-
-	$char_list = "a-zA-Z0-9!#$%&'*+\/=?^_{|}~`";
+	// Check mails validity
+	foreach ($from + $to + ($reply ?? []) + $cc['mails'] as $email) {
+		if (!checkMail($email)) return ['status' => 2, 'context' => "$email"];
+	}
 	
-	// remove invisible characters
-	$from = str_replace(['\r', '\n'], '', $from);
-	$to = str_replace(['\r', '\n'], '', $to);
+	$mail = new PHPMailer(true);
 
-	// analyse email
-	$email = $in ? $from:$to;
-	$test_glob = preg_match("/^[$char_list][$char_list\-\.]*[$char_list]?@[a-zA-Z0-9][a-zA-Z0-9\-\.]*[a-zA-Z0-9]?\.[a-zA-Z0-9]{2,63}$/", $email, $matches_one);		// general shape	
-	$test_fine = preg_match('/(\.\.|\.@|-@)/', $email, $matches_two);		// refinement
+	// Sanitize: convert special characters to html code for safety
+	$body_clean = filter_var($body, FILTER_SANITIZE_SPECIAL_CHARS);
+	$subject_clean = filter_var($subject, FILTER_SANITIZE_SPECIAL_CHARS);
 
+	try {
+		// Config serveur sortant
+		$mail->isSMTP();
+		$mail->Host = '127.0.0.1';
+		$mail->SMTPAuth = true;
+		$mail->Port = 25;
+		$mail->SMTPAuth = false;
+		$mail->SMTPAutoTLS = false;
+		$mail->Hostname = "arcensiel.org";
+		$mail->CharSet = 'UTF-8';
 
-	// return to contact form
-	if (!$test_glob || $test_fine) {// invalid mail
-		return ['status' => 2, 'context' => null];
-
-	} else {// valid mail
-		$mail = new PHPMailer(true);
-
-		$body_clean = filter_var($body, FILTER_SANITIZE_SPECIAL_CHARS); // convert special characters to html code for safety
-		// $body_clean = $body;
-		$subject_clean = filter_var($subject, FILTER_SANITIZE_SPECIAL_CHARS);
-
-		try {
-			// Config serveur sortant
-			$mail->isSMTP();
-			$mail->Host = 'smtp.ens-lyon.fr';
-			$mail->SMTPAuth = true;
-			$mail->Username = $mail_id;
-			$mail->Password = $mail_pass;
-			$mail->SMTPSecure = 'STARTTLS';
-			$mail->Port = 587;
-			$mail->CharSet = 'UTF-8';
-
-			// Sender data
-			$mail->addReplyTo($email, $name);
-			$mail->setFrom($email, $name);
-
-			// Receiver data
-			$mail->addAddress($to);
-
-			// Mail content
-			$mail->isHTML(true);
-			$mail->Subject = $subject_clean;
-			$mail->Body = $body;
-			$mail->AltBody = $body_clean;
-
-			// let's go
-			$mail->send();
-
-			if ($savedir !== null) {// copy sent email to folder
-				// copy mail in IMAP folder
-				$imapPath = "{imaps.ens-lyon.fr:993/imap/ssl}INBOX/".$savedir;
-
-				$imapStream = imap_open(
-					$imapPath,
-					$mail_id,
-					$mail_pass
-				);
-
-				if ($imapStream) {
-					imap_append(
-						$imapStream,
-						$imapPath,
-						$mail->getSentMIMEMessage()
-					);
-					imap_close($imapStream);
-				}
-			}
-			
-			return ['status' => 0, 'context' => null];
+		// Sender data
+		if ($reply) $mail->addReplyTo(array_key_first($reply), array_first($reply));
+		$mail->setFrom(array_first($from), array_key_first($from));
+		$mail->Sender = 'bounces@arcensiel.org';  
 		
-		} catch(Exception $e) {
-			return ['status' => 1, 'context' => $e];
+		// Receiver data
+		foreach ($to as $email) {
+			$mail->addAddress($email);
 		}
+
+		// CCs
+		if (!!$cc['mails']) {
+			if ($cc['enforce']) {
+				foreach ($cc['mails'] as $mail) {
+					$mail->addCC($mail);
+				}
+			} else {
+				$mail->addCustomHeader('Cc', implode(', ', $cc['mails']));
+			}
+		}		
+
+		// Mail content
+		$mail->isHTML(true);
+		$mail->Subject = $subject_clean;
+		$mail->Body = $body;
+		$mail->AltBody = $body_clean;
+
+		// attachments
+		foreach ($attachments as $file => $data) {
+			$mail->addStringAttachment(base64_decode($data['content']), $file, 'base64', $data['mime']);
+		}
+
+		// let's go
+		$mail->send();
+		$id = $mail->getLastMessageID();
+		logger('/log/mail.log', "Email {{$id}} sent from {$mail->From} to [" . implode(',', array_column($mail->getToAddresses(), 0)) . "] with subject '$subject'", 'Send mail');
+
+		// Save mail
+		if (!$confidential) {
+			$maildata = $mail->getSentMIMEMessage();
+			$hash = hash('sha256', $maildata);
+
+			// DB insertion
+			$sql = "INSERT INTO mails (mode, sha256, message_id, sent_from, send_to, recipients, cc, subject, sent_at, received_at, text_body, html_body, attachments, size) VALUES(:mode, :sha, :id, :from, :recipient, :to, :cc, :subject, :sent, :received, :text, :html, :attach, CAST(:size AS UNSIGNED));";
+			$params = [
+						':mode' =>		'sent',
+						':sha' =>       $hash,
+						':id'  =>       $id,
+						':from' =>      json_encode($from, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE),
+						':recipient' => json_encode([(is_numeric(array_key_first($to)) ? $to[array_key_first($to)] : array_key_first($to)) => $to[array_key_first($to)]], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE),
+						':to' =>        json_encode($to, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE),
+						':cc' =>        json_encode($cc['mails'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE) ?: null,
+						':subject' =>   $subject_clean,
+						':text' =>      $mail->msgHTML($body),
+						':html' =>      $body,
+						':size' =>      strlen($maildata),
+						':sent' =>      date('Y-m-d H:i:s', time()),
+						':received' =>	null,
+						':attach' =>    $attachments ?: null
+                		];
+
+			try {
+				$pdo->prepare($sql)->execute($params);
+				logger('/log/mail.log', "Email {{$id}} added to db", 'Insert sent mail in db');
+			} catch (PDOException $e) {
+				logger('/log/mail.log', "Email {{$id}} could not be added to db: ".json_encode($e), '[ERROR] Failed: Insert sent mail in db');
+			}
+
+			// Save on server
+			try {
+				$dest = $home . '/data/mail/sent/';
+				mkdir($dest, 0700, true);
+				file_put_contents($dest . strval(time()) . "." . $mail->getSMTPInstance()->getLastTransactionID() . ".domu-teapot", $maildata);
+				logger('/log/mail.log', "Email {{$id}} saved on server ($dest)", 'Save sent mail on server');
+			} catch (Throwable $e) {
+				logger('/log/mail.log', "Email {{$id}} could not be saved: ".json_encode($e), '[ERROR] Failed: Save sent mail on server');
+			}
+		
+		} else {
+			logger('/log/mail.log', "Email {{$id}} flagged as confidential: not added to db or saved on server.", 'Skip mail');
+		}
+
+		return ['status' => 0, 'context' => null];
+	
+	} catch(Exception $e) {
+		return ['status' => 1, 'context' => $e, 'error' => $mail->ErrorInfo];
 	}
 }
 
