@@ -84,7 +84,17 @@ foreach ($untreated_mails as $mail_file) {
     
     } catch (PDOException $e) {
         logger('/log/mail.log', "Could not insert mail {{$id}} in database: ".json_encode($e), '[ERROR] Failed: Insert mail');
-        
+    }
+
+    // Redirect mail if necessary
+    if ($mail->getHeaderValue('X-Original-To') === 'contact@arcensiel.org') {
+        $response = sendMail(from: [array_key_first(json_decode($from, true)) => 'contact-request@arcensiel.org'], to: ['arcensiel.bureau@ens-lyon.fr'], reply: $from, subject: $subject, body: $html, attachments: json_decode($attach, true));
+
+        if ($reponse['status'] === 0) {
+            logger('/log/mail.log', "Transferred mail {{$id}} to arcENSiel mailbox: ", 'Transfer mail');
+        } else {
+            logger('/log/mail.log', "Could not transfer mail {{$id}} to arcENSiel mailbox. Check logs for more details.", '[ERROR] Failed: Transfer mail');
+        }
     }
 }
 
