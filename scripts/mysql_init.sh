@@ -1,4 +1,4 @@
-#!/bin/env bash
+#!/bin/bash
 ##
 ## Initial configuration of database
 ## Assumes root user has already been set with correct password

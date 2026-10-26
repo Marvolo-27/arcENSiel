@@ -1,4 +1,4 @@
-#!/bin/env bash
+#!/bin/bash
 
 decode () {
     root=${WEBROOT:-$HOME/www/arcensiel}
