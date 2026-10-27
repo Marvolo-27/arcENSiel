@@ -103,15 +103,16 @@ if [[ -z $(grep 'ignore' <<< $args) ]]; then
         echo "Error: unexpected archive format: $(echo $ZIPFILE | rev | cut -d. -f1 | rev)" && exit 1
     fi
 
-    unzip "$ZIPFILE" -d "$LOCAL/src/backup"
-    mv $LOCAL/src/backup/config $ROOT
-    mv $LOCAL/src/backup/.config $ROOT
-    mv -n $LOCAL/src/backup/www/libraries $WEBROOT
+    unzip -q "$ZIPFILE" -d "$LOCAL/src/backup"
+    rsync -aqI $LOCAL/src/backup/config $ROOT
+    rsync -aqI $LOCAL/src/backup/.config $ROOT
+    rsync -aqI $LOCAL/src/backup/local $ROOT
+    rsync -aqI $LOCAL/src/backup/www/libraries $WEBROOT
     
     if [[ -n $(grep 'root' <<< $args) ]]; then
-        sudo mv $LOCAL/src/backup/root/etc/nginx /etc/nginx
-        sudo mv $LOCAL/src/backup/root/etc/postfix /etc/postfix
-        sudo mv $LOCAL/src/backup/root/etc/opendkim /etc/opendkim
+        sudo rsync -aqI $LOCAL/src/backup/root/etc/nginx /etc
+        sudo rsync -aqI $LOCAL/src/backup/root/etc/postfix /etc
+        sudo rsync -aqI $LOCAL/src/backup/root/etc/opendkim /etc
     fi
 
     rm -r "$LOCAL/src/backup"
@@ -132,12 +133,12 @@ if [[ -n $(grep 'keys' <<< $args) ]]; then
 
     unzip "$KEYFILE" -d "$LOCAL/src/key_backup"
     mdkir -p $ROOT/data/keys
-    mv $LOCAL/src/key_backup/paheko/* $ROOT/data/keys
+    rsync -aqI $LOCAL/src/key_backup/paheko/ $ROOT/data/keys
     cp $LOCAL/src/key_backup/dkim/* $ROOT/data/keys
-    mv -n $LOCAL/src/backup/www/.private $WEBROOT
+    rsync -aqI -n $LOCAL/src/backup/www/.private $WEBROOT
 
     if [[ -n $(grep 'root' <<< $args) ]]; then
-        sudo mv $LOCAL/src/key_backup/dkim /etc/opendkim/keys/arcensiel.org
+        sudo rsync -aqI $LOCAL/src/key_backup/dkim/ /etc/opendkim/keys/arcensiel.org
         sudo chown -R arcensiel:sites /etc/opendkim/keys/arcensiel.org
     fi
 
@@ -228,7 +229,7 @@ if [[ -n $(grep 'activate' <<< $args) ]]; then
     fi
     
     loginctl enable-linger arcensiel
-    systemctl --user enable nginx nginx-paheko php-fpm mysql mail-timer
+    systemctl --user enable nginx nginx-paheko php-fpm mysql db-dump.timer mail-backup.timer
 fi
 
 systemctl --user daemon-reload

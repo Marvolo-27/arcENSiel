@@ -50,21 +50,24 @@ if [[ -n $(grep 'dir' <<< $args) ]]; then
     $DIR=$(echo $args | grep 'dir' -d= -f2)
 fi
 
-TMPC=$DIR/tmp_backup
-TMPK=$DIR/tmp_backup
+TMPC=$DIR/tmp_cbackup
+TMPK=$DIR/tmp_kbackup
 
 # Config
 if [[ -n $(grep 'config' <<< $args) ]]; then
     echo "Creating backup of config files..."
     mkdir -p $TMPC/{config,.config}
     mkdir -p $TMPC/www/libraries
+    mkdir -p $TMPC/local/php/etc
 
     cp -r $ROOT/config/nginx $TMPC/config
     cp -r $ROOT/config/paheko $TMPC/config
     cp -r $ROOT/config/mysql $TMPC/config
     cp -r $ROOT/.config/systemd $TMPC/.config
-    rm -r $TMPC/nginx/sites-enabled
-    rm -r $TMPC/.config/default.targets
+    cp    $ROOT/local/php/etc/php.ini $TMPC/local/php/etc
+    rm -rf $TMPC/config/nginx/sites-enabled
+    rm -rf $TMPC/.config/systemd/user/default.target.wants
+    rm -rf $TMPC/.config/systemd/user/timers.target.wants
     [[ -f $WEBROOT/libraries/composer.json ]] && cp $WEBROOT/libraries/composer.json $TMPC/www/libraries
 
     if [[ -n $(grep 'root' <<< $args) ]]; then
@@ -72,16 +75,18 @@ if [[ -n $(grep 'config' <<< $args) ]]; then
         mkdir -p $TMPC/root/etc/{postfix,opendkim}
 
         sudo cp /etc/nginx/sites-available/arcensiel.conf $TMPC/root/etc/nginx/sites-available
-        sudo cp /etc/postfix/main.cf $TMPC/root/postfix
-        sudo cp -r /etc/postfix/aliases $TMPC/root/postfix
-        sudo cp -r /etc/opendkim/*.table $TMPC/root/opendkim
+        sudo cp /etc/postfix/main.cf $TMPC/root/etc/postfix
+        sudo cp -r /etc/postfix/aliases $TMPC/root/etc/postfix
+        sudo cp -r /etc/opendkim/*.table $TMPC/root/etc/opendkim
+        sudo chown -R arcensiel $TMPC
     fi
 
     echo "Storing files into archive..."
     archive=$DIR/config_backup.zip
     [[ -f "$archive" ]] && rm $archive
     
-    zip -r "$archive" "$TMPC" && echo "Backup created at $archive!\n"
+    cd $TMPC
+    zip -qr "$archive" . && echo "Backup created at $archive!" && echo
     rm -rf $TMPC
 fi
 
@@ -91,8 +96,7 @@ if [[ -n $(grep 'keys' <<< $args) ]]; then
     mkdir -p $TMPK/{www,paheko}
 
     cp -r $WEBROOT/.private $TMPK/www
-    rm $TMPK/www/token.json
-    rm $TMPK/www/*.sql
+    rm -f $TMPK/www/.private/token.json
     cp -r $ROOT/data/keys/paheko* $TMPK/paheko
 
     if [[ -n $(grep 'root' <<< $args) ]]; then
@@ -106,7 +110,8 @@ if [[ -n $(grep 'keys' <<< $args) ]]; then
     archive=$DIR/keys_backup.zip
     [[ -f "$archive" ]] && rm $archive
     
-    zip -r "$archive" "$TMPK" && echo "Backup created at $archive!\n"
+    cd $TMPK
+    zip -qr "$archive" . && echo "Backup created at $archive!" && echo
     chmod 600 $archive
     rm -rf $TMPK
 fi
