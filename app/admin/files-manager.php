@@ -221,7 +221,7 @@ if ($_SESSION['role'] !== 'admin') {
 
 		<div class="body-overlay" id="overlay-preview">
 			<div class="inner-overlay">
-				<div class="file-preview" active><img></div>
+				<div class="file-preview" active><img><iframe class="activable"></iframe></div>
 
 				<div class='external actions-wrap linear'>
 					<div class='action-container'>
@@ -295,6 +295,8 @@ if ($_SESSION['role'] !== 'admin') {
 										
 										tablesSwitcher()
 										fetchControl()
+
+										Overlay('filepicker').section('file-preview').toggle()
 										}
 
 			
@@ -330,19 +332,20 @@ if ($_SESSION['role'] !== 'admin') {
 				Array.from(filesTable.getColumn('status').getCells()).forEach(cell => cell.getValue() ? null:cell.getElement().parent('.tabulator-row').toggle('invalid'))
 			}
 	
-			function viewFile(raw, activeOverlay=null) {
+			function viewFile(raw, mime, activeOverlay=null) {
 				const url = raw.replace(/admin:\/\//, '/admin')
-				const ext = raw.extension()
+				const [type, extension] = mime.split('/')
 				
-				if (ext === 'pdf') {
-					open(url)
-				} else {
-					Overlay('preview').toggle()
+				if ((type === 'application' && ['pdf', 'sql'].includes(extension)) || type === 'text') {
+					Overlay('preview').section('file-preview').child('iframe').src = url
+					Overlay('preview').section('file-preview').child('iframe').show()
+				} else if (type === 'image') {
 					Overlay('preview').section('file-preview').child('img').src = url
-
-					Overlay(activeOverlay)?.toggle()
-					pendingAction = {'overlay': activeOverlay}
 				}
+
+				Overlay('preview').toggle()
+				Overlay(activeOverlay)?.toggle()
+				pendingAction = {'overlay': activeOverlay}
 			}
 		
 		/// SCAN
@@ -357,7 +360,7 @@ if ($_SESSION['role'] !== 'admin') {
 						// update data on server
 						const jsonData = JSON.stringify({'csrf':csrfToken, 'action':'scan'})
 						const files = await fetchAPI('/admin/engine/files', jsonData).then(response => response.body)
-						console.log(files)
+						
 						types.forEach(async type => {
 							const data = files[type]
 							
@@ -459,17 +462,19 @@ if ($_SESSION['role'] !== 'admin') {
 
 					files.forEach(file => {
 						const div = document.createElement('div')
+						const [group, extension] = file.type.split('/')
+						const view = (group === 'application' && ['pdf', 'sql'].includes(extension)) || group === 'text' || group === 'image'
 						
 						div.classList.toggle('file-element-wrap')
 						div.innerHTML = `
 							<div class='file-element-icon'>
-								<div class='icon visualize inline hoverable dynamic' title="${file.path}"></div>
+								<div class='icon inline ${view ? 'visualize inline hoverable dynamic':''}' ${view ? 'title="'+file.path+'"':''}></div>
 								<div class='icon download  inline hoverable dynamic' title="${file.path}"></div>
 							</div>
-							<div class='file-element' data-url="${file.path}">${file.name}</div>
+							<div class='file-element' data-url="${file.path}" data-mime="${file.type}">${file.name}</div>
 						`
 						div.querySelector('.file-element').addEventListener('click', e => e.target.parent('.file-element').toggle('selected'))
-						div.icon('visualize').addEventListener('click', e => viewFile(e.target.parent('.file-element-wrap').querySelector('.file-element').dataset.url))
+						div.icon('visualize')?.addEventListener('click', e => viewFile(...Object.values(e.target.parent('.file-element-wrap').querySelector('.file-element').dataset), 'filepicker'))
 						div.icon('download').addEventListener('click', e => downloadFile({'url': e.target.parent('.file-element-wrap').querySelector('.file-element').dataset.url}))
 
 						wrapper.append(div)
@@ -568,6 +573,8 @@ if ($_SESSION['role'] !== 'admin') {
 			Overlay('preview').button('close').onclick = e => {
 					e.target.parent('overlay').toggle()
 					e.target.parent('overlay').section('file-preview').child('img').src = '';
+					e.target.parent('overlay').section('file-preview').child('iframe').src = '';
+					e.target.parent('overlay').section('file-preview').child('iframe').hide()
 
 					activeOverlay = pendingAction.overlay
 					Overlay(activeOverlay)?.toggle()

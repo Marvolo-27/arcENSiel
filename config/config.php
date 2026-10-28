@@ -268,7 +268,7 @@ function filesManager() {
 
 			// no content match in db: new file
 			} else {
-				$unregistered_list[] = ['name' => $file['name'], 'path' => $file['url'], 'sha256' => $file['sha256'], 'server' => $server_files, 'db' => $db_files];
+				$unregistered_list[] = ['name' => $file['name'], 'path' => $file['url'], 'sha256' => $file['sha256'], 'type' => $file['type']];
 			}
 		}
 	}

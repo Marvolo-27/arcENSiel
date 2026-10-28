@@ -119,7 +119,7 @@ function filePickManage() {
 		}
 	}
 
-async function fileSelectorLoad(type=null) {
+async function fileSelectorLoad(type=null, responsive = true) {
 		const container = Overlay('filepicker').section('files-list-container')
 		container.innerHTML = '<div class="spinner" active></div>'
 
@@ -138,21 +138,35 @@ async function fileSelectorLoad(type=null) {
 			div.dataset.references = file.categories ?? ''
 			div.innerText = file.name
 			div.classList.toggle('file-element')
-			div.onclick = e => fileUpdateSelection(e, type === 'image')
+			div.onclick = e => fileUpdateSelection(e, type ?? file.type, responsive)
 
 			wrap.append(div)
 			container.append(wrap)
 		})
 	}
 
-function fileUpdateSelection(e, responsive=false) {
+function fileUpdateSelection(e, type, responsive=false) {
 		Overlay('filepicker').childs('.file-element').forEach(tag => tag.unset('selected'))
 		const target = e.target
 		target.set('selected')
 
 		if (responsive) {
 			const preview = Overlay('filepicker').child('.file-preview')
-			preview.firstElementChild.src = target.dataset.targetUrl
-			preview.firstElementChild.setAttribute('alt', target.dataset.alt)
+
+			if (type === 'image' || type.split('/')[0] === 'image') {
+				preview.child('img').src = target.dataset.targetUrl
+				preview.child('img').setAttribute('alt', target.dataset.alt)
+				preview.child('iframe').hide()
+				preview.child('iframe').src = '';
+				preview.show()
+			} else if (type === 'pdf' || ['pdf', 'sql'].includes(type.split('/').slice(-1)[0])) {
+				preview.child('iframe').src = target.dataset.targetUrl
+				preview.child('iframe').show()
+				preview.child('img').src = '';
+				preview.child('img').removeAttribute('alt')
+				preview.show()
+			} else {
+				preview.hide()
+			}
 		}
 	}

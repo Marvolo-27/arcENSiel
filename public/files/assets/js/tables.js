@@ -108,7 +108,7 @@ async function fetchFiles(target) {
 				const icon = e.target
 
 				if (icon.is('visualize.view')) {
-					viewFile(data.url)
+					viewFile(data.url, data.type)
 					
 				} else if (icon.is('delete')) {
 					const overlay = Overlay('deletion')

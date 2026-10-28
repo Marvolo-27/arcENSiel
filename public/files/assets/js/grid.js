@@ -224,7 +224,7 @@ async function buildFilesFlow(append, force=false) {
 		<span>Téleversé par ${file.uploader}</span>
 	</div>
 	<div class='icon dots top left dynamic base-shdw' title="Afficher les métadonnées"></div>
-	<div class='icons-bar inverted' data-url='${url}'>
+	<div class='icons-bar inverted' data-url='${url}' data-mime='${type}'>
 		<div class='icon visualize inline hoverable dynamic invertable' title="Voir le fichier" ></div>
 		<div class='icon download inline hoverable dynamic invertable' title="Télécharger le fichier"></div>
 		
@@ -239,7 +239,7 @@ async function buildFilesFlow(append, force=false) {
 				div.section('grid-item').addEventListener('click', e => e.target.parent('.grid-item').section('grid-item-preview').toggle())
 			}
 			
-			div.icon('visualize').addEventListener('click', e => {e.stopPropagation(); viewFile(e.target.parent('.icons-bar').dataset.url)})
+			div.icon('visualize').addEventListener('click', e => {e.stopPropagation(); viewFile(...Object.values(e.target.parent('.icons-bar').dataset))})
 			div.icon('download').addEventListener('click', e => {e.stopPropagation(); downloadFile({'url': e.target.parent('.icons-bar').dataset.url})})
 			div.icon('dots').addEventListener('click', e => {e.stopPropagation(); e.target.nextElementSibling.toggle()})
 		}

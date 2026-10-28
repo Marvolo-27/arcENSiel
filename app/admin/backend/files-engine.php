@@ -56,7 +56,7 @@ if ($action === 'fetch') {
 	$params = $filetype ? array_merge((array) $params, array_reduce($filetype, function ($carry, $item) {$carry[':'.preg_replace(['#-#','#/#'], '_', $item)] = $item; return $carry;}, [])) : $params;
 	
 	$sql = ($category || $filetype) ?
-	"SELECT files.id AS id, url, files.name AS name, description, GROUP_CONCAT(categories.slug SEPARATOR ',') AS categories
+	"SELECT files.id AS id, url, type, files.name AS name, description, GROUP_CONCAT(categories.slug SEPARATOR ',') AS categories
 	FROM files
 		LEFT JOIN files_categories ON files.id = file_id
 		LEFT JOIN categories ON categories.id = category_id
