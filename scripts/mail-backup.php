@@ -88,7 +88,7 @@ foreach ($untreated_mails as $mail_file) {
 
     // Redirect mail if necessary
     if ($mail->getHeaderValue('X-Original-To') === 'contact@arcensiel.org') {
-        $response = sendMail(from: [array_key_first(json_decode($from, true)) => 'contact-request@arcensiel.org'], to: ['arcensiel.bureau@ens-lyon.fr'], reply: $from, subject: $subject, body: $html, attachments: json_decode($attach, true));
+        $response = sendMail(from: [array_key_first(json_decode($from, true)) => 'contact-request@arcensiel.org'], to: ['arcensiel.bureau@ens-lyon.fr'], reply: json_decode($from, true), subject: $subject, body: $html, attachments: json_decode($attach, true));
 
         if ($reponse['status'] === 0) {
             logger('/log/mail.log', "Transferred mail {{$id}} to arcENSiel mailbox: ", 'Transfer mail');

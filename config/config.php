@@ -372,7 +372,7 @@ function checkMail($email) {
 	return ($test_glob && !$test_fine);
 }
 
-function sendMail($from = ['arcENSiel' => 'noreply@arcensiel.org'], $to = [], $reply = null, $cc = ['enforce' => false, 'mails' => []], $subject = null, $body = null, $attachments = [], $confidential = false) {
+function sendMail($from = ['arcENSiel' => 'noreply@arcensiel.org'], $to = [], $reply = [], $cc = ['enforce' => false, 'mails' => []], $subject = null, $body = null, $attachments = [], $confidential = false) {
 	/*
 	retuns {status:status, context:context}
 
@@ -390,7 +390,7 @@ function sendMail($from = ['arcENSiel' => 'noreply@arcensiel.org'], $to = [], $r
 	global $home;
 
 	// Check mails validity
-	foreach ($from + $to + ($reply ?? []) + $cc['mails'] as $email) {
+	foreach ($from + $to + $reply + $cc['mails'] as $email) {
 		if (!checkMail($email)) return ['status' => 2, 'context' => "$email"];
 	}
 	
@@ -412,7 +412,7 @@ function sendMail($from = ['arcENSiel' => 'noreply@arcensiel.org'], $to = [], $r
 		$mail->CharSet = 'UTF-8';
 
 		// Sender data
-		if ($reply) $mail->addReplyTo(array_key_first($reply), array_first($reply));
+		if (!!$reply) $mail->addReplyTo(array_first($reply), array_key_first($reply));
 		$mail->setFrom(array_first($from), array_key_first($from));
 		$mail->Sender = 'bounces@arcensiel.org';  
 		
