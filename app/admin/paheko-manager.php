@@ -166,12 +166,13 @@ if ($_SESSION['role'] !== 'admin') {
 
 				const type = Input('download-type').value
 				const mode = Input('download-mode').checked ? 'backup':'basic';
-				
+				let blob, filename
+
 				if (type === 'table') {// json file download
-					const blob = await fetchBlob('/admin/api/paheko/get/all')
+					blob = await fetchBlob('/admin/api/paheko/get/all')
+					filename = 'paheko-output_'+date+'.json'
 					const date = new Date().toISOString()
-					const filename = 'paheko-output_'+date+'.json'
-				
+
 				} else {// paheko file download
 					notify("Téléchargement en cours", "Le fichier demandé est en cours de téléchargement depuis Paheko.", 'orange')
 					validate.disable()
@@ -182,6 +183,9 @@ if ($_SESSION['role'] !== 'admin') {
 
 					if (!response.ok) {
 						notify("Erreur lors de la synchronisation", response.body.error, 'red')
+						
+						validate.enable()
+						cancel.enable()
 
 						if (!response.body.available) return
 					}
@@ -189,11 +193,11 @@ if ($_SESSION['role'] !== 'admin') {
 					// Convert the base64 string to a byte array (required for blob): each byte of the file is represented as an integer in the array
 						// uintarray is just a representation of the raw byte data deduced from base64 string
 					const bytes = Uint8Array.fromBase64(response.body.data.content)
-					const blob = new Blob([bytes], {type: response.body.data.type})
-					const filename = response.body.data.name
+					blob = new Blob([bytes], {type: response.body.data.type})
+					filename = response.body.data.name
  
 					validate.enable()
-					cancel.disable()
+					cancel.enable()
 					notify("Téléversement terminé", "Le fichier a bien été ajouté sur le serveur d'arcENSiel.", 'green')
 				}
 
