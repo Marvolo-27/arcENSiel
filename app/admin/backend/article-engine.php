@@ -155,14 +155,27 @@ if ($file_uploaded) {// File object passed = image uploaded
 		$count++;
 	}
 
-	// stores picture in files
-	if (move_uploaded_file($picture['tmp_name'], str_replace($rootpath, $folder, $path))) {
-		logger('/log/files.log', "New file loaded at: $path", 'Upload new file');
-	} else {
-		http_response_code(500);
-		echo json_encode(['error' => "Upload failed for file '".$raw_filename."'".PHP_EOL."Check file size."]);
-		logger('/log/files.log', "New file could not be uploaded to $path", '[ERROR] Failed: upload new file');
-		exit;
+	// Check file uniqueness (sha256)
+	$query = $pdo->prepare("SELECT sha256, url FROM files");
+	$query->execute();
+	$files_list = array_reduce($query->fetchAll(PDO::FETCH_ASSOC), fn ($carry, $item) => [...$carry, $item['sha256'] => $item['url']], []);
+	$hash = hash_file('sha256', $file['tmp_name']);
+    
+    // file is a duplicate
+	if (in_array($hash, array_keys($files_list))) {
+        $path = $files_list[$hash];
+        $file_uploaded = false;
+    
+    // stores picture in files
+    } else {
+    	if (move_uploaded_file($picture['tmp_name'], str_replace($rootpath, $folder, $path))) {
+    		logger('/log/files.log', "New file loaded at: $path", 'Upload new file');
+    	} else {
+    		http_response_code(500);
+    		echo json_encode(['error' => "Upload failed for file '".$raw_filename."'".PHP_EOL."Check file size."]);
+    		logger('/log/files.log', "New file could not be uploaded to $path", '[ERROR] Failed: upload new file');
+    		exit;
+		}
 	}
 } else {// No File Object = image unchanged
 	$path = $_POST['picture-path'];
@@ -210,7 +223,7 @@ try {
 
 // Insert file
 if ($file_uploaded) {
-	$sql = "INSERT INTO files (name, url, size, description, type, status, uploader) VALUES (:name, :url, CAST(:size AS UNSIGNED), :desc, :type, TRUE, :user)";
+	$sql = "INSERT INTO files (name, url, size, description, type, status, uploader, sha256) VALUES (:name, :url, CAST(:size AS UNSIGNED), :desc, :type, TRUE, :user, :sha)";
 	$params = [
 			':name' => end(explode('/', $path)),
 			':url' => $path,
@@ -218,6 +231,7 @@ if ($file_uploaded) {
 			':desc' => $file_desc,
 			':type' => $picture['type'],
 			':user' => $_SESSION['username'],
+			':sha'	=> $hash,
 		];
 
 	try {

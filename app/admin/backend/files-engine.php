@@ -181,16 +181,18 @@ if ($action === 'insert') {
 		$path = $loc.preg_replace('#^admin://#', '', $file);
 		$size = filesize($path);
 		$ext = end(explode('.', $name));
-		$type = $ext === 'pdf' ? 'application/pdf': (in_array($ext, $images_types) ? "image/$ext" : "unknown/$ext");
+		$type = $mimes[$ext] ?? 'application/octet-stream';
+		$hash = hash_file('sha256', $path);
 
-		$sql = "INSERT INTO files (name, url, size, description, type, status, uploader) VALUES (:name, :url, CAST(:size AS UNSIGNED), :desc, :type, TRUE, :user)";
+		$sql = "INSERT INTO files (name, url, size, description, type, status, uploader, sha256) VALUES (:name, :url, CAST(:size AS UNSIGNED), :desc, :type, TRUE, :user, :sha)";
 		$params = [
 				':name' => $name,
-				':url' => $file,
+				':url'  => $file,
 				':size' => $size,
 				':desc' => preg_replace("#\.$ext$#", '', $name),
 				':type' => $type,
 				':user' => $_SESSION['username'],
+				':sha'	=> $hash
 			];
 		
 		try{
@@ -295,11 +297,23 @@ if ($action === 'upload') {
 
 			$count++;
 		}
+		
+		// Check file uniqueness (sha256)
+		$query = $pdo->prepare("SELECT sha256, url FROM files");
+		$query->execute();
+		$files_list = array_reduce($query->fetchAll(PDO::FETCH_ASSOC), fn ($carry, $item) => [...$carry, $item['sha256'] => $item['url']], []);
+		$hash = hash_file('sha256', $file['tmp_name']);
+
+		if (in_array($hash, array_keys($files_list))) {
+			http_response_code(500);
+			echo json_encode(['error' => "Upload failed for file '".$raw_filename."'".PHP_EOL."Identical content found in file '".$files_list[$hash]."'."]);
+			logger('/log/files.log', "Duplicate file could not be uploaded to $path", 'Failed: upload new file');
+			exit;
+		}
 
 		// stores file in files
 		if (move_uploaded_file($file['tmp_name'], str_replace($rootpath, $folder, $raw_path))) {
 			logger('/log/files.log', "New file loaded at: $path; $raw_path", 'Upload new file');
-			//echo "File stored at: $dest";
 		} else {
 			http_response_code(500);
 			echo json_encode(['error' => "Upload failed for file '".$raw_filename."'".PHP_EOL."Check file size."]);
@@ -317,8 +331,7 @@ if ($action === 'upload') {
 			$type = $file['type'];
 			if ($type === 'application/x-zip-compressed') $type = 'application/zip';
 
-
-			$sql = "INSERT INTO files (name, url, size, description, type, status, uploader) VALUES (:name, :url, CAST(:size AS UNSIGNED), :desc, :type, TRUE, :user)";
+			$sql = "INSERT INTO files (name, url, size, description, type, status, uploader, sha256) VALUES (:name, :url, CAST(:size AS UNSIGNED), :desc, :type, TRUE, :user, :sha)";
 			$params = [
 					':name' => str_replace($rootpath, '', $path),
 					':url' => $path,
@@ -326,6 +339,7 @@ if ($action === 'upload') {
 					':type' => $type,
 					':desc' => $description,
 					':user' => $_SESSION['username'],
+					':sha'	=> $hash
 				];
 
 			$query = $pdo->prepare($sql);

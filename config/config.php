@@ -6,6 +6,35 @@ $serverroot = $_SERVER['DOCUMENT_ROOT'] . DIRECTORY_SEPARATOR . 'public';
 //// VARIABLES
 $server_content_file = $root.'/app/pages/backend/content.json';
 
+// MIME
+$mimes = [
+            'txt'	=> 'text/plain',
+			'html'	=> 'text/html',
+			'md'	=> 'text/markdown',
+			'csv'	=> 'text/csv',
+			'css'	=> 'text/css',
+            'js'	=> 'text/javascript',
+            'svg'	=> 'image/svg+xml',
+            'png'	=> 'image/png',
+            'jpg'	=> 'image/jpg',
+            'jpeg'	=> 'image/jpg',
+			'tiff'	=> 'image/tiff',
+			'webp'	=> 'image/webp',
+			'zip'	=> 'application/zip',
+			'7z'	=> 'application/x-7z-compressed',
+			'json'	=> 'application/json',
+			'pdf'	=> 'application/pdf',
+			'sql'	=> 'application/sql',
+			'sqlite'=> 'application/vnd.sqlite3',
+			'odt'	=> 'application/vnd.oasis.opendocument.text',
+			'odp'	=> 'application/vnd.oasis.opendocument.presentation',
+			'ods'	=> 'application/vnd.oasis.opendocument.spreadsheet',
+			'docx'	=> 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+			'pptx'	=> 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+			'xlsx'	=> 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ];
+
+
 //// LIBRARIES
 // load libraries
 require_once $root . '/libraries/vendor/autoload.php';
@@ -117,10 +146,10 @@ function logger($file, $content, $action, $ip = true, $db_access = true) {
 }
 
 function scanner($work_path, $search, $replace='') {
+	global $mimes;
+	
 	// variables
-	$images_types = ['jpg', 'png', 'jpeg', 'tiff', 'webp'];
 	$data = [];
-	// scan cwd
 	$work_data = scandir($work_path);
 	
 	// recursive scan
@@ -129,16 +158,18 @@ function scanner($work_path, $search, $replace='') {
 		foreach($work_data as $filename) {
 			$file = $work_path.'/'.$filename;
 			$cwd = str_replace($search, $replace, $work_path);
+			$url = $cwd.'/'.$filename;
 			$ext = end(explode('.', $filename));
-			$type = $ext === 'pdf' ? 'application' : (in_array($ext, $images_types) ? 'image':'unknown');
+			$type = $mimes[$ext] ?? 'application/octet-stream';
 			if (is_file($file)) {
-				$data[] =  [
-							"name" => $filename,
-							"size" => filesize($file),
-							"type" => $type.'/'.$ext,
-							"created_at" => date("Y-m-d H:i:s", fileatime($file)),
-							"url" => $cwd.'/'.$filename,
-							"uploader" => "UNKNOWN",
+				$data[$url] =  [
+								"name"		=> $filename,
+								"size"		=> filesize($file),
+								"type" 		=> $type,
+								"created_at"=> date("Y-m-d H:i:s", fileatime($file)),
+								"url" 		=> $url,
+								"uploader"	=> "UNKNOWN",
+								"sha256"	=> hash_file('sha256', $file)
 							];
 			} else {
 				$data =  array_merge($data, scanner($file, $search, $replace));
@@ -157,80 +188,111 @@ function filesManager() {
 	$webpath = '/files/uploads';
 	$path = $serverroot . $webpath;
 	
-	/// fetch registered files
-	$query = $pdo->prepare("SELECT * from files;");
+	/// fetch registered files in database
+	$query = $pdo->prepare("SELECT url, name, status, sha256 FROM files;");
 	$query->execute();
-	$registered_data = $query->fetchAll(PDO::FETCH_ASSOC);
-	$registered_list = array_map(function ($item){return $item['url'];}, $registered_data);
+	$db_files = array_reduce($query->fetchAll(PDO::FETCH_ASSOC), fn ($carry, $item) => [...$carry, $item['sha256'] => $item], []);
 	
-	/// fetch physically existing files
-	$scanned_data = scanner($path, $serverroot);
-	$scanned_data = array_merge($scanned_data, scanner($root.'/app/admin/files', $root.'/app/admin', 'admin://'));
-	$scanned_list = array_map(function ($item){return $item['url'];}, $scanned_data);
+	/// fetch existing files on server
+	$server_files = array_merge(scanner($path, $serverroot), scanner($root.'/app/admin/files', $root.'/app/admin', 'admin://'));
 
 	/// Compare
-	// find existing not in registered, registered not in existing (update status = 0), correct files (update status = 1)
-	// in fronted, proposer d'ajouter les fichiers unregistered
-	$invalid_list = [];
-	$unregistered_list = [];
-	$recovered_list = [];
-	$changed_list = []; // based on file size
-	foreach($registered_data as $file) {// Detect recovered and invalid files - based on db
-		$status = in_array($file['url'], $scanned_list);
+	$invalid_list 		= []; // files missing from server
+	$unregistered_list 	= []; // files on server not in db
+	$changed_list 		= []; // content mismatch between db metadata and actual file
+	$recovered_list 	= []; // lost files detected on server
+	$replaced_list		= []; // lost files detected (filename) but different content
+	$duplicate_list		= []; // copy on server of another valid file
+	$moved_list			= []; // file with different path between server and db
+	
+	// Loop through db files
+	foreach($db_files as $file) {
+		$status = in_array($file['url'], array_keys($server_files));
 		
-		if (!$status && $file['status']) {// file not available but supposed to be
-			$invalid_list[] = ['name' => $file['name'], 'path' => $file['url']];
+		// file in db not found on server whereas it should
+		if (!$status && $file['status']) {
+			// work variable to easily find a possible content match
+			$server_files_reduced = array_reduce($server_files, fn ($carry, $item) => [...$carry, $item['url'] => $item['sha256']], []);
 
-			// update status in db
-			$sql = "UPDATE files SET status = FALSE WHERE url = :url;";
-			$query = $pdo->prepare($sql);
-			$query->execute([':url' => $file['url']]);
-			logger('/log/files.log', queryMaker($sql, [':url' => $file['url']]), 'Update file status');
-		
-		} elseif ($status && !$file['status']) {// unavailable filepath actually scanned
-			// extract corresponding filedata of scanned file matching registered file
-			foreach ($scanned_data as $scan) {
-				if ($scan['url'] === $file['url']) {
-					$ref = $scan; // ref is necesserally defined because a match was found
-					break;
-				}
-			}
-
-			// compare metadata
-			$check = true && $file['name'] === $ref['name'] && $file['size'] === $ref['size'];
-
-			// conclude
-			if ($check) {
-				$recovered_list[] = ['name' => $file['name'], 'path' => $file['url']];
-
-				// update status in db
-				$sql = "UPDATE files SET status = TRUE WHERE url = :url;";
-				$query = $pdo->prepare($sql);
-				$query->execute([':url' => $file['url']]);
-				logger('/log/files.log', queryMaker($sql, [':url' => $file['url']]), 'Update file status');
+			// another file with same content found on server
+			if (in_array($file['sha256'], array_values($server_files_reduced))) {
+				$moved_list[] = ['name' => $file['name'], 'path' => $file['url'], 'new_path' => array_search($file['sha256'], $server_files_reduced), 'sha256' => $file['sha256']];
+			
+			// no file on server found that match content
+			} else {
+				$invalid_list[] = ['name' => $file['name'], 'path' => $file['url']];
 			}
 		
+		// file matched on server with same url as current db entry
 		} elseif ($status) {
-			// extract corresponding filedata of scanned file matching registered file
-			foreach ($scanned_data as $scan) {
-				if ($scan['url'] === $file['url']) {
-					$ref = $scan; // ref is necesserally defined because a match was found
-					break;
-				}
-			}
+			// get metadata of matched file
+			$ref = $server_files[$file['url']];
 
-			// conclude
-			if ($file['size'] !== $ref['size']) {// file in db different from file on server
-				$changed_list[] = ['name' => $file['name'], 'path' => $file['url']];
+			// no matching file was expected on server
+			if (!$file['status']) {
+				// match has same content
+				if ($file['sha256'] === $ref['sha256']) {
+					$recovered_list[] = ['name' => $file['name'], 'path' => $file['url'], 'sha256' => $file['sha256']];
+				
+				// match has same url but content differs
+				} else {
+					$replaced_list[] = ['name' => $file['name'], 'path' => $file['url'], 'current_sha256' => $ref['sha256'], 'saved_sha256' => $file['sha256']];
+				}
+			
+			// a match was expected: check file content integrity
+			} elseif ($file['status'] && $file['sha256'] !== $ref['sha256']) {
+				$changed_list[] = ['name' => $file['name'], 'path' => $file['url'], 'current_sha256' => $ref['sha256'], 'saved_sha256' => $file['sha256']];
 			}
 		}
 	}
-	foreach($scanned_data as $file) {// Detect unregistered files - based on scan
-		$status = in_array($file['url'], $registered_list);
-		$status ? null:$unregistered_list[] = ['name' => $file['name'], 'path' => $file['url']];
+
+	// Loop through server files
+	foreach($server_files as $file) {
+		$status = in_array($file['url'], array_map(fn ($item) => $item['url'], $db_files));
+		$server_files_reduced = array_reduce($server_files, fn ($carry, $item) => [...$carry, $item['url'] => $item['sha256']], []);
+		// file only on server (no matching entry in db)
+			// case with matching entry in db already handled
+		if (!$status) {
+			// content match found with a db entry
+			if (in_array($file['sha256'], array_keys($db_files))) {
+				$ref = $db_files[$file['sha256']];
+				
+				// no linked file in: define first matching server file as moved
+				if (!$ref['status'] && !in_array($file['sha256'], array_map(fn ($item) => $item['sha256'], $moved_list + $recovered_list))) {
+					$moved_list[] = ['name' => $file['name'], 'old_path' => $ref['url'], 'new_path' => $file['url'], 'sha256' => $file['sha256']];
+				
+				// the match already has its linked file: current file is a duplicate
+				} elseif (!in_array($file['url'], array_map(fn ($item) => $item['new_path'], $moved_list))) {
+					$duplicate_list[] = ['name' => $file['name'], 'path' => $file['url'], 'original' => $ref['url'], 'sha256' => $file['sha256']];
+				}
+
+			// no content match in db: new file
+			} else {
+				$unregistered_list[] = ['name' => $file['name'], 'path' => $file['url'], 'sha256' => $file['sha256'], 'server' => $server_files, 'db' => $db_files];
+			}
+		}
 	}
 
-	return ['invalid' => $invalid_list, 'unregistered' => $unregistered_list, 'recovered' => $recovered_list, 'changed' => $changed_list];
+	// update status in db
+	if ($recovered_list) {
+		$sql = "UPDATE files SET status = TRUE WHERE url IN (".implode(',',array_fill(0, count($recovered_list), '?')).");";
+		$query = $pdo->prepare($sql)->execute(array_map(fn ($item) => $item['path'], $recovered_list));
+		logger('/log/files.log', queryMaker($sql, array_map(fn ($item) => $item['path'], $recovered_list)), 'Update files status');
+	}
+
+	if ($invalid_list) {
+		$sql = "UPDATE files SET status = FALSE WHERE url IN (".implode(',',array_fill(0, count($invalid_list), '?')).");";
+		$query = $pdo->prepare($sql)->execute(array_map(fn ($item) => $item['path'], $invalid_list));
+		logger('/log/files.log', queryMaker($sql, array_map(fn ($item) => $item['path'], $invalid_list)), 'Update files status');
+	}
+
+	if ($moved_list) {
+		$sql = "UPDATE files SET status = FALSE WHERE url IN (".implode(',',array_fill(0, count($moved_list), '?')).");";
+		$query = $pdo->prepare($sql)->execute(array_map(fn ($item) => $item['path'], $moved_list));
+		logger('/log/files.log', queryMaker($sql, array_map(fn ($item) => $item['path'], $moved_list)), 'Update files status');
+	}
+
+	return ['invalid' => $invalid_list, 'unregistered' => $unregistered_list, 'recovered' => $recovered_list, 'changed' => $changed_list, 'replaced' => $replaced_list, 'duplicate' => $duplicate_list, 'moved' => $moved_list];
 }
 
 // parse sql queries with parameters

@@ -69,10 +69,13 @@ if ($_SESSION['role'] !== 'admin') {
 							position: relative;
 							
 							&[active] {display: block;}
-							&.unregistered {border-color: #500c7e;background-color: #500c7e15;}
-							&.invalid {border-color: red; background-color: #f92f2f15;}
+							&.invalid	{border-color: red; background-color: #f92f2f15;}
+							&.moved 	{border-color: maroon; background-color: #52352415;}
+							&.changed	{border-color: orange; background-color: #f9972f15;}
+							&.replaced	{border-color: violet; background-color: #8c378f15;}
 							&.recovered {border-color: green; background-color: #43f92f15;}
-							&.changed {border-color: orange; background-color: #f9972f15;}
+							&.unregistered {border-color: #500c7e;background-color: #500c7e15;}
+							&.duplicate {border-color: darkcyan; background-color: #53769415;}
 
 							& .json-container {
 									background-color:  unset !important;
@@ -135,6 +138,36 @@ if ($_SESSION['role'] !== 'admin') {
 			</div>			
 
 			<div class="scan-info-wrap">
+				<div class="files-wrap invalid">
+					<div class='icon float cross small hoverable' onclick="closer(event)" forced></span></div>
+					<div class="desc"></div>
+					<div class="container"></div>
+				</div>
+				
+				<div class="files-wrap moved">
+					<div class='icon float cross small hoverable' onclick="closer(event)" forced></div>
+					<div class="desc"></div>
+					<div class="container"></div>
+				</div>
+
+				<div class="files-wrap changed">
+					<div class='icon float cross small hoverable' onclick="closer(event)" forced></span></div>
+					<div class="desc"></div>
+					<div class="container"></div>
+				</div>
+
+				<div class="files-wrap replaced">
+					<div class='icon float cross small hoverable' onclick="closer(event)" forced></span></div>
+					<div class="desc"></div>
+					<div class="container"></div>
+				</div>
+
+				<div class="files-wrap recovered">
+					<div class='icon float cross small hoverable' onclick="closer(event)" forced></span></div>
+					<div class="desc"></div>
+					<div class="container"></div>
+				</div>
+
 				<div class="files-wrap unregistered">
 					<div class='icon float cross small hoverable' onclick="closer(event)" forced></div>
 					<div class="desc"></div>
@@ -149,21 +182,9 @@ if ($_SESSION['role'] !== 'admin') {
 						</div>
 					</div>
 				</div>
-				
-				<div class="files-wrap invalid">
-					<div class='icon float cross small hoverable' onclick="closer(event)" forced></span></div>
-					<div class="desc"></div>
-					<div class="container"></div>
-				</div>
 
-				<div class="files-wrap changed">
-					<div class='icon float cross small hoverable' onclick="closer(event)" forced></span></div>
-					<div class="desc"></div>
-					<div class="container"></div>
-				</div>
-
-				<div class="files-wrap recovered">
-					<div class='icon float cross small hoverable' onclick="closer(event)" forced></span></div>
+				<div class="files-wrap duplicate">
+					<div class='icon float cross small hoverable' onclick="closer(event)" forced></div>
 					<div class="desc"></div>
 					<div class="container"></div>
 				</div>
@@ -330,13 +351,13 @@ if ($_SESSION['role'] !== 'admin') {
 						notify("Scan en cours", "Analyse en cours des fichiers stockés sur le serveur et enregistrés dans la base de données.", 'orange')
 						e?.target.show()
 						
-						const types = ['unregistered', 'invalid', 'recovered', 'changed']
+						const types = ['invalid', 'moved', 'changed', 'replaced', 'recovered', 'unregistered', 'duplicate']
 						types.forEach(type => Section(`files-wrap.${type}`).hide())
 
 						// update data on server
 						const jsonData = JSON.stringify({'csrf':csrfToken, 'action':'scan'})
 						const files = await fetchAPI('/admin/engine/files', jsonData).then(response => response.body)
-
+						console.log(files)
 						types.forEach(async type => {
 							const data = files[type]
 							
@@ -347,10 +368,13 @@ if ($_SESSION['role'] !== 'admin') {
 								const container = wrap.section('container')
 								
 								const descMatch = {
-									'unregistered': `<strong>${nb} fichier${plural}</strong> sur le serveur ${nb > 1 ? 'ont':'a'} été détecté${plural} sans être enregistré${plural} dans la base de données :`,
-									'invalid': `<strong>${nb} fichier${plural}</strong> enregistré${plural} dans la base de données n'existe${nb > 1 ? 'nt':''} plus sur le serveur :<br><small><i>${nb > 1 ? 'Leur':'Son'} status a été mis à jour.</i></small>`,
-									'recovered': `<strong>${nb} fichier${plural}</strong> enregistré${plural} dans la base de données mais réputé${plural} inaccessible${plural} ${nb > 1 ? 'ont':'a'} été détecté${plural} sur le serveur :<br><small><i>${nb > 1 ? 'Leur':'Son'} status a été mis à jour.</i></small>`,
-									'changed': `<strong>${nb} fichier${plural}</strong> enregistré${plural} dans la base de données différent${plural} ${plural} ${nb > 1 ? 'des':'du'} fichier${plural} détecté${plural} sur le serveur.`
+									'invalid'		: `<strong>${nb} fichier${plural}</strong> enregistré${plural} dans la base de données n'existe${nb > 1 ? 'nt':''} plus sur le serveur :<br><small><i>${nb > 1 ? 'Leur':'Son'} status a été mis à jour.</i></small>`,
+									'moved'			: `<strong>${nb} fichier${plural}</strong> enregistré${plural} dans la base de données ${nb > 1 ? 'ont':'a'} été détecté${plural} à un autre emplacement sur le serveur.`,
+									'changed'		: `<strong>${nb} fichier${plural}</strong> enregistré${plural} dans la base de données ${nb > 1 ? 'ont':'a'} un contenu différent ${nb > 1 ? 'des':'du'} fichier${plural} détecté${plural} sur le serveur.`,
+									'replaced'		: `<strong>${nb} fichier${plural}</strong> enregistré${plural} dans la base de données mais manquant${plural} ${nb > 1 ? 'ont':'a'} été détecté${plural} sur le serveur avec un contenu différent :`,
+									'recovered'		: `<strong>${nb} fichier${plural}</strong> enregistré${plural} dans la base de données mais réputé${plural} inaccessible${plural} ${nb > 1 ? 'ont':'a'} été détecté${plural} sur le serveur :<br><small><i>${nb > 1 ? 'Leur':'Son'} status a été mis à jour.</i></small>`,
+									'unregistered'	: `<strong>${nb} fichier${plural}</strong> sur le serveur ${nb > 1 ? 'ont':'a'} été détecté${plural} sans être enregistré${plural} dans la base de données :`,
+									'duplicate'		: `<strong>${nb} doublon${plural}</strong> de fichiers enregistrés dans la base de données détecté${plural}.`
 								}
 								
 								container.innerHTML = '';
@@ -489,7 +513,7 @@ if ($_SESSION['role'] !== 'admin') {
 						notify("Téléversement en cours", "Le fichier sélectionné est en cours d'ajout sur le serveur.", 'orange')
 						
 						const adminCheck = Overlay('uploader').input('admin-check').checked
-						const file = fileTag.files[0]
+						const file = Overlay('uploader').input('file').files[0]
 						const url  = (adminCheck ? 'admin:///files/' : '/files/uploads/') + file.name
 						const formData = new FormData(form)
 						

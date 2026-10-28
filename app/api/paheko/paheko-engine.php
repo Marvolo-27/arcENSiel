@@ -228,6 +228,19 @@ if ($action === 'download') {
         exit;
     }
 
+    // Check file uniqueness (sha256)
+	$query = $pdo->prepare("SELECT sha256, url FROM files");
+	$query->execute();
+	$files_list = array_reduce($query->fetchAll(PDO::FETCH_ASSOC), fn ($carry, $item) => [...$carry, $item['sha256'] => $item['url']], []);
+	$hash = hash_file('sha256', $datapath.$filename);
+
+	if (in_array($hash, array_keys($files_list))) {
+		http_response_code(500);
+		echo json_encode(['error' => "Backup in database failed for file '".$filename."'".PHP_EOL."Identical content found in file '".$files_list[$hash]."'.", 'available' => true, 'data' => ['type' => $mime, 'content' => $base64, 'name' => $filename]]);
+		logger('/log/files.log', "Duplicate backup file could not be inserted in database.", 'Failed: save backup');
+		exit;
+	}
+    
     // move downloaded file to its end destination
     $dest = $root."/app/admin/files/backup/$filename";
 	if (rename($datapath.$filename, $dest)) {
@@ -241,15 +254,15 @@ if ($action === 'download') {
 
     // add file entry if required
     if ($mode === 'backup') {
-        $sql = "INSERT INTO files (name, url, used_by, size, description, type, status, uploader, category, subcategory) VALUES (:name, :url, :reference, :size, :desc, :type, TRUE, :user, 'sauvegarde', '$type')"; // safe bc $type value already tested
+        $sql = "INSERT INTO files (name, url, size, description, type, status, uploader, sha256) VALUES (:name, :url, CAST(:size AS UNSIGNED), :desc, :type, TRUE, :user, :sha)"; // safe bc $type value already tested
         $params = [
                 ':name' => $filename,
                 ':url' => "admin:///files/backup/$filename",
-                ':reference' => null,
                 ':size' => filesize($dest),
-                ':desc' => $description,
                 ':type' => $mime,
+                ':desc' => $description,
                 ':user' => $_SESSION['username'],
+                ':sha'  => $hash
             ];
 
         $query = $pdo->prepare($sql);
