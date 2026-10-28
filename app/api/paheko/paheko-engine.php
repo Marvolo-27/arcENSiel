@@ -69,7 +69,7 @@ function curlQuery($slug, $file_object=false, $postData=false) {
 
     if (curl_errno($ch)) {
         //curl_close($ch);
-		return ['succes' => false, 'error' => '[ERROR] HTTP code: '.curl_getinfo($ch, CURLINFO_HTTP_CODE), 'code' => curl_getinfo($ch, CURLINFO_HTTP_CODE)];
+		return ['succes' => false, 'error' => curl_error($ch), 'code' => curl_errno($ch)];
 	}
 
     //curl_close($ch);
@@ -82,9 +82,9 @@ if ($action === 'fetch') {
     $fetch = curlQuery('/user/categories');
 
     if (!$fetch['success']) {
-        http_response_code(($fetch['code']));
-        echo json_encode(['error' => '[Paheko API] Failed fetching categories.']);
-        logger('/log/paheko.log', "Failed fetching list of categories.", '[ERROR] Failed: fetch categories');
+        http_response_code(500);
+        echo json_encode(['error' => "[Paheko API] Failed fetching categories: ({$fetch['code']}) {$fetch['error']}"]);
+        logger('/log/paheko.log', "Failed fetching list of categories: ({$fetch['code']}) {$fetch['error']}", '[ERROR] Failed: fetch categories');
         exit;
     } else {
         $categories = $fetch['data'];
@@ -96,9 +96,9 @@ if ($action === 'fetch') {
     $fetch = curlQuery('/sql', false, $query);
 
     if (!$fetch['success']) {
-        http_response_code(($fetch['code']));
-        echo json_encode(['error' => '[Paheko API] Failed fetching services.']);
-        logger('/log/paheko.log', "Failed fetching list of services.", '[ERROR] Failed: fetch services');
+        http_response_code(500);
+        echo json_encode(['error' => "[Paheko API] Failed fetching services: : ({$fetch['code']}) {$fetch['error']}"]);
+        logger('/log/paheko.log', "Failed fetching list of services: : ({$fetch['code']}) {$fetch['error']}", '[ERROR] Failed: fetch services');
         exit;
     } else {
         $services = $fetch['data']['results'];
@@ -111,9 +111,9 @@ if ($action === 'fetch') {
         $fetch = curlQuery("/user/category/".$cat['id'].".json");
 
         if (!$fetch['success']) {
-            http_response_code(($fetch['code']));
-            echo json_encode(['error' => "[Paheko API] Failed fetching members of category '".$cat['name']."'."]);
-            logger('/log/paheko.log', "Failed fetching members of category '".$cat['name']."'.", '[ERROR] Failed: fetch category content');
+            http_response_code(500);
+            echo json_encode(['error' => "[Paheko API] Failed fetching members of category '".$cat['name']."': : ({$fetch['code']}) {$fetch['error']}"]);
+            logger('/log/paheko.log', "Failed fetching members of category '".$cat['name']."': : ({$fetch['code']}) {$fetch['error']}", '[ERROR] Failed: fetch category content');
             exit;
         } else {
             $wk_category = $fetch['data'];
@@ -135,9 +135,9 @@ if ($action === 'fetch') {
          $fetch = curlQuery('/sql', false,  $query);
 
         if (!$fetch['success']) {
-            http_response_code(($fetch['code']));
-            echo json_encode(['error' => "[Paheko API] Failed fetching services members ".(($i - 1)*1000 + 1).'-'.($i*1000)."."]);
-            logger('/log/paheko.log', "Failed fetching services members ".(($i - 1)*1000 + 1).'-'.($i*1000).".", '[ERROR] Failed: fetch services members');
+            http_response_code(500);
+            echo json_encode(['error' => "[Paheko API] Failed fetching services members ".(($i - 1)*1000 + 1).'-'.($i*1000).": : ({$fetch['code']}) {$fetch['error']}"]);
+            logger('/log/paheko.log', "Failed fetching services members ".(($i - 1)*1000 + 1).'-'.($i*1000).": : ({$fetch['code']}) {$fetch['error']}", '[ERROR] Failed: fetch services members');
             exit;
         } else {
             $wk_user = $fetch['data']['results'];
@@ -151,9 +151,9 @@ if ($action === 'fetch') {
     $fetch = curlQuery('/sql', false, $query);
 
     if (!$fetch['success']) {
-        http_response_code(($fetch['code']));
-        echo json_encode(['error' => '[Paheko API] Failed fetching goodies.']);
-        logger('/log/paheko.log', "Failed fetching list of goodies.", '[ERROR] Failed: fetch goodies');
+        http_response_code(500);
+        echo json_encode(['error' => "[Paheko API] Failed fetching goodies: ({$fetch['code']}) {$fetch['error']}"]);
+        logger('/log/paheko.log', "Failed fetching list of goodies: ({$fetch['code']}) {$fetch['error']}", '[ERROR] Failed: fetch goodies');
         exit;
     } else {
         $goodies = $fetch['data']['results'];
@@ -195,7 +195,7 @@ if ($action === 'download') {
         $mime = 'application/zip';
     } else {
         http_response_code(400);
-        echo json_encode(['error' => "Invalid download request: No type $type."]);
+        echo json_encode(['error' => "Invalid download request: No type $type.", 'available' => false]);
         exit;
     }
     
@@ -204,9 +204,9 @@ if ($action === 'download') {
     $fetch = curlQuery($url,  $file);
 
     if (!$fetch['success']) {
-        http_response_code(($fetch['code']));
-        echo json_encode(['error' => "[Paheko API] Failed downloading $type.", 'available' => false]);
-        logger('/log/paheko.log', "Failed downloading $type file.", "[ERROR] Failed: download $type.");
+        http_response_code(500);
+        echo json_encode(['error' => "[Paheko API] Failed downloading $type: ({$fetch['code']}) {$fetch['error']}", 'available' => false]);
+        logger('/log/paheko.log', "Failed downloading $type file: ({$fetch['code']}) {$fetch['error']}", "[ERROR] Failed: download $type.");
         exit;
     } else {
         logger('/log/paheko.log', "Paheko API $type file downloaded on server.", "Download $type.");
@@ -273,8 +273,8 @@ if ($action === 'download') {
             $query->execute();
             logger('/log/files.log', queryMaker($sql, $params), 'Insert file in db');
         } catch (PDOException $e) {
-            http_response_code(250); // access authorized so success but failed to ouput sql
-            echo json_encode( ['code' => 500, 'error' => json_encode($e), 'available' => true, 'data' => ['type' => $mime, 'content' => $base64, 'name' => $filename]]);
+            http_response_code(500); // access authorized so success but failed to ouput sql
+            echo json_encode( ['error' => json_encode($e), 'available' => true, 'data' => ['type' => $mime, 'content' => $base64, 'name' => $filename]]);
             logger('/log/files.log', json_encode($e), '[ERROR] Failed: insert file in db');
             exit;
         }

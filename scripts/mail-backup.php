@@ -93,7 +93,7 @@ foreach ($untreated_mails as $mail_file) {
         if ($reponse['status'] === 0) {
             logger('/log/mail.log', "Transferred mail {{$id}} to arcENSiel mailbox: ", 'Transfer mail');
         } else {
-            logger('/log/mail.log', "Could not transfer mail {{$id}} to arcENSiel mailbox. Check logs for more details.", '[ERROR] Failed: Transfer mail');
+            logger('/log/mail.log', "Could not transfer mail {{$id}} to arcENSiel mailbox. ERROR: [{$response['status']}] {$response['error']}", '[ERROR] Failed: Transfer mail');
         }
     }
 }

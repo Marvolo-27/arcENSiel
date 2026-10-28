@@ -165,6 +165,7 @@ if ($file_uploaded) {// File object passed = image uploaded
 	if (in_array($hash, array_keys($files_list))) {
         $path = $files_list[$hash];
         $file_uploaded = false;
+		logger('/log/files.log', "Uploaded file is a duplicate from {$files_list[$hash]}. Using it instead.", 'Reusing duplicate file');
     
     // stores picture in files
     } else {

@@ -72,6 +72,10 @@ function decode($name) {
 	return $password;
 }
 
+function truncate($str, $limit = 50) {
+	return strlen($str) <= $limit ? $str : substr($str, 0, $limit - 6).' [...]';
+}
+
 // log
 function logger($file, $content, $action, $ip = true, $db_access = true) {
 	global $root;
@@ -300,17 +304,17 @@ function queryMaker($rawQuery, $parameters) {
 	if (preg_match_all('#\?#', $rawQuery, $matches)) {// values bound w/ array -> positionnal
 		$query = $rawQuery;
 		foreach ($parameters as $value)	{
-			$query = preg_replace('#\?#', $value, $query, 1);
+			$query = preg_replace('#\?#', truncate($value), $query, 1);
 		}
 	} elseif (preg_match_all('#:[a-zA-Z]+#', $rawQuery, $matches)) {// values bound with parameters
 		$query = $rawQuery;
 		foreach ($parameters as $name => $value) {
-			$query = str_replace($name, $value, $query);
+			$query = str_replace($name, truncate($value), $query);
 		}
 	} else {
 		$query = $rawQuery;
 	}
-	return $query;
+	return truncate($query, 250);
 }
 
 // Size format
@@ -391,7 +395,7 @@ function sendMail($from = ['arcENSiel' => 'noreply@arcensiel.org'], $to = [], $r
 
 	// Check mails validity
 	foreach ($from + $to + $reply + $cc['mails'] as $email) {
-		if (!checkMail($email)) return ['status' => 2, 'context' => "$email"];
+		if (!checkMail($email)) return ['status' => 2, 'error' => "$email"];
 	}
 	
 	$mail = new PHPMailer(true);

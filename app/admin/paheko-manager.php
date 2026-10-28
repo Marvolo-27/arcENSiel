@@ -182,12 +182,15 @@ if ($_SESSION['role'] !== 'admin') {
 					const response = await fetchAPI('/api/paheko/download', jsonData)
 
 					if (!response.ok) {
-						notify("Erreur lors de la synchronisation", response.body.error, 'red')
-						
 						validate.enable()
 						cancel.enable()
 
-						if (!response.body.available) return
+						if (!response.body.available) {
+							notify("Erreur lors du téléchargement", response.body.error, 'red')
+							return
+						} else {
+							notify("Erreur lors de la synchronisation", response.body.error, 'orange')
+						}
 					}
 					
 					// Convert the base64 string to a byte array (required for blob): each byte of the file is represented as an integer in the array
