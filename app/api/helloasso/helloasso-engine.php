@@ -231,6 +231,28 @@ try {
         }
     }
     file_put_contents(__DIR__ . "/data/drama-queer-7.json", json_encode($eventsOut, JSON_PRETTY_PRINT));
+
+    // prepare DQ8 output
+    $compatibleOutput = json_decode(json_encode($output), true); // HelloAsso outputs is a special data type which doesn't allow direct acces with associative arrays
+    $eventsOut = [];
+    foreach ($compatibleOutput['ordersList'] as $order) {
+        if ($order['formSlug'] === "drama-queer-8") {
+            foreach ($order['items'] as $item) {
+                $eventsOut[] = [
+                    'identity' => $item['user']['firstName'] . ' ' . strtoupper($item['user']['lastName']),
+                    'paymentsID' => $order['payments'] !== null ? reset($order['payments'])['id'] : null,
+                    'id' => $item['id'],
+                    'date' => $order['date'],
+                    'receipts' => $order['payments'] !== null ? reset($order['payments'])['paymentReceiptUrl'] : null,
+                    'ticket' => $item['ticketUrl'],
+                    'amount' => $item['amount'],
+                    'item' => $item['name'],
+                    'student' => $item['customFields'][0]['answer'],
+                ];
+            }
+        }
+    }
+    file_put_contents(__DIR__ . "/data/drama-queer-8.json", json_encode($eventsOut, JSON_PRETTY_PRINT));
 	
     http_response_code(200);
 	echo json_encode( ['message' => 'Data synchronized']);

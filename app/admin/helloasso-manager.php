@@ -65,12 +65,17 @@ if ($_SESSION['role'] !== 'admin') {
 						<input class='checkbox' type='radio' id="dq7-btn" name="table" value="dq7">
 						<label class='tag-item option blue' for="dq7-btn">Drama Queer 7</label>
 					</span>
+					<span>
+						<input class='checkbox' type='radio' id="dq8-btn" name="table" value="dq8">
+						<label class='tag-item option blue' for="dq8-btn">Drama Queer 8</label>
+					</span>
 				</div>
 			</div>
 
 			<div class='table no-bound' id='helloasso'></div>
 			<div class='table no-bound' id='goodies'></div>
 			<div class='table no-bound' id='dq7'></div>
+			<div class='table no-bound' id='dq8'></div>
 			
 			<div class="actions-wrap data-actions linear">
 				<div class='action-container'>
@@ -95,12 +100,14 @@ if ($_SESSION['role'] !== 'admin') {
 				await fetchHA('#helloasso')
 				await fetchGoodies('#goodies')
 				await fetchDQ7('#dq7')
+				await fetchDQ8('#dq8')
 				
 				// easy match table with their type
 				tableMatch = {
 							'helloasso': {'table': haTable, 'node': Table('helloasso'), 'source': JSON.stringify(haTable.getData()), 'call': fetchHA, 'type': 'helloasso', 'selector': '#helloasso'},
 							'goodies': {'table': goodiesTable, 'node': Table('goodies'), 'source': JSON.stringify(goodiesTable.getData()), 'call': fetchGoodies, 'type': 'goodies', 'selector': '#goodies'},
-							'dq7': {'table': dq7Table, 'node': Table('dq7'), 'source': JSON.stringify(dq7Table.getData()), 'call': fetchDQ7, 'type': 'dq7', 'selector': '#dq7'}
+							'dq7': {'table': dq7Table, 'node': Table('dq7'), 'source': JSON.stringify(dq7Table.getData()), 'call': fetchDQ7, 'type': 'dq7', 'selector': '#dq7'},
+							'dq8': {'table': dq8Table, 'node': Table('dq8'), 'source': JSON.stringify(dq7Table.getData()), 'call': fetchDQ8, 'type': 'dq8', 'selector': '#dq8'}
 							}
 				activeTable = tableMatch[activeTable?.type] // Force active table update
 

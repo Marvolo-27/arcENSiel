@@ -471,6 +471,39 @@ async function fetchDQ7(target) {
 			return sourcedata
 			}
 
+// DQ7 Table
+async function fetchDQ8(target) {
+			const sourcedata = await fetchAPI('/api/helloasso/get/drama-queer-8').then(response => response.body)
+
+			dq8Table = new Tabulator(target, {
+				data: sourcedata,
+				layout: "fitDataFill",
+				rowHeight: 36,
+				pagination:true,
+				paginationSize:20,
+				paginationSizeSelector:[5, 10, 20, 50, 100, 200],
+				paginationCounter:"rows",
+				columns: [
+				{title: "", field: "receipts", formatter: cell => cell.getValue() !== null ?
+															`<span>
+																<a href="${cell.getValue()}" target="_blank_" class='icon receipt inline dynamic' title="Reçu du paiement"></a>
+															</span>` : null, resizable: false},
+				{title: "", field: "ticket", formatter: cell => cell.getValue() !== null ?
+															`<span>
+																<a href="${cell.getValue()}" target="_blank_" class='icon ticket inline dynamic' title="Billet"></a>
+															</span>` : null, resizable: false, frozen: true},
+				{ title: "Transaction ID", field: "id", resizable: false},
+				{ title: "Payment ID", field: "paymentsID"},
+				{ title: "Date", field: "date", formatter: cell => cellFormatter(cell, 'date'), resizable: false},
+				{ title: "Identité", field: "identity", headerFilter: true},
+				{ title: "Montant", field: "amount", width: 100, mutator: value => value/100, formatter: cell => cellFormatter(cell, 'price'), hozAlign: "center"},
+				{ title: "Tier", field: "item", headerFilter:'list', headerFilterParams: {'values': pricesList}},
+				{ title: "Étudiant·e ?", field: "student", headerFilter:'list', headerFilterParams: {'values': ['Oui','Non']}, hozAlign: 'center'}
+				]})
+			
+			return sourcedata
+			}
+
 // Paheko categories table
 async function fetchGroups(target) {
 			const sourcedata = await fetchAPI('/api/paheko/get/composition').then(response => response.body)
