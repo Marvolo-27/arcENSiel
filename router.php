@@ -125,9 +125,9 @@ if (preg_match('#^/admin/#', $request_url)) {
             exit;
         }
     
-    // view logs
-    } elseif (preg_match('#/logs$#', $request_url)) {
-        require $root . '/app/admin/logs-viewer.php';
+    // view logs / mails
+    } elseif (preg_match('#/(logs|mail)$#', $request_url, $matches)) {
+        require $root . '/app/admin/'.$matches[1].'-viewer.php';
         exit;
     
     // admin pages requests - manager

@@ -66,6 +66,8 @@ if ($action === 'fetch') {
 		$sql = "SELECT categories.id AS id, categories.slug AS slug, categories.name AS name, sections.slug AS section, removable, COUNT(file_id) AS files FROM categories JOIN sections ON section_id = sections.id LEFT JOIN files_categories ON categories.id = category_id GROUP BY categories.slug";
 	} elseif ($type === 'logs') {
 		$sql = "SELECT * FROM logs ORDER BY time DESC";
+	} elseif ($type === 'mails') {
+		$sql = "SELECT m.message_id AS id, m.mode AS type, m.sent_from AS sender, m.send_to AS recipient, m.recipients AS recipients, m.cc AS cc, m.subject AS subject, CASE WHEN m.mode = 'sent' THEN m.sent_at WHEN m.mode = 'received' THEN m.received_at END AS time, m.html_body AS content, m.attachments AS attachments, r.message_id AS link FROM mails m LEFT JOIN mails r ON m.reference = r.sha256";
 	}
 	
 	$query = $pdo->prepare($sql);

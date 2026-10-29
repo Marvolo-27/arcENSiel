@@ -46,7 +46,7 @@ if ($_SESSION['role'] !== 'admin') {
 			<div class="head-info">
 				<a class='icon go-back inline large hoverable dynamic' href="/admin/dashboard"></a>	
 				<h1>Fichiers logs</h1>
-				<div class='icon refresh inline large hoverable dynamic' title="Synchroniser les données"></div>
+				<div class='icon refresh inline large hoverable dynamic' title="Synchroniser les logs" data-type="logs"></div>
 			</div>
 			
 			<div class="box filters">
@@ -123,17 +123,7 @@ if ($_SESSION['role'] !== 'admin') {
 				tablesSwitcher()
 		}
 
-		Icon('refresh').onclick = logUpdater
-		async function logUpdater(e) {
-			const icon = e.target
-			icon.show()
-			icon.setAttribute('title','Synchronisation des logs')
-			notify("Synchronisation en cours", "Récupération des logs depuis la base de données.", 'orange')
-			await tablesBuilder()
-			notify("Synchronisation terminée", "Les logs ont correctement été synchronisés.", 'green')
-			icon.setAttribute('title','Synchroniser les logs')
-			icon.hide()
-			}
+		Icon('refresh').onclick = viewerSync
 		</script>
 	</body>
 </html>

@@ -354,6 +354,22 @@ function download(blob, name) {
 	setTimeout(function() { URL.revokeObjectURL(c.href); }, 1500)
 }
 
+// View file
+function viewFile(raw, mime, activeOverlay=null) {
+	const url = raw.replace(/admin:\/\//, '/admin')
+	const [type, extension] = mime.split('/')
+	
+	if ((type === 'application' && ['pdf', 'sql'].includes(extension)) || type === 'text') {
+		Overlay('preview').section('file-preview').child('iframe').src = url
+		Overlay('preview').section('file-preview').child('iframe').show()
+	} else if (type === 'image') {
+		Overlay('preview').section('file-preview').child('img').src = url
+	}
+	Overlay('preview').toggle()
+	Overlay(activeOverlay)?.toggle()
+	pendingAction = {'overlay': activeOverlay}
+}
+
 // API request
 async function fetchAPI(url, data=null) {
 	// config request

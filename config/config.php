@@ -376,7 +376,7 @@ function checkMail($email) {
 	return ($test_glob && !$test_fine);
 }
 
-function sendMail($from = ['arcENSiel' => 'noreply@arcensiel.org'], $to = [], $reply = [], $cc = ['enforce' => false, 'mails' => []], $subject = null, $body = null, $attachments = [], $confidential = false) {
+function sendMail($from = ['arcENSiel' => 'noreply@arcensiel.org'], $to = [], $reply = [], $cc = ['enforce' => false, 'mails' => []], $subject = null, $body = null, $attachments = [], $confidential = false, $reference = null) {
 	/*
 	retuns {status:status, context:context}
 
@@ -458,7 +458,7 @@ function sendMail($from = ['arcENSiel' => 'noreply@arcensiel.org'], $to = [], $r
 			$hash = hash('sha256', $maildata);
 
 			// DB insertion
-			$sql = "INSERT INTO mails (mode, sha256, message_id, sent_from, send_to, recipients, cc, subject, sent_at, received_at, text_body, html_body, attachments, size) VALUES(:mode, :sha, :id, :from, :recipient, :to, :cc, :subject, :sent, :received, :text, :html, :attach, CAST(:size AS UNSIGNED));";
+			$sql = "INSERT INTO mails (mode, sha256, message_id, sent_from, send_to, recipients, cc, subject, sent_at, received_at, text_body, html_body, attachments, size, reference) VALUES(:mode, :sha, :id, :from, :recipient, :to, :cc, :subject, :sent, :received, :text, :html, :attach, CAST(:size AS UNSIGNED), :ref);";
 			$params = [
 						':mode' =>		'sent',
 						':sha' =>       $hash,
@@ -473,7 +473,8 @@ function sendMail($from = ['arcENSiel' => 'noreply@arcensiel.org'], $to = [], $r
 						':size' =>      strlen($maildata),
 						':sent' =>      date('Y-m-d H:i:s', time()),
 						':received' =>	null,
-						':attach' =>    $attachments ?: null
+						':attach' =>    $attachments ?: null,
+						':ref' =>		$reference
                 		];
 
 			try {

@@ -358,6 +358,50 @@ async function fetchLogs(target) {
             return sourcedata
 			}
 
+// Logs table
+async function fetchMails(target) {
+			const sourcedata = await dataFetcher('mails');
+			
+			const types = {'sent': 'Envoyé', 'received': 'Reçu'}
+
+			mailsTable = new Tabulator(target, {
+				data: sourcedata,
+				layout: "fitDataFill",
+				pagination:true,
+				paginationSize:20,
+				paginationSizeSelector:[5, 10, 20, 50, 100, 200, 500],
+				paginationCounter:"rows",
+				rowHeight: 36,
+				columns: [
+					{ title: "", field: "actions", mutator: (value, data) => data.url, formatter: cell => 
+							`<span>
+									<div class='icon view inline visualize dynamic hoverable' 'title="Consulter le mail"></div>
+							</span>`, cellClick: (e, cell) => actionSwitch(e, cell), resizable: false, frozen: true},
+					{ title: "ID", field: "id", resizable: false},
+					{ title: "Date", field: "time", resizable: false},
+					{ title: "Sens", field: "type", visible: false, formatter: cell => types[cell.getValue()], resizable: false},
+					{ title: "Objet", field: "subject"},
+					{ title: "Expéditeurice", field: "sender", mutator: value => arrayFlatter(JSON.parse(value))},
+					{ title: "Destinataire·s", field: "recipients", mutator: value => arrayFlatter(JSON.parse(value))},
+					{ title: "Copies", field: "cc", visible: false, mutator: value => arrayFlatter(JSON.parse(value))},
+					{ title: "Corps", field: "content", visible: false},
+					{ title: "Pièces jointes", field: "attachments", formatter: cell => arrayFlatter(JSON.parse(cell.getValue()), 'filename')},
+					{ title: "Lié à", field: "link"},
+					],
+				})
+            
+			function actionSwitch(e, cell) {
+				const data = cell.getRow().getData()
+				const icon = e.target
+
+				if (icon.is('visualize.view')) {
+					viewMail(data)
+				}
+			}
+
+            return sourcedata
+			}
+
 // HelloAsso main table
 async function fetchHA(target) {
 			const sourcedata = await fetchAPI('/api/helloasso/get/all').then(response => response.body)
@@ -655,6 +699,10 @@ function cellFormatter(cell, type) {
 		}
 }
 
+function arrayFlatter(array, field = null) {
+		return Array.from(Object.values(array ?? [])).reduce((list, item) => [...list, field ? item[field] : item], []).join(', ')
+}
+
 //// UTILS FUNCTIONS
 // Fetch SQL data
 async function dataFetcher(type, extra=null, engine='database') {
@@ -670,6 +718,18 @@ async function dataFetcher(type, extra=null, engine='database') {
 		    return data
 		}
 
+// Sync viewer tables
+async function viewerSync(e) {
+		const icon = e.target
+		icon.show()
+		icon.setAttribute('title', `Synchronisation des ${icon.dataset.type}`)
+		notify("Synchronisation en cours", `Récupération des ${icon.dataset.type} depuis la base de données.`, 'orange')
+		await tablesBuilder()
+		notify("Synchronisation terminée", `Les ${icon.dataset.type} ont correctement été synchronisés.`, 'green')
+		icon.setAttribute('title', `Synchroniser les ${icon.dataset.type}`)
+		icon.hide()
+		}
+		
 async function saveCurrentData() {
 			const table = activeTable.table
 			const type = activeTable.type

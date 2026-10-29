@@ -145,6 +145,20 @@ if ($_SESSION['role'] !== 'admin') {
 					</div>
 					
 					<div class='grid-item-wrap'>
+						<a href="/admin/mail">
+							<div class='grid-item'>
+								<div class='article-poster poster-fg icon-style'>
+									<img src="/files/icons/mail.svg">
+								</div>
+								
+								<div class="grid-item-preview">
+									<span>Consulter les mails</span>
+								</div>
+							</div>
+						</a>
+					</div>
+
+					<div class='grid-item-wrap'>
 						<a href="/admin/logs">
 							<div class='grid-item'>
 								<div class='article-poster poster-fg icon-style'>
