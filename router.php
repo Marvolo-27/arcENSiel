@@ -174,10 +174,13 @@ if (preg_match('#^/api/.+#', $request_url)) {
         if (preg_match('#/get#', $request_url)) {
             $file = $root . '/app/api/'.$matches[1].'/data/' . $slug . '.json';
             
-            if (is_file($file)) {
-                require $file;
-                exit;
+            // Prevent 404 error
+            if (!is_file($file)) {
+                file_put_contents($file, '[]');
             }
+            
+            require $file;
+            exit;
         
         // API actions
         } else {
