@@ -217,20 +217,7 @@ if ($_SESSION['role'] !== 'admin') {
 			</div>
 			<input id='csrf' name='csrf-token' value=<?= $_SESSION['CSRF'] ?> data-csrf=<?= $_SESSION['CSRF'] ?> required hidden readonly>
 		</div>
-		
 
-		<div class="body-overlay" id="overlay-preview">
-			<div class="inner-overlay">
-				<div class="file-preview" active><img><iframe class="activable"></iframe></div>
-
-				<div class='external actions-wrap linear'>
-					<div class='action-container'>
-						<button class='action-btn close'>Fermer</button>
-					</div>
-				</div>
-			</div>
-		</div>
-		
 		<div class="body-overlay" id="overlay-deletion">
 			<div class="inner-overlay">
 				<div class="header">
@@ -270,6 +257,7 @@ if ($_SESSION['role'] !== 'admin') {
 		<?php $mode="global"; include($root . '/app/templates/overlay_file-uploader.php') ?>
 		<?php include($root . '/app/templates/overlay_authentification.html') ?>
 		<?php include($root . '/app/templates/overlay_validation.html') ?>
+		<?php include($root . '/app/templates/overlay_preview.html') ?>
 
 		<?php include($root . '/app/templates/footer.html') ?>
 		

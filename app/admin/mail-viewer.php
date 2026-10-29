@@ -69,18 +69,6 @@ if ($_SESSION['role'] !== 'admin') {
 			<input id='csrf' data-csrf=<?= $_SESSION['CSRF'] ?> hidden readonly>
 			<div class='table no-bound' id='mails' active></div>
 		</div>
-		
-		<div class="body-overlay" id="overlay-preview">
-			<div class="inner-overlay">
-				<div class="file-preview" active><img><iframe class="activable"></iframe></div>
-
-				<div class='external actions-wrap linear'>
-					<div class='action-container'>
-						<button class='action-btn close'>Fermer</button>
-					</div>
-				</div>
-			</div>
-		</div>
 
 		<div class="body-overlay" id="overlay-viewmail">
 			<div class="inner-overlay">
@@ -103,6 +91,8 @@ if ($_SESSION['role'] !== 'admin') {
 			</div>
 		</div>
 
+		<?php include($root . '/app/templates/overlay_preview.html') ?>
+		
 		<?php include($root . '/app/templates/footer.html') ?>
 		
 		<script>		
