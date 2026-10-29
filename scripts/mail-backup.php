@@ -35,10 +35,10 @@ function saveAttach($attachement, $hash) {
     return ['filename' => $file, 'size' => $size, 'mime' => $type, 'content' => base64_encode($data)];
 }
 
-$untreated_mails = glob($mail_dir . '/new/*');
-$unsent_mails = glob($mail_dir . '/unsent/*');
+$untreated_mails = array_reduce(glob($mail_dir . '/new/*'), fn ($carry, $item) => [...$carry, 'new' => $item], []);
+$untransferred_mails = array_reduce(glob($mail_dir . '/unsent/*'), fn ($carry, $item) => [...$carry, 'untransferred' => $item], []);
 
-foreach ($untreated_mails as $mail_file) {
+foreach ($untreated_mails as $type => $mail_file) {
     // get mail hash for uniqueness
     $data = file_get_contents($mail_file);
     $hash = hash('sha256', $data);
@@ -59,42 +59,43 @@ foreach ($untreated_mails as $mail_file) {
     $sent       = $mail->getHeader('Date')->getDateTime()?->format('Y-m-d H:i:s');
     $received   = $mail->getHeader('Received')->getDateTime()?->format('Y-m-d H:i:s');
     
-    $sql = "INSERT INTO mails (sha256, message_id, sent_from, send_to, recipients, cc, subject, sent_at, received_at, text_body, html_body, attachments, size) VALUES(:sha, :id, :from, :recipient, :to, :cc, :subject, :sent, :received, :text, :html, :attach, CAST(:size AS UNSIGNED));";
-    $params = [
-                ':sha' =>       $hash,
-                ':id'  =>       $id,
-                ':from' =>      $from,
-                ':recipient' => $recipient,
-                ':to' =>        $to,
-                ':cc' =>        $cc,
-                ':subject' =>   $subject,
-                ':text' =>      $text,
-                ':html' =>      $html,
-                ':size' =>      $size,
-                ':sent' =>      $sent,
-                ':received' =>  $received,
-                ':attach' =>    $attach
-                ];
+    // Insert new mails only
+    if ($type === 'new') {
+        $sql = "INSERT INTO mails (sha256, message_id, sent_from, send_to, recipients, cc, subject, sent_at, received_at, text_body, html_body, attachments, size) VALUES(:sha, :id, :from, :recipient, :to, :cc, :subject, :sent, :received, :text, :html, :attach, CAST(:size AS UNSIGNED));";
+        $params = [
+                    ':sha' =>       $hash,
+                    ':id'  =>       $id,
+                    ':from' =>      $from,
+                    ':recipient' => $recipient,
+                    ':to' =>        $to,
+                    ':cc' =>        $cc,
+                    ':subject' =>   $subject,
+                    ':text' =>      $text,
+                    ':html' =>      $html,
+                    ':size' =>      $size,
+                    ':sent' =>      $sent,
+                    ':received' =>  $received,
+                    ':attach' =>    $attach
+                    ];
 
-    try {
-        $query = $pdo->prepare($sql);
-        $query->execute($params);
-        logger('/log/mail.log', "Mail {{$id}} inserted in database.", 'Insert mail'); 
-    } catch (PDOException $e) {
-        logger('/log/mail.log', "Could not insert mail {{$id}} in database: ".json_encode($e), '[ERROR] Failed: Insert mail');
+        try {
+            $query = $pdo->prepare($sql);
+            $query->execute($params);
+            logger('/log/mail.log', "Mail {{$id}} inserted in database.", 'Insert mail'); 
+        } catch (PDOException $e) {
+            logger('/log/mail.log', "Could not insert mail {{$id}} in database: ".json_encode($e), '[ERROR] Failed: Insert mail');
+        }
     }
-}
-
-foreach ($untreated_mails + $unsent_mails as $mail_file) {
+    
     // Redirect mail if necessary
     if ($mail->getHeaderValue('X-Original-To') === 'contact@arcensiel.org') {
-        $response = sendMail(from: [array_key_first(json_decode($from, true)) => 'contact-request@arcensiel.org'], to: ['arcensiel.bureau@ens-lyon.fr'], reply: json_decode($from, true), subject: $subject, body: $html, attachments: json_decode($attach, true));
+        $response = sendMail(from: [array_key_first(json_decode($from, true)) => 'contact-request@arcensiel.org'], to: ['arcensiel.bureau@ens-lyon.fr'], reply: json_decode($from, true), subject: $subject, body: $html, attachments: json_decode($attach, true), reference: $hash);
 
         if ($reponse['status'] === 0) {
             rename($mail_file, $mail_dir . '/cur/' . end(explode('/', $mail_file)));
             logger('/log/mail.log', "Transferred mail {{$id}} to arcENSiel mailbox: ", 'Transfer mail');
         } else {
-            rename($mail_file, $mail_dir . '/unsent/' . end(explode('/', $mail_file)));
+            rename($mail_file, $mail_dir . '/untransferred/' . end(explode('/', $mail_file)));
             logger('/log/mail.log', "Could not transfer mail {{$id}} to arcENSiel mailbox. ERROR: [{$response['status']}] {$response['error']}", '[ERROR] Failed: Transfer mail');
         }
     
