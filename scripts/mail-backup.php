@@ -36,6 +36,7 @@ function saveAttach($attachement, $hash) {
 }
 
 $untreated_mails = glob($mail_dir . '/new/*');
+$unsent_mails = glob($mail_dir . '/unsent/*');
 
 foreach ($untreated_mails as $mail_file) {
     // get mail hash for uniqueness
@@ -78,23 +79,27 @@ foreach ($untreated_mails as $mail_file) {
     try {
         $query = $pdo->prepare($sql);
         $query->execute($params);
-        logger('/log/mail.log', "Mail {{$id}} inserted in database.", 'Insert mail');
-
-        rename($mail_file, $mail_dir . '/cur/' . end(explode('/', $mail_file)));
-    
+        logger('/log/mail.log', "Mail {{$id}} inserted in database.", 'Insert mail'); 
     } catch (PDOException $e) {
         logger('/log/mail.log', "Could not insert mail {{$id}} in database: ".json_encode($e), '[ERROR] Failed: Insert mail');
     }
+}
 
+foreach ($untreated_mails + $unsent_mails as $mail_file) {
     // Redirect mail if necessary
     if ($mail->getHeaderValue('X-Original-To') === 'contact@arcensiel.org') {
         $response = sendMail(from: [array_key_first(json_decode($from, true)) => 'contact-request@arcensiel.org'], to: ['arcensiel.bureau@ens-lyon.fr'], reply: json_decode($from, true), subject: $subject, body: $html, attachments: json_decode($attach, true));
 
         if ($reponse['status'] === 0) {
+            rename($mail_file, $mail_dir . '/cur/' . end(explode('/', $mail_file)));
             logger('/log/mail.log', "Transferred mail {{$id}} to arcENSiel mailbox: ", 'Transfer mail');
         } else {
+            rename($mail_file, $mail_dir . '/unsent/' . end(explode('/', $mail_file)));
             logger('/log/mail.log', "Could not transfer mail {{$id}} to arcENSiel mailbox. ERROR: [{$response['status']}] {$response['error']}", '[ERROR] Failed: Transfer mail');
         }
+    
+    } else {
+        rename($mail_file, $mail_dir . '/cur/' . end(explode('/', $mail_file)));
     }
 }
 
