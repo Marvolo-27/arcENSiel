@@ -204,6 +204,11 @@ if ($action === 'download') {
     $fetch = curlQuery($url,  $file);
 
     if (!$fetch['success']) {
+        // remove file fragments
+        if (is_file($datapath.$filename)) {
+            unlink($datapath.$filename);
+        }
+
         http_response_code(500);
         echo json_encode(['error' => "[Paheko API] Failed downloading $type: ({$fetch['code']}) {$fetch['error']}", 'available' => false]);
         logger('/log/paheko.log', "Failed downloading $type file: ({$fetch['code']}) {$fetch['error']}", "[ERROR] Failed: download $type.");
@@ -235,6 +240,9 @@ if ($action === 'download') {
 	$hash = hash_file('sha256', $datapath.$filename);
 
 	if (in_array($hash, array_keys($files_list))) {
+        // remove duplicate
+        unlink($datapath.$filename);
+
 		http_response_code(500);
 		echo json_encode(['error' => "Backup in database failed for file '".$filename."'".PHP_EOL."Identical content found in file '".$files_list[$hash]."'.", 'available' => true, 'data' => ['type' => $mime, 'content' => $base64, 'name' => $filename]]);
 		logger('/log/files.log', "Duplicate backup file could not be inserted in database.", 'Failed: save backup');
