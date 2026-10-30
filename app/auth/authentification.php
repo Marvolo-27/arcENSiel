@@ -364,7 +364,7 @@ if ($status === 'pending-check') {
 					$subject = "Réinitialisez votre mot de passe";
 					$body = "<h3>Bonjour $email,</h3>
 					<div>Nous avons reçu une demande de réinitialisation de mot de passe. Pour définir votre nouveau mot de passe, cliquez sur le lien ci-dessous :</div>
-					<div><a href='localhost:8000/auth/reset-credentials?&token=$token'>Réinitialiser le mot de passe</a></div>
+					<div><a href='https://arcensiel.org/auth/reset-credentials?&token=$token'>Réinitialiser le mot de passe</a></div>
 
 					<div style='margin-top:1em;'><small><i>Le lien est valide une heure. Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer ce message.</i></small>
 					</div>";
