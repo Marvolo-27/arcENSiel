@@ -9,18 +9,19 @@ let tagsTable
 let typesTable
 let filesTable
 let categoriesTable
+let campaignsTable
 let haTable
 let goodiesTable
-let dq7Table
+let eventsTable
+let membershipsTable
+let donationsTable
 let groupsTable
 let subscriptionsTable
 let stocksTable
 
 // Matching tables {slug:name, }
-const haTypeMatch = {'Shop':'Boutique', 'Event':'Billeterie', 'Donation':'Don', 'Membership':'Adhésion'}
-const statusMatch = {'published': 'Publié', 'archived': 'Archivé', 'draft': 'Brouillon'}
-const goodiesList = ["Pin's arcENSiel", "Pin's Mouflon", "Sticker", "Briquet", "Affiche"]
-const pricesList  = ["Prix conseillé", "Prix minimum", "Prix libre", "Paiement en espèces", "Liste d'attente"]
+const haTypeMatch = {'Shop':'Boutique', 'Event':'Billetterie', 'Donation':'Don', 'Membership':'Adhésion', 'CrowdFunding': 'Financement participatif', 'Checkout': 'Checkout'}
+const statusMatch = {'published': 'Publié', 'archived': 'Archivé', 'draft': 'Brouillon', 'public': 'Public', 'private': 'Privé', 'disabled': 'Désactivé', 'archived': 'Archivé'}
 
 //// Utils
 function tablesListener(watcher=false, selector='.input-container') {
@@ -402,18 +403,52 @@ async function fetchMails(target) {
             return sourcedata
 			}
 
-// HelloAsso main table
+// HelloAsso campaigns
+async function fetchCampaigns(target) {
+			const sourcedata = await fetchAPI('/api/helloasso/get/campaigns').then(response => response.body)
+			
+			campaignsTable = new Tabulator(target, {
+				data: sourcedata,
+				layout: "fitDataFill",
+				rowHeight: 36,
+				pagination:true,
+				paginationSize:20,
+				paginationSizeSelector:[5, 10, 20, 50, 100, 200, 500],
+				paginationCounter:"rows",
+				columns: [
+				{ title: "", field: "actions", mutator: (value, data) => data.url, formatter: cell => 
+							`<span>
+									<div class='icon inline external dynamic hoverable' 'title="Voir la campagne"></div>
+							</span>`, cellClick: (e, cell) => actionSwitch(e, cell), resizable: false, frozen: true},
+				{ title: "Statut", field: "status", mutator: value => value.toLowerCase(), formatter: function(cell) {cell.getElement().classList.toggle(cell.getValue()); return statusMatch[cell.getValue()]}, resizable: false},
+				{ title: "Type", field: "type", headerFilter:'list', headerFilterParams: {'values': haTypeMatch}, formatter: cell => haTypeMatch[cell.getValue()], hozAlign: "center"},
+				{ title: "Nom", field: "name"},
+				{ title: "Début", field: "start", formatter: cell => cellFormatter(cell, 'date'), resizable: false},
+				{ title: "Fin", field: "end", formatter: cell => cellFormatter(cell, 'date'), resizable: false},
+				{ title: "Description", field: "description"},
+				{ title: "ID", field: "id", visible: false},
+			]})
+            
+			function actionSwitch(e, cell) {
+				const data = cell.getRow().getData()
+				const icon = e.target
+
+				if (icon.is('external')) {
+					open(data.url)
+				}
+			}
+
+			return sourcedata
+			}
+
 async function fetchHA(target) {
-			const sourcedata = await fetchAPI('/api/helloasso/get/all').then(response => response.body)
+			const sourcedata = await fetchAPI('/api/helloasso/get/orders').then(response => response.body)
 			
 			// forms match table - key is form slug in ordersList
-			const haFormsList = sourcedata.formsList.reduce((list, item) => {
-				list[item.formSlug] = {'type': haTypeMatch[item.formType], 'url': item.url, 'name': item.title}
-				return list
-			}, {})
+			const campaigns = await fetchAPI('/api/helloasso/get/campaigns').then(response => response.body).then(data => data.reduce((list, item) => {list[item.id] = item.name; return list}, {}))
 			
 			haTable = new Tabulator(target, {
-				data: sourcedata.ordersList,
+				data: sourcedata,
 				layout: "fitDataFill",
 				rowHeight: 36,
 				pagination:true,
@@ -434,10 +469,10 @@ async function fetchHA(target) {
 				{ title: "Date", field: "date", formatter: cell => cellFormatter(cell, 'date'), resizable: false},
 				{ title: "Mail", field: "payer.email"},
 				{ title: "Identité", field: "fullname", mutator: (value, data) => data.payer.firstName + ' ' + data.payer.lastName.toUpperCase(), headerFilter: true},
-				{ title: "Formulaire", field: "formName", mutator: (value, data) => haFormsList[data.formSlug].name, headerFilter:'list', headerFilterParams: () => ({'values': Object.keys(haFormsList).reduce((list, item) => [...list, haFormsList[item].name], [])})},
+				{ title: "Formulaire", field: "formName", mutator: (value, data) => campaigns[data.formSlug], headerFilter:'list', headerFilterParams: {'valuesLookup': true}},
 				{ title: "Montant", field: "amount.total", width: 100, mutator: value => value/100, formatter: cell => cellFormatter(cell, 'price'), hozAlign: "center"},
 				{ title: "Items", field: "itemslist", mutator: function (value, data) {
-																						const receipts = data.items.reduce((list, item) => {list[item.name] = (list[item.name] ?? 0) + 1; return list}, {})
+																						const receipts = data.items.reduce((list, item) => {list[item.name ?? (item.type === 'Donation' ? 'Don' : 'Autre')] = (list[item.name] ?? 0) + 1; return list}, {})
 																						const text = Object.keys(receipts).reduce((list, key) => [...list, `${key} (${receipts[key]})`], []).join(', ')
 																						
 																						return text
@@ -455,6 +490,9 @@ async function fetchHA(target) {
 async function fetchGoodies(target) {
 			const sourcedata = await fetchAPI('/api/helloasso/get/goodies').then(response => response.body)
 			
+			const shops = await fetchAPI('/api/helloasso/get/forms').then(response => response.body.Shop)
+			const holder = Input('[value="donations"]').nextElementSibling.nextElementSibling
+
 			goodiesTable = new Tabulator(target, {
 				data: sourcedata,
 				layout: "fitDataFill",
@@ -469,24 +507,31 @@ async function fetchGoodies(target) {
 														`<span>
 															<a href="${cell.getValue()}" target="_blank_" class='icon receipt inline dynamic' title="Reçu du paiement"></a>
 														</span>` : null, resizable: false, frozen: true},
+				{ title: "Boutique", field: "campaign", visible: false},
 				{ title: "Transaction ID", field: "id", resizable: false},
 				{ title: "Payment ID", field: "paymentsID"},
 				{ title: "Date", field: "date", formatter: cell => cellFormatter(cell, 'date'), resizable: false},
 				{ title: "Mail", field: "mail"},
 				{ title: "Identité", field: "identity", headerFilter: true},
-				{ title: "Montant", field: "amount", width: 100, mutator: value => value/100, formatter: cell => cellFormatter(cell, 'price'), hozAlign: "center"},
-				{ title: "Item", field: "item", headerFilter: 'list', headerFilter:'list', headerFilterParams: {'values': goodiesList}},
+				{ title: "Montant", field: "amount", width: 100, formatter: cell => cellFormatter(cell, 'price', true), hozAlign: "center"},
+				{ title: "Item", field: "item", headerFilter: 'list', headerFilter:'list', headerFilterParams: {'valuesLookup': () => fetchFilters('goodies', shops.items)}},
 				{ title: "Enregistré sur Paheko ?", field: "registered", editor: () => false, editable: cell => !cell.getInitialValue(), formatter: "tickCross", cellClick: (e, cell) => !cell.getInitialValue() ? cell.setValue(!cell.getValue()):null, resizable: false, vertAlign: "middle", hozAlign: "center"},
 				]})
 			
+			// Generate dynamically subsection buttons
+			if (shops.forms?.length > 1) subsectionsBuilder(goodiesTable, holder, shops.forms, 'shop')
+
 			return sourcedata
 			}
 
-// DQ7 Table
-async function fetchDQ7(target) {
-			const sourcedata = await fetchAPI('/api/helloasso/get/drama-queer-7').then(response => response.body)
+// HelloAsso events Table
+async function fetchEvents(target) {
+			const sourcedata = await fetchAPI('/api/helloasso/get/events').then(response => response.body)
 
-			dq7Table = new Tabulator(target, {
+			const events = await fetchAPI('/api/helloasso/get/forms').then(response => response.body.Event ?? [])
+			const holder = Input('[value="events"]').nextElementSibling.nextElementSibling
+
+			eventsTable = new Tabulator(target, {
 				data: sourcedata,
 				layout: "fitDataFill",
 				rowHeight: 36,
@@ -503,23 +548,31 @@ async function fetchDQ7(target) {
 															`<span>
 																<a href="${cell.getValue()}" target="_blank_" class='icon ticket inline dynamic' title="Billet"></a>
 															</span>` : null, resizable: false, frozen: true},
+				{ title: "Événement", field: "campaign", visible: false},
 				{ title: "Transaction ID", field: "id", resizable: false},
 				{ title: "Payment ID", field: "paymentsID"},
 				{ title: "Date", field: "date", formatter: cell => cellFormatter(cell, 'date'), resizable: false},
 				{ title: "Identité", field: "identity", headerFilter: true},
 				{ title: "Montant", field: "amount", width: 100, mutator: value => value/100, formatter: cell => cellFormatter(cell, 'price'), hozAlign: "center"},
-				{ title: "Tier", field: "item", headerFilter:'list', headerFilterParams: {'values': pricesList}},
+				{ title: "Tarif", field: "item", headerFilter:'list', headerFilterParams: {'valuesLookup': () => fetchFilters('events', events.items)}},
 				{ title: "Étudiant·e ?", field: "student", headerFilter:'list', headerFilterParams: {'values': ['Oui','Non']}, hozAlign: 'center'}
 				]})
 			
+			// Generate dynamically subsection buttons
+			subsectionsBuilder(eventsTable, holder, events.forms, 'event')
+			eventsTable.on("tableBuilt", () => {if (events) eventsTable.setFilter("campaign", "=", holder.children[0].children[0].value)})
+			
 			return sourcedata
 			}
+	
+// HelloAsso memberships Table
+async function fetchMemberships(target) {
+			const sourcedata = await fetchAPI('/api/helloasso/get/memberships').then(response => response.body)
 
-// DQ7 Table
-async function fetchDQ8(target) {
-			const sourcedata = await fetchAPI('/api/helloasso/get/drama-queer-8').then(response => response.body)
+			const memberships = await fetchAPI('/api/helloasso/get/forms').then(response => response.body.Membership ?? [])
+			const holder = Input('[value="memberships"]').nextElementSibling.nextElementSibling
 
-			dq8Table = new Tabulator(target, {
+			membershipsTable = new Tabulator(target, {
 				data: sourcedata,
 				layout: "fitDataFill",
 				rowHeight: 36,
@@ -532,18 +585,52 @@ async function fetchDQ8(target) {
 															`<span>
 																<a href="${cell.getValue()}" target="_blank_" class='icon receipt inline dynamic' title="Reçu du paiement"></a>
 															</span>` : null, resizable: false},
-				{title: "", field: "ticket", formatter: cell => cell.getValue() !== null ?
+				{ title: "Année", field: "campaign", visible: false},
+				{ title: "Transaction ID", field: "id", resizable: false},
+				{ title: "Payment ID", field: "paymentsID"},
+				{ title: "Date", field: "date", formatter: cell => cellFormatter(cell, 'date'), resizable: false},
+				{ title: "Identité", field: "identity", headerFilter: true},
+				{ title: "Nom", field: "nom", visible: false},
+				{ title: "Mail", field: "mail"},
+				{ title: "Montant", field: "amount", width: 100, mutator: value => value/100, formatter: cell => cellFormatter(cell, 'price'), hozAlign: "center"},
+				]})
+			
+			// Generate dynamically subsection buttons
+			subsectionsBuilder(membershipsTable, holder, memberships.forms, 'year', true, true)
+
+			return sourcedata
+			}
+
+// HelloAsso donations Table
+async function fetchDonations(target) {
+			const sourcedata = await fetchAPI('/api/helloasso/get/donations').then(response => response.body)
+
+			const dons = await fetchAPI('/api/helloasso/get/forms').then(response => response.body.Donation)
+			const holder = Input('[value="donations"]').nextElementSibling.nextElementSibling
+			
+			donationsTable = new Tabulator(target, {
+				data: sourcedata,
+				layout: "fitDataFill",
+				rowHeight: 36,
+				pagination:true,
+				paginationSize:20,
+				paginationSizeSelector:[5, 10, 20, 50, 100, 200],
+				paginationCounter:"rows",
+				columns: [
+				{title: "", field: "receipts", formatter: cell => cell.getValue() !== null ?
 															`<span>
-																<a href="${cell.getValue()}" target="_blank_" class='icon ticket inline dynamic' title="Billet"></a>
-															</span>` : null, resizable: false, frozen: true},
+																<a href="${cell.getValue()}" target="_blank_" class='icon receipt inline dynamic' title="Reçu du paiement"></a>
+															</span>` : null, resizable: false},
+				{ title: "Campagne", field: "campaign", visible: false},
 				{ title: "Transaction ID", field: "id", resizable: false},
 				{ title: "Payment ID", field: "paymentsID"},
 				{ title: "Date", field: "date", formatter: cell => cellFormatter(cell, 'date'), resizable: false},
 				{ title: "Identité", field: "identity", headerFilter: true},
 				{ title: "Montant", field: "amount", width: 100, mutator: value => value/100, formatter: cell => cellFormatter(cell, 'price'), hozAlign: "center"},
-				{ title: "Tier", field: "item", headerFilter:'list', headerFilterParams: {'values': pricesList}},
-				{ title: "Étudiant·e ?", field: "student", headerFilter:'list', headerFilterParams: {'values': ['Oui','Non']}, hozAlign: 'center'}
 				]})
+			
+			// Generate dynamically subsection buttons
+			if (dons.forms?.length > 1) subsectionsBuilder(donationsTable, holder, dons.forms, 'don', all)
 			
 			return sourcedata
 			}
@@ -553,33 +640,6 @@ async function fetchGroups(target) {
 			const sourcedata = await fetchAPI('/api/paheko/get/composition').then(response => response.body)
 			const categories = await fetchAPI('/api/paheko/get/categories').then(response => response.body)
 			const holder = Input('[value="categories"]').nextElementSibling.nextElementSibling
-			
-			// Generate dynamically subsection buttons
-			holder.innerHTML = `
-					<span>
-						<input class='checkbox' type='radio' id="cat-all" name="category" value="all" checked>
-						<label class='tag-item option orange' for="cat-all">Tout</label>
-					</span>`;
-			Object.values(categories).forEach(cat => {
-					const span = document.createElement('span')
-
-					span.innerHTML = `
-						<input class='checkbox' type='radio' id="cat-${cat.id}" name="category" value="${cat.name}">
-						<label class='tag-item option orange' for="cat-${cat.id}">${cat.name}</label>
-						`
-					holder.append(span)
-			})
-
-			// Tables subsection buttons management
-			holder.inputs().forEach(item => item.onchange = e => {
-					if (e.target.value === 'all') {
-						groupsTable.clearFilter()
-						groupsTable.setSort([{column:"id", dir:"asc"}])
-					} else {
-						groupsTable.setFilter("category", "=", e.target.value)
-						groupsTable.setSort([{column:"nom", dir:"asc"}])
-					}
-			})
 			
 			// create tabulator
 			groupsTable = new Tabulator(target, {
@@ -602,33 +662,26 @@ async function fetchGroups(target) {
 					],
 				});
 			
+			// Generate dynamically subsection buttons
+			subsectionsBuilder(groupsTable, holder, categories, 'category', true, 'category', true, cat => cat.name)
+
 			return sourcedata
 			}
 
-// Subscriptions table
+// Paheko subscriptions table
 async function fetchSubscriptions(target) {
 			const sourcedata = await fetchAPI('/api/paheko/get/users').then(response => response.body)
 			const services   = await fetchAPI('/api/paheko/get/services').then(response => response.body)
 			const holder = Input('[value="subscriptions"]').nextElementSibling.nextElementSibling
 
-			// Generate dynamically subsection buttons
-			holder.innerHTML = '';
-			Object.values(services).forEach(serv => {
-					const span = document.createElement('span')
-					const years = serv.label.match(/[0-9]{2}\/[0-9]{2}/)[0]
-
-					span.innerHTML = `
-						<input class='checkbox' type='radio' id="subc-${serv.id}" name="subscription" value="${serv.label}">
-						<label class='tag-item option orange' for="subc-${serv.id}">20${years.split('/')[0]}-20${years.split('/')[1]}</label>
-						`
-
-					span.input().onchange = e => {
-						subscriptionsTable.setFilter("label", "=", e.target.value)
-						subscriptionsTable.setSort([{column:"nom", dir:"asc"}])
-					}
-					holder.append(span)
-			})
-			holder.children[1].children[0].checked = true
+			const callback = function (cat, bool=null) {
+				if (bool) {
+					const years = cat.label.match(/[0-9]{2}\/[0-9]{2}/)[0]
+					return `20${years.split('/')[0]}-20${years.split('/')[1]}`
+				} else {
+					return cat.label
+				}
+			}
 			
 			// create tabulator
 			subscriptionsTable = new Tabulator(target, {
@@ -654,6 +707,9 @@ async function fetchSubscriptions(target) {
 					],
 				})
 			
+			// Generate dynamically subsection buttons
+			subsectionsBuilder(subscriptionsTable, holder, services, 'subscription', false, 'label', true, callback, true)
+
 			return sourcedata
 			}
 
@@ -689,18 +745,57 @@ function slugUniqueness(cell, value) {
 		return !data.includes(value?.urlForm())
 		}
 
-function cellFormatter(cell, type) {
+function cellFormatter(cell, type, cents=false) {
+		const value = cell.getValue()
+		
 		if (type === 'price') {
-			return cell.getValue().toString().replace('.',',') + ' €'
+			return (cents ? value/100 : value).toString().replace('.',',') + ' €'
 		
 		} else if (type === 'date') {
-			let body = cell.getValue().split('+')[0]
+			if (!value) return ''
+			let body = value.split('+')[0]
 			return body.split('T')[0].split('-').reverse().join('/') + ' ' + body.split('T')[1]
 		}
 }
 
 function arrayFlatter(array, field = null) {
 		return Array.from(Object.values(array ?? [])).reduce((list, item) => [...list, field ? item[field] : item], []).join(', ')
+}
+
+function fetchFilters(slug, filters) {
+	const form = Input(`[value="${slug}"]`).nextElementSibling.nextElementSibling.input(':checked')?.value
+
+	return form ? filters[form] : Object.values(filters)[0]
+}
+
+function subsectionsBuilder(table, holder, forms, slug, all=false, filter='campaign', sort=false, callback = null, args=null) {
+	holder.innerHTML = all ? `
+			<span>
+				<input class='checkbox' type='radio' id="${slug}-all" name="${slug}" value="all" checked>
+				<label class='tag-item option orange' for="${slug}-all">Tout</label>
+			</span>` : '';
+	
+	Object.values(forms).forEach(cat => {
+			const span = document.createElement('span')
+
+			span.innerHTML = `
+				<input class='checkbox' type='radio' id="${slug}-${cat.id}" name="${slug}" value="${callback ? callback(cat) : cat.id}">
+				<label class='tag-item option orange' for="${slug}-${cat.id}">${callback ? callback(cat, args) : cat.name}</label>
+				`
+			holder.append(span)
+	})
+
+	// Tables subsection buttons management
+	holder.inputs().forEach(item => item.onchange = e => {
+			if (sort) table.setSort([{column:"nom", dir:"asc"}])
+			
+			if (e.target.value === 'all') {
+				table.clearFilter()
+			} else {
+				table.setFilter(filter, "=", e.target.value)
+			}
+	})
+	if (all || forms) holder.children[0].children[0].checked = true
 }
 
 //// UTILS FUNCTIONS

@@ -38,6 +38,21 @@ if ($_SESSION['role'] !== 'admin') {
 		
 		<link href="https://unpkg.com/tabulator-tables/dist/css/tabulator.min.css" rel="stylesheet">
 		<script type="text/javascript" src="https://unpkg.com/tabulator-tables/dist/js/tabulator.min.js"></script>
+
+		<style>
+			.mainsection {
+					height: 6em;
+			}
+
+			.subsection {
+					top: 2.75em;
+					left: 0;
+					position: absolute !important;
+					display: none !important;
+
+					.checkbox:checked ~ & {display: flex !important;}
+			}
+		</style>
 	</head>	
 	
 	<body>
@@ -52,7 +67,11 @@ if ($_SESSION['role'] !== 'admin') {
 			</div>
 			
 			<div class="box">
-				<div class="input-container checkboxes">
+				<div class="input-container checkboxes mainsection">
+					<span>
+						<input class='checkbox' type='radio' id="campaigns-btn" name="table" value="campaigns">
+						<label class='tag-item option blue' for="campaigns-btn">Campagnes</label>
+					</span>
 					<span>
 						<input class='checkbox' type='radio' id="helloasso-btn" name="table" value="helloasso">
 						<label class='tag-item option blue' for="helloasso-btn">HelloAsso</label>
@@ -60,22 +79,32 @@ if ($_SESSION['role'] !== 'admin') {
 					<span>
 						<input class='checkbox' type='radio' id="goodies-btn" name="table" value="goodies">
 						<label class='tag-item option blue' for="goodies-btn">Goodies</label>
+						<div class="input-container checkboxes subsection flush-left"></div>
 					</span>
 					<span>
-						<input class='checkbox' type='radio' id="dq7-btn" name="table" value="dq7">
-						<label class='tag-item option blue' for="dq7-btn">Drama Queer 7</label>
+						<input class='checkbox' type='radio' id="events-btn" name="table" value="events">
+						<label class='tag-item option blue' for="events-btn">Événements</label>
+						<div class="input-container checkboxes subsection flush-left"></div>
 					</span>
 					<span>
-						<input class='checkbox' type='radio' id="dq8-btn" name="table" value="dq8">
-						<label class='tag-item option blue' for="dq8-btn">Drama Queer 8</label>
+						<input class='checkbox' type='radio' id="donations-btn" name="table" value="donations">
+						<label class='tag-item option blue' for="donations-btn">Dons</label>
+						<div class="input-container checkboxes subsection flush-left"></div>
+					</span>
+					<span>
+						<input class='checkbox' type='radio' id="memberships-btn" name="table" value="memberships">
+						<label class='tag-item option blue' for="memberships-btn">Adhésions</label>
+						<div class="input-container checkboxes subsection flush-left"></div>
 					</span>
 				</div>
 			</div>
 
+			<div class='table no-bound' id='campaigns'></div>
 			<div class='table no-bound' id='helloasso'></div>
 			<div class='table no-bound' id='goodies'></div>
-			<div class='table no-bound' id='dq7'></div>
-			<div class='table no-bound' id='dq8'></div>
+			<div class='table no-bound' id='events'></div>
+			<div class='table ' id='donations'></div>
+			<div class='table' id='memberships'></div>
 			
 			<div class="actions-wrap data-actions linear">
 				<div class='action-container'>
@@ -97,17 +126,21 @@ if ($_SESSION['role'] !== 'admin') {
 		
 		async function tablesBuilder() {
 				// fetch all required data
+				await fetchCampaigns('#campaigns')
 				await fetchHA('#helloasso')
 				await fetchGoodies('#goodies')
-				await fetchDQ7('#dq7')
-				await fetchDQ8('#dq8')
+				await fetchEvents('#events')
+				await fetchDonations('#donations')
+				await fetchMemberships('#memberships')
 				
 				// easy match table with their type
 				tableMatch = {
+							'campaigns': {'table': campaignsTable, 'node': Table('campaigns'), 'source': JSON.stringify(campaignsTable.getData()), 'call': fetchCampaigns, 'type': 'campaigns', 'selector': '#campaigns'},
 							'helloasso': {'table': haTable, 'node': Table('helloasso'), 'source': JSON.stringify(haTable.getData()), 'call': fetchHA, 'type': 'helloasso', 'selector': '#helloasso'},
 							'goodies': {'table': goodiesTable, 'node': Table('goodies'), 'source': JSON.stringify(goodiesTable.getData()), 'call': fetchGoodies, 'type': 'goodies', 'selector': '#goodies'},
-							'dq7': {'table': dq7Table, 'node': Table('dq7'), 'source': JSON.stringify(dq7Table.getData()), 'call': fetchDQ7, 'type': 'dq7', 'selector': '#dq7'},
-							'dq8': {'table': dq8Table, 'node': Table('dq8'), 'source': JSON.stringify(dq7Table.getData()), 'call': fetchDQ8, 'type': 'dq8', 'selector': '#dq8'}
+							'events': {'table': eventsTable, 'node': Table('events'), 'source': JSON.stringify(eventsTable.getData()), 'call': fetchEvents, 'type': 'events', 'selector': '#events'},
+							'donations': {'table': donationsTable, 'node': Table('donations'), 'source': JSON.stringify(donationsTable.getData()), 'call': fetchDonations, 'type': 'donations', 'selector': '#donations'},
+							'memberships': {'table': membershipsTable, 'node': Table('memberships'), 'source': JSON.stringify(membershipsTable.getData()), 'call': fetchMemberships, 'type': 'memberships', 'selector': '#memberships'}
 							}
 				activeTable = tableMatch[activeTable?.type] // Force active table update
 
@@ -145,7 +178,7 @@ if ($_SESSION['role'] !== 'admin') {
 					notify("Données mises à jour", "Les modifications ont été enregistrées sur le serveur.", 'green')
 					
 					// Reset table state
-					resetTableData(activeTable, true)
+					resetTabledata(activeTable, true)
 				}
 		
 		// Show download options

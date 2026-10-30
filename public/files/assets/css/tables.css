@@ -43,9 +43,10 @@
 									}
 							}
                     
-                    &.published {color: green; font-weight: bold; background: none !important;}
-                    &.archived  {color: red; font-weight: bold; background: none !important;}
-                    &.draft     {color: purple; font-weight: bold;}
+                    &:is(.published,.public) {color: green; font-weight: bold; background: none !important;}
+                    &:is(.archived, .private)  {color: red; font-weight: bold; background: none !important;}
+                    &:is(.draft)     {color: purple; font-weight: bold;}
+                    &:is(.disabled)     {color: rgb(73, 51, 36); font-weight: bold;}
 					}
 		}
 }

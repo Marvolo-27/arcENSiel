@@ -432,6 +432,7 @@ form {
 			&.download.zip {background-image: var(--icon-download-zip);}
 			&.download.sql {background-image: var(--icon-download-sql);}
 		&.edit  {background-image: var(--icon-edit);}
+		&.external  {background-image: var(--icon-external);}
 		&.file {background-image: var(--icon-add-file);}
 		&.filters {background-image: var(--icon-filters);}
 		&.go-back  {background-image: var(--icon-back-arrow);}
@@ -589,7 +590,7 @@ form {
 						max-width: var(--main-width);
 						overflow-x: auto;
 
-						& > span {position: relative}
+						& > span:not(:has(.subsection.flush-left)) {position: relative}
 						}
 
 				& :is(input, select, textarea) {

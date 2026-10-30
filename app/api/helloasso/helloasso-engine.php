@@ -31,7 +31,25 @@ if ($_SESSION['CSRF'] !== $csrf || !$csrf) {
 if ($action === 'edit') {
     $data = $input['data'];
     file_put_contents(__DIR__ . "/data/goodies_status.json", json_encode($data, JSON_PRETTY_PRINT));
+
+    // get goodies delivery status
+    $deliveredGoodies = array_map(fn ($item) => $item['delivered'] ? $item['id']:null, $data ?? []);
+    $registeredGoodies = array_map(fn ($item) => $item['registered'] ? $item['id']:null, $data ?? []);
+
+	// prepare goodies output
+    $goodies = json_decode(file_get_contents(__DIR__ . "/data/goodies.json") ?? '[]', true);
+    $goodiesOut = [];
+    foreach ($goodies as $item) {
+        $item['delivered'] = in_array($item['id'], $deliveredGoodies);
+        $item['registered'] = in_array($item['id'], $registeredGoodies);
+        $goodiesOut[] = $item;
+    }
+    file_put_contents(__DIR__ . "/data/goodies.json", json_encode($goodiesOut, JSON_PRETTY_PRINT));
+
     logger('/log/helloasso.log', "Status of goodies updated and saved on server", 'Goodies status update');
+    http_response_code(200);
+    echo json_encode(['message' => 'Status of goodies updated.']);
+    exit;
 }
 
 require_once __DIR__ . 	'/auth/helloasso-api-token-manager.php';
@@ -49,14 +67,6 @@ if (!$accessToken) {
 
 // Configure OAuth2 access token for authorization: OAuth2
 $config = OpenAPI\Client\Configuration::getDefaultConfiguration()->setAccessToken($accessToken);
-
-// Paiements API
-$paiementsApiInstance = new OpenAPI\Client\Api\PaiementsApi(
-    // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
-    // This is optional, `GuzzleHttp\Client` will be used as default.
-    new GuzzleHttp\Client(),
-    $config
-);
 
 // Orders API
 $ordersApiInstance = new OpenAPI\Client\Api\CommandesApi(
@@ -94,36 +104,10 @@ $sort_field = null; // \OpenAPI\Client\Model\HelloAssoApiV5ModelsEnumsSortField 
 $with_count = 'false'; // bool | Whether the pagination should include totalCount and totalPages.
 $with_failed_refund_operation = 'true'; // bool | True to retrieve the refund operation in the states 'ABORTED', 'CANCELED', 'ERROR', 'REFUSED'.
 
-$paymentsList = [];
 $ordersList = [];
 $formsList = [];
 try {
-	do {
-		// get all payments made
-		$pay_raw = $paiementsApiInstance->organizationsOrganizationSlugFormsFormTypeFormSlugPaymentsGet($organization_slug, $form_slug, $form_type, $from, $to, $user_search_key, $page_index, $page_size, $continuation_token, $states, $sort_order, $sort_field, $with_count);
-		// $continuation_token = $pay_raw->getPagination()->getContinuationToken();
-        
-		if (!$pay_raw) {
-			http_response_code(500); // access authorized so success but failed to ouput sql
-			echo json_encode( ['error' => 'Exception when calling HelloAsso Paiements API : null output']);
-			logger('/log/helloasso.log', "Null output fetching payments at page $page_index", '[ERROR] Failed: fetch paiements entries');
-			exit;
-		}
-
-		logger('/log/helloasso.log', json_encode([count($pay_raw->getData())." data entries",$pay_raw->getPagination()]), 'Fetch Paiements entries');
-        $paymentsList = array_merge($paymentsList, $pay_raw->getData());
-
-        if ($continuation_token === $pay_raw->getPagination()->getContinuationToken()) {
-			http_response_code(500); // access authorized so success but failed to ouput sql
-			echo json_encode( ['error' => 'Exception when calling HelloAsso Paiements API : invalid token']);
-			logger('/log/helloasso.log', "[Paiements API] Continuation token not updated : last page reached", 'End of output');
-			break;
-		} else {
-            $continuation_token = $pay_raw->getPagination()->getContinuationToken();
-        }
-    } while ($continuation_token !== null);
-
-    $continuation_token = null;
+	$continuation_token = null;
     do {
 		// get all sold items of organisaztion in any form (shop, donation, lotery)
 		$order_raw = $ordersApiInstance->organizationsOrganizationSlugOrdersGet($organization_slug, $from, $to, $user_search_key, $page_index, $page_size, $continuation_token, $form_types, $with_details, $sort_order, $with_count);
@@ -174,26 +158,40 @@ try {
             $continuation_token = $form_raw->getPagination()->getContinuationToken();
         }
 	} while ($continuation_token !== null);
-	
-	$output = ['paymentsList' => $paymentsList, 'ordersList' => $ordersList, 'formsList' => $formsList];
-    $outputJSON = json_encode($output, JSON_PRETTY_PRINT);
-	$time = time();
-	file_put_contents(__DIR__ . "/data/all.json", $outputJSON);
+
+	$output = ['ordersList' => $ordersList, 'formsList' => $formsList];
+    $compatibleOutput = json_decode(json_encode($output), true); // HelloAsso outputs is a special data type which doesn't allow direct acces with associative arrays
+	file_put_contents(__DIR__ . "/data/all.json", json_encode($output));
 	
     logger('/log/helloasso.log', "Data synchronized from HelloAsso API.", 'Fetch HelloAsso data');
 
     // get goodies delivery status
     $goodiesOrdersStatus = json_decode(file_get_contents(__DIR__ . "/data/goodies_status.json") ?? '[]', true);
-    $deliveredGoodies = array_map(function($item) {return $item['delivered'] ? $item['id']:null;}, $goodiesOrdersStatus ?? []);
-    $registeredGoodies = array_map(function($item) {return $item['registered'] ? $item['id']:null;}, $goodiesOrdersStatus ?? []);
+    $deliveredGoodies = array_map(fn ($item) => $item['delivered'] ? $item['id']:null, $goodiesOrdersStatus ?? []);
+    $registeredGoodies = array_map(fn ($item) => $item['registered'] ? $item['id']:null, $goodiesOrdersStatus ?? []);
 
-	// prepare goodies output
-    $compatibleOutput = json_decode(json_encode($output), true); // HelloAsso outputs is a special data type which doesn't allow direct acces with associative arrays
-    $goodiesOut = [];
+    // prepare shop oreders output
+    $Orders = [];
     foreach ($compatibleOutput['ordersList'] as $order) {
-        if ($order['formSlug'] === "goodies-arcensiel") {
+        $Orders[] = [
+            'payer' => ['email' => $order['payer']['email'], 'firstName' => $order['payer']['firstName'], 'lastName' => $order['payer']['lastName']],
+            'items' => array_map(fn ($item) => ['id' => $item['id'], 'name' => $item['name'], 'amount' => $item['amount'], 'state' => $item['state'], 'type' => $item['type'], 'ticketUrl' => $item['ticketUrl']], $order['items'] ?? []) ?: null,
+            'payments' => array_map(fn ($item) => ['id' => $item['id'], 'amount' => $item['amount'], 'state' => $item['state'], 'paymentReceiptUrl' => $item['paymentReceiptUrl']], $order['payments'] ?? []) ?: null,
+            'amount' => $order['amount'],
+            'id' => $order['id'],
+            'date' => $order['date'],
+            'formSlug' => $order['formSlug'],
+            'formType' => $order['formType']
+        ];
+    }
+    file_put_contents(__DIR__ . "/data/orders.json", json_encode($Orders, JSON_PRETTY_PRINT));
+
+	// prepare shop oreders output
+    $Shop = [];
+    foreach ($compatibleOutput['ordersList'] as $order) {
+        if ($order['formType'] === "Shop") {
             foreach ($order['items'] as $item) {
-                $goodiesOut[] = [
+                $Shop[] = [
                     'identity' => $order['payer']['firstName'] . ' ' . strtoupper($order['payer']['lastName']),
                     'mail' => $order['payer']['email'],
                     'paymentsID' => $order['payments'] !== null ? reset($order['payments'])['id'] : null,
@@ -201,22 +199,22 @@ try {
                     'date' => $order['date'],
                     'receipts' => $order['payments'] !== null ? reset($order['payments'])['paymentReceiptUrl'] : null,
                     'amount' => $item['amount'],
-                    'item' => $item['name'],
-                    'delivered' => in_array($order['id'], $deliveredGoodies),
-                    'registered' => in_array($order['id'], $registeredGoodies)
+                    'item' => $item['name'] ?? ($item['type'] === 'Donation' ? 'Don' : null),
+                    'delivered' => in_array($item['id'], $deliveredGoodies),
+                    'registered' => in_array($item['id'], $registeredGoodies),
+                    'campaign' => $order['formSlug']
                 ];
             }
         }
     }
-    file_put_contents(__DIR__ . "/data/goodies.json", json_encode($goodiesOut, JSON_PRETTY_PRINT));
+    file_put_contents(__DIR__ . "/data/goodies.json", json_encode($Shop, JSON_PRETTY_PRINT));
 
-    // prepare DQ7 output
-    $compatibleOutput = json_decode(json_encode($output), true); // HelloAsso outputs is a special data type which doesn't allow direct acces with associative arrays
-    $eventsOut = [];
+    // prepare events output
+    $Event = [];
     foreach ($compatibleOutput['ordersList'] as $order) {
-        if ($order['formSlug'] === "drama-queer-7") {
+        if ($order['formType'] === "Event") {
             foreach ($order['items'] as $item) {
-                $eventsOut[] = [
+                $Event[] = [
                     'identity' => $item['user']['firstName'] . ' ' . strtoupper($item['user']['lastName']),
                     'paymentsID' => $order['payments'] !== null ? reset($order['payments'])['id'] : null,
                     'id' => $item['id'],
@@ -224,36 +222,77 @@ try {
                     'receipts' => $order['payments'] !== null ? reset($order['payments'])['paymentReceiptUrl'] : null,
                     'ticket' => $item['ticketUrl'],
                     'amount' => $item['amount'],
-                    'item' => $item['name'],
-                    'student' => $item['customFields'][0]['answer'],
+                    'item' => $item['name'] ?? ($item['type'] === 'Donation' ? 'Don' : null),
+                    'student' => $item['customFields'][0]['answer'] ?? null,
+                    'campaign' => $order['formSlug']
                 ];
             }
         }
     }
-    file_put_contents(__DIR__ . "/data/drama-queer-7.json", json_encode($eventsOut, JSON_PRETTY_PRINT));
+    file_put_contents(__DIR__ . "/data/events.json", json_encode($Event, JSON_PRETTY_PRINT));
 
-    // prepare DQ8 output
-    $compatibleOutput = json_decode(json_encode($output), true); // HelloAsso outputs is a special data type which doesn't allow direct acces with associative arrays
-    $eventsOut = [];
+    // prepare events output
+    $Membership = [];
     foreach ($compatibleOutput['ordersList'] as $order) {
-        if ($order['formSlug'] === "drama-queer-8") {
+        if ($order['formType'] === "Membership") {
             foreach ($order['items'] as $item) {
-                $eventsOut[] = [
+                $Membership[] = [
                     'identity' => $item['user']['firstName'] . ' ' . strtoupper($item['user']['lastName']),
+                    'nom' => strtoupper($item['user']['lastName']),
                     'paymentsID' => $order['payments'] !== null ? reset($order['payments'])['id'] : null,
                     'id' => $item['id'],
                     'date' => $order['date'],
                     'receipts' => $order['payments'] !== null ? reset($order['payments'])['paymentReceiptUrl'] : null,
-                    'ticket' => $item['ticketUrl'],
                     'amount' => $item['amount'],
-                    'item' => $item['name'],
-                    'student' => $item['customFields'][0]['answer'],
+                    'item' => $item['name'] ?? ($item['type'] === 'Donation' ? 'Don' : null),
+                    'mail' => $item['customFields'][0]['answer'] ?? null,
+                    'campaign' => $order['formSlug']
                 ];
             }
         }
     }
-    file_put_contents(__DIR__ . "/data/drama-queer-8.json", json_encode($eventsOut, JSON_PRETTY_PRINT));
+    file_put_contents(__DIR__ . "/data/memberships.json", json_encode($Membership, JSON_PRETTY_PRINT));
 	
+    // prepare donations output
+    $Donation = [];
+    foreach ($compatibleOutput['ordersList'] as $order) {
+        if ($order['formType'] === "Donation") {
+            foreach ($order['items'] as $item) {
+                $Donation[] = [
+                    'identity' => $order['payer']['firstName'] . ' ' . strtoupper($order['payer']['lastName']),
+                    'paymentsID' => reset($order['payments'])['id'],
+                    'id' => $item['id'],
+                    'date' => $order['date'],
+                    'receipts' => reset($order['payments'])['paymentReceiptUrl'],
+                    'amount' => $item['amount'],
+                    'campaign' => $order['formSlug']
+                ];
+            }
+        }
+    }
+    file_put_contents(__DIR__ . "/data/donations.json", json_encode($Donation, JSON_PRETTY_PRINT));
+
+    // prepare forms output
+    $formsOut = array_reduce(['Shop', 'Event', 'Membership', 'Donation', 'Checkout', 'CrowdFunding'], fn ($carry, $item) => [...$carry, $item => ['forms' => [], 'items' => []]], []);
+    $campaignsOut = [];
+    foreach ($compatibleOutput['formsList'] as $form) {
+        $item = [
+                'name' => $form['title'],
+                'id' => $form['formSlug'],
+                'description' => $form['description'],
+                'start' => $form['startDate'],
+                'end' => $form['endDate'],
+                'status' => $form['state'],
+                'type' => $form['formType'],
+                'url' => $form['url']
+                ];
+        $formsOut[$form['formType']]['forms'][] = $item;
+        $formsOut[$form['formType']]['items'][$form['formSlug']] = array_values(array_filter(array_unique(array_map(fn ($item) => $item['campaign'] === $form['formSlug'] ? $item['item']:null, ${$form['formType']} ?? []), SORT_STRING)));
+        $campaignsOut[] = $item;
+    }
+    file_put_contents(__DIR__ . "/data/campaigns.json", json_encode($campaignsOut, JSON_PRETTY_PRINT));
+    file_put_contents(__DIR__ . "/data/forms.json", json_encode($formsOut, JSON_PRETTY_PRINT));
+
     http_response_code(200);
 	echo json_encode( ['message' => 'Data synchronized']);
 	exit;
