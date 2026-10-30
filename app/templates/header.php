@@ -24,18 +24,18 @@
                     L'association
 				</span>
 				
-				<span class="sub-menu">
-					<a class='sub-nav-item'>
+				<span class="menu">
+					<a class='nav-item'>
 						<span class='nav-item-name'>
 							Qui sommes-nous ?
 						</span>
 					</a>
-					<a class='sub-nav-item'>
+					<a class='nav-item'>
 						<span class='nav-item-name'>
 							Nos activités
 						</span>
 					</a>
-					<a class='sub-nav-item' href='/documents'>
+					<a class='nav-item' href='/documents'>
 						<span class='nav-item-name'>
 							Statuts et archives
 						</span>
@@ -47,13 +47,13 @@
                     Ressources
 				</span>
 
-				<span class="sub-menu">
-					<a class='sub-nav-item' href='/ressources'>
+				<span class="menu">
+					<a class='nav-item' href='/ressources'>
 						<span class='nav-item-name'>
 							Documents utiles
 						</span>
 					</a>
-					<a class='sub-nav-item' href="/archives">
+					<a class='nav-item' href="/archives">
 						<span class='nav-item-name'>
 							Historique
 						</span>

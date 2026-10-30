@@ -47,12 +47,8 @@ function config()  {
 		Icons('toggle-pass').forEach(tag => tag.onclick = togglePassword)
 		
 		// handle navbar
-		Array.from(document.querySelectorAll('.nav-item:has(.sub-menu)')).forEach(navitem => {
-			if (window.matchMedia(`(hover:hover)`).matches) {
-				navitem.onmouseenter = toggleSubMenu
-				navitem.onmouseleave = toggleSubMenu
-			}
-			if (window.matchMedia(`(hover:none)`).matches) {
+		Array.from(Sections('.nav-item:has(.menu)')).forEach(navitem => {
+			if (!(window.matchMedia(`(hover:hover)`).matches && window.matchMedia(`(min-width:642px)`).matches)) {
 				navitem.onclick = toggleSubMenu
 			}
 		})
@@ -205,14 +201,21 @@ function toggleNav(tag, duration=400) {
 
 // show submenu
 function toggleSubMenu(e, duration=400) {
-						const menu = e.target.parent('.nav-item')
+						const navitem = e.target.parent('.nav-item')
+						const navitems = e.target.parent('.headers').sections('nav-item')
 						
-						if (menu.is('active')) {
-								menu.hide()
-								sliderUp(menu, duration, '.nav-item', '.sub-menu')
+						if (!!navitem.parent('.menu')) return
+
+						if (navitem.is('active')) {
+								navitem.hide()
+								if (!window.matchMedia(`(min-width: 642px)`).matches) sliderUp(navitem, duration, '.nav-item', '.menu')
 						} else {
-								menu.show()
-								sliderDown(menu, duration, '.nav-item', '.sub-menu')
+								navitem.show()
+								if (window.matchMedia(`(min-width: 642px)`).matches) {
+									navitems.forEach(item => item !== navitem ? item.hide():null)
+								} else {
+									sliderDown(navitem, duration, '.nav-item', '.menu')
+								}
 						}
 						}
 
@@ -220,12 +223,14 @@ function toggleSubMenu(e, duration=400) {
 // sliders
 function sliderUp(e, duration, parent, cible) {
 								const tag = e.parent(parent).querySelector(cible)
+
 								tag.style.transition= `all ${duration}ms`;
 								tag.style.height = `${tag.offsetHeight}px`;
 								tag.style.overflow = 'hidden';
 								
 								setTimeout(() => {
 									tag.style.height = 0;
+									tag.style.marginTop = 0;
 									}, 5)
 								
 								setTimeout(() => {
@@ -236,6 +241,7 @@ function sliderUp(e, duration, parent, cible) {
 
 function sliderDown(e, duration, parent, cible) {
 								const tag = e.parent(parent).querySelector(cible)
+								const margin = window.getComputedStyle(tag).marginTop ?? 0
 								tag.style.visibility = 'hidden';
 								tag.style.overflow = 'hidden';
 
@@ -248,6 +254,7 @@ function sliderDown(e, duration, parent, cible) {
 								
 								setTimeout(() => {
 									tag.style.height = `${fullheight}px`;
+									tag.style.marginTop = margin;
 									}, 5)
 								
 								setTimeout(() => {
