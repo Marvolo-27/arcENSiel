@@ -274,7 +274,7 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 						formData.set('mode', mode)
 						formData.set('source', 'uploads/pdf/')
 						formData.set('action', 'upload')
-						formData.set('section', 'documents')
+						formData.set('section', '<?= $section ?>')
 						formData.set('category', category)
 						formData.set('og-url', sourceURL)
 						formData.set('url', item?.dataset.targetUrl)
@@ -336,7 +336,7 @@ $statuts['date_fmt'] = new IntlDateFormatter('fr_FR', IntlDateFormatter::FULL, I
 								item.innerText = data.data.decsription;
 							}
 						}
-						item.value = '';
+						item?.value = '';
 						fileSelectorLoad('pdf')
 					}
 
