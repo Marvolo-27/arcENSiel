@@ -124,8 +124,6 @@ try {
         $ordersList = array_merge($ordersList, $order_raw->getData());
 
         if ($continuation_token === $order_raw->getPagination()->getContinuationToken()) {
-			http_response_code(500); // access authorized so success but failed to ouput sql
-			echo json_encode( ['error' => 'Exception when calling HelloAsso Paiements API : invalid token']);
 			logger('/log/helloasso.log', "[Orders API] Continuation token not updated : last page reached", 'End of output');
 			break;
 		} else {
@@ -150,8 +148,6 @@ try {
 		$formsList = array_merge($formsList, $form_raw->getData());
         
         if ($continuation_token === $form_raw->getPagination()->getContinuationToken()) {
-			http_response_code(500); // access authorized so success but failed to ouput sql
-			echo json_encode( ['error' => 'Exception when calling HelloAsso Paiements API : invalid token']);
 			logger('/log/helloasso.log', "[Forms API] Continuation token not updated : last page reached", 'End of output');
 			break;
 		} else {
