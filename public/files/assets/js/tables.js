@@ -180,13 +180,13 @@ async function fetchUsers(target) {
 				  rowHeight: 36,
 				  columns: [
 					{ title: "Role", field: "role", editor: "list", editorParams: {values:["user","admin"]}, editable: selfIntegrity, resizable: false},
-					{ title: "Username", field: "username", editor:"input", validator: ['unique', 'required'], editable: selfIntegrity},
+					{ title: "Username", field: "username", editor:"input", validator: ['unique', 'required'], editable: false},
 				  ],
 				})
 			
 			function selfIntegrity(cell) {
-				const rowData = cell.getRow().getData()
-				return (!rowData.active && rowData.username !== 'admin')
+				const data = cell.getRow().getData()
+				return (data.username !== 'admin' && !data.active)
 				}
 			
 			return sourcedata

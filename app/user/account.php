@@ -60,7 +60,7 @@ if (isset($_SESSION['message'])) {
 			</div>
 			
 			<div class="auth-form-wrap">
-				<form id='auth-form' class='wrap' method='post' action='/login/update-credentials'>
+				<form id='auth-form' class='wrap' method='post' action='/auth/update-credentials'>
 					<div class='main-info'>
 						<div class='box username'>
 							<div class='input-header'>
@@ -159,6 +159,7 @@ if (isset($_SESSION['message'])) {
 					</div>
 
 					<input name='username' value="<?= $_SESSION['username'] ?>" hidden required readonly>
+					<input name='email' value="<?= $_SESSION['email'] ?>" hidden required readonly>
 					<input id='csrf' name='csrf-token' value=<?= $_SESSION['CSRF'] ?> data-csrf=<?= $_SESSION['CSRF'] ?> required hidden readonly>
 				</form>
 			</div>
@@ -170,6 +171,12 @@ if (isset($_SESSION['message'])) {
 		// On-load logic
 		window.addEventListener('load', loader)
 		async function loader()  {
+									if (body.dataset.error === 'used-login') {
+										Error('username').show()
+									}
+									if (body.dataset.error === 'used-mail') {
+										Error('mail').show()
+									}
 									if (body.dataset.error === 'invalid-credentials') {
 										Error('validation').show()
 									}
@@ -177,13 +184,17 @@ if (isset($_SESSION['message'])) {
 										Error('pattern').show()
 									}
 									if (body.dataset.error === 'locked-username') {
-										notify("Opération interdite", "Le login n'est pas modifiable pour le compte admin", 'red')
+										notify("Opération interdite", "Le login n'est pas modifiable pour le compte admin.", 'red')
 									}
-
 									if (body.dataset.error === 'locked-email') {
-										notify("Opération interdite", "L'adresse email n'est pas modifiable pour le compte admin", 'red')
+										notify("Opération interdite", "L'adresse email n'est pas modifiable pour le compte admin.", 'red')
 									}
-
+									if (body.dataset.error === 'duplicate-credentials') {
+										notify("Pas de modification", "Le nouveau mot de passe doit différer de l'ancien.", 'red')
+									}
+									if (body.dataset.error === 'error') {
+										notify("Erreur", "Une erreur est survenue. Les modifications n'ont pas été prises en compte.", 'red')
+									}
 									if (body.dataset.message === 'updated') {
 										notify("Succès", "Informations de connexion mises à jour.", 'green')
 										}
@@ -195,6 +206,7 @@ if (isset($_SESSION['message'])) {
 		function submitAllower(force = false) {Button('update').disabled = force || (Errors('[active]').length !== 0)}
 	
 		// Password checks
+		Input('pswd-old').oninput = () => Error('validation').hide()
 		Input('pswd-confirm').oninput = pswdCheck
 		Input('pswd').oninput = pswdRequirementsCheck
 		

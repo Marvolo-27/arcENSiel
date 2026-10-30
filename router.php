@@ -257,7 +257,8 @@ if (preg_match('#^/auth/#', $request_url)) {
         if (in_array($slug, ['login', 'logout', 'register', 'reset-credentials', 'update-credentials', 'check'])) {
             $action = $_POST['action'] ?? $_GET['action'] ?? $slug; //explode('-', $slug)[0];
 
-            $_SESSION['reset-token'] = $url_parameters['token'] ?? null;
+            // Prevent token overwrite to avoid multiple reset emails in one session
+            $resetToken = (isset($_POST['mail']) ? $_SESSION['reset-token'] : null) ?? $url_parameters['token'] ?? null;
 
             require $root . "/app/auth/authentification.php";
             exit;

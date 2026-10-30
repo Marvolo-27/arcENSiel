@@ -143,9 +143,8 @@ if ($action === 'update') {
 		try {
 			if ($type === 'users') {
 				if ($row['username'] !== 'admin' && $row['username'] !== $_SESSION['username']) {
-					$sql = "UPDATE users SET username = :username, role = :role WHERE id = :id;";
+					$sql = "UPDATE users SET role = :role WHERE id = :id;";
 					$params =  [
-								':username' => $row['username'],
 								':role' => $row['role'],
 								':id' => $row['id']
 								];

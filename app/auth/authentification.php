@@ -37,7 +37,7 @@ $action ??= $_POST['action'] ?? $_GET['action'] ?? 'login';
 	// action received from GET = from external page call -> complete form with credentials
 
 // Form check
-$status= isset($_POST['action']) ? 'pending-check':'pending-form';
+$status= isset($_POST['action']) ? 'form-completed':'form-to-complete';
 
 // Bypass if username check asked
 if ($action === 'check') {
@@ -58,7 +58,7 @@ if ($action === 'check') {
 }
 
 //// Check log state
-if (isset($_SESSION['user_id'])) {// logged in
+if (isset($_SESSION['user_id']) && $action !== 'update-credentials') {// logged in
 	if ($action === 'login') {// no action - send back user info
 		http_response_code(200);
 		$response = ['username' => $_SESSION['username'], 'role' => $_SESSION['role']];
@@ -69,9 +69,6 @@ if (isset($_SESSION['user_id'])) {// logged in
 
 		http_response_code(200);
 		logger('/log/users.log', "Successfully logged out.", "Logout");
-	
-	} elseif ($action === 'update-credentials') {
-		null;
 
 	} else {
 		http_response_code(400);
@@ -102,9 +99,9 @@ if ($method === 'CAS') {
 }
 
 //// check reset token validity upon reception
-if ($action === 'reset-credentials' && $status === 'pending-form') {
-	$resetToken = $_SESSION['reset-token'] ?? null;
+if ($action === 'reset-credentials' && $status === 'form-to-complete') {
 	$_SESSION['tmp-data'] = [];
+	$_SESSION['reset-token'] = null;
 
 	if ($resetToken) {
 		$query = $pdo->prepare("SELECT expiry, user FROM tokens WHERE token = ? AND valid = TRUE");
@@ -130,7 +127,7 @@ if ($action === 'reset-credentials' && $status === 'pending-form') {
 }
 
 // Proceed with check if form has been received
-if ($status === 'pending-check') {
+if ($status === 'form-completed') {
 	$dest = null;
 
 	switch ($action) {
@@ -196,7 +193,7 @@ if ($status === 'pending-check') {
 		case 'login':	// log into account
 			if (!isset($_SESSION['user_id'])) {
 				// try and find user
-				$sql = "SELECT id, password_hash, role, email FROM users WHERE username = ? AND auth_type = ?";
+				$sql = "SELECT id, password_hash, role, email, username FROM users WHERE username = ? AND auth_type = ?";
 				$params = [$username, $method];
 				$query = $pdo->prepare($sql);
 				$query->execute($params);
@@ -230,7 +227,7 @@ if ($status === 'pending-check') {
 				
 				// config session
 				$_SESSION['user_id'] = $user['id'];
-				$_SESSION['username'] = $username;
+				$_SESSION['username'] = $user['username'];
 				$_SESSION['email'] = $user['email'];
 				$_SESSION['role'] = $user['role'];
 				$_SESSION['CSRF'] = bin2hex(random_bytes(32)); // génère un tkn aléatoie unique pour authentifier les requêtes
@@ -256,8 +253,8 @@ if ($status === 'pending-check') {
 			}
 			
 			// extract saved data for user
-			$query = $pdo->prepare("SELECT id, password_hash FROM users WHERE username = ? AND auth_type = ?");
-			$query->execute([$username, 'local']);
+			$query = $pdo->prepare("SELECT username, password_hash FROM users WHERE id = ? AND auth_type = ?");
+			$query->execute([$_SESSION['user_id'], 'local']);
 			$user = $query->fetch();
 			
 			// extract new values
@@ -266,24 +263,35 @@ if ($status === 'pending-check') {
 			$new_email    = $_POST['new-email']    ?? null;
 
 			if ($username !== $new_username) {// username update
-					if ($username === 'admin') {
-							$_SESSION['error'] = ['code' => 'locked-username'];
-							
-							http_response_code(400);
-							$response = ['error' => "Nom d'utilisateurice non modifiable"];
-							$dest = "/user/myaccount";
-							break;
+					if ($user['username'] === 'admin') {
+						$_SESSION['error'] = 'locked-username';
+						
+						http_response_code(400);
+						$response = ['error' => "Nom d'utilisateurice non modifiable"];
+						$dest = "/user/myaccount";
+						break;
 					}
 
 					// Username validity
-					if (!preg_match('/[a-zA-Z_]+[a-zA-Z0-9_-]{2,}/', $username)) {// entry found : username exists
+					if (!preg_match('/[a-zA-Z_]+[a-zA-Z0-9_-]{2,}/', $username)) {
 						http_response_code(400);
-						$response = ['error' => "Nom d'utilisateur invalid."];
+						$response = ['error' => "Nom d'utilisateur invalide."];
 						$_SESSION['error'] = "bad-pattern";
-						$dest = "/auth/register?method=local";
+						$dest = "/user/myaccount";
 						break;
 					}
 					
+					// Username unicity
+					$query = $pdo->prepare("SELECT id FROM users WHERE username = ?");
+					$query->execute([$new_username]);
+					if ($query->fetch()) {
+						http_response_code(500);
+						$response = ['error' => "Nom d'utilisateurice indisponible."];
+						$_SESSION['error'] = "used-login";
+						$dest = "/user/myaccount";
+						break;
+					}
+
 					$query = $pdo->prepare("UPDATE users SET username = :username WHERE id = :userid;");
 					$query->execute([':username' => $new_username, ':userid' => $_SESSION['user_id']]);
 
@@ -294,16 +302,27 @@ if ($status === 'pending-check') {
 					logger('/log/users.log', "User $username renamed to $new_username.", "Credentials update");
 					$username = $new_username;
 			
-			} if ($email !== $new_email) {// email update
-					if ($username === 'admin') {
-							$_SESSION['error'] = ['code' => 'locked-email'];
-							
-							http_response_code(400);
-							$response = ['error' => "Adresse email non modifiable"];
-							$dest = "/user/myaccount";
-							break;
+			} else if ($email !== $new_email) {// email update
+					if ($user['username'] === 'admin') {
+						$_SESSION['error'] = 'locked-email';
+						
+						http_response_code(400);
+						$response = ['error' => "Adresse email non modifiable"];
+						$dest = "/user/myaccount";
+						break;
 					}
-				
+
+					// Email unicity
+					$query = $pdo->prepare("SELECT id FROM users WHERE mail = ?");
+					$query->execute([$new_email]);
+					if ($query->fetch()) {
+						http_response_code(500);
+						$response = ['error' => "Email indisponible."];
+						$_SESSION['error'] = "used-email";
+						$dest = "/user/myaccount";
+						break;
+					}
+
 					$query = $pdo->prepare("UPDATE users SET email = :email WHERE id = :userid;");
 					$query->execute([':email' => $new_email, ':userid' => $_SESSION['user_id']]);
 
@@ -313,8 +332,8 @@ if ($status === 'pending-check') {
 					logger('/log/users.log', "Mail changed from $email to $new_email for $username", "Credentials update");
 					$mail = $new_email;
 			
-			} if ($password !== $new_password) {// password update
-					if (password_verify($password_token . $password, $user['password_hash'])) {// existing user  - validated credentials
+			} else if ($password !== $new_password) {// password update
+					if (password_verify($password_token . $password, $user['password_hash'])) {
 						// Hash new password with default php algo
 						$hash = password_hash($password_token . $new_password, PASSWORD_DEFAULT);
 
@@ -328,13 +347,37 @@ if ($status === 'pending-check') {
 
 						$response = ['message' => "Mot de passe mis à jour pour $username"];
 					} else {
-							$_SESSION['error'] = ['code' => 'invalid-credentials'];
-							
-							http_response_code(400);
-							$response = ['error' => "Mot de passe ou nom d'utilisateur incorrect"];
-							$dest = "/user/myaccount";
-							break;
+						$_SESSION['error'] = 'invalid-credentials';
+						
+						http_response_code(400);
+						$response = ['error' => "Mot de passe ou nom d'utilisateur incorrect"];
+						$dest = "/user/myaccount";
+						break;
 					}
+			
+			} else if ($password === $new_password) {// password update
+					if (!password_verify($password_token . $password, $user['password_hash'])) {
+						$_SESSION['error'] = 'invalid-credentials';
+						
+						http_response_code(400);
+						$response = ['error' => "Mot de passe ou nom d'utilisateur incorrect"];
+						$dest = "/user/myaccount";
+						break;
+					}
+					$_SESSION['error'] = 'duplicate-credentials';
+						
+					http_response_code(400);
+					$response = ['error' => "Le nouveau mot de passe doit être différent"];
+					$dest = "/user/myaccount";
+					break;
+			
+			} else {
+					$_SESSION['error'] = 'error';
+						
+					http_response_code(400);
+					$response = ['error' => null];
+					$dest = "/user/myaccount";
+					break;
 			}
 			$_SESSION['message'] = "updated";
 			http_response_code(200);
@@ -342,8 +385,6 @@ if ($status === 'pending-check') {
 			break;
 		
 		case 'reset-credentials':	// send password reset
-			$resetToken = $_SESSION['reset-token'];
-			
 			if (!$resetToken) {// get reset token
 				$query = $pdo->prepare("SELECT id, username FROM users WHERE email = ?");
 				$query->execute([$email]);
@@ -352,6 +393,7 @@ if ($status === 'pending-check') {
 				if ($result) {
 					// generate token
 					$token = bin2hex(random_bytes(64));
+					$_SESSION['reset-token'] = $token;
 
 					// save token
 					$sql = "INSERT INTO tokens (user, token, expiry, valid) VALUES (:user, :token, :time, TRUE);";
@@ -362,7 +404,7 @@ if ($status === 'pending-check') {
 					$query->execute();
 
 					$subject = "Réinitialisez votre mot de passe";
-					$body = "<h3>Bonjour $email,</h3>
+					$body = "<h3>Bonjour {$result['username']},</h3>
 					<div>Nous avons reçu une demande de réinitialisation de mot de passe. Pour définir votre nouveau mot de passe, cliquez sur le lien ci-dessous :</div>
 					<div><a href='https://arcensiel.org/auth/reset-credentials?&token=$token'>Réinitialiser le mot de passe</a></div>
 
@@ -375,27 +417,41 @@ if ($status === 'pending-check') {
 				
 				$_SESSION['tmp-data'] = ['mail' => $email];
 				$resetstatus = 'triggered';
-				break;
 			
-			} else {
-				// Hash password with default php algo
-				$hash = password_hash($password_token . $password, PASSWORD_DEFAULT);
+			} else if (!!$password) {// new password exists
+				// token validity
+				$query = $pdo->prepare("SELECT user FROM tokens WHERE token = ? AND valid = TRUE");
+				$query->execute([$resetToken]);
+				$result = $query->fetch();
+
+				if ($result && $result['user'] === $username) {
+					// Hash password with default php algo
+					$hash = password_hash($password_token . $password, PASSWORD_DEFAULT);
+					
+					// Insert new user
+					$sql = "UPDATE users SET password_hash = ? WHERE username = ?";
+					$params = [$hash, $username];
+					$query = $pdo->prepare($sql);
+					$query->execute($params);
+					
+					logger('/log/users.log', "New password for $username.", 'Reset password');
+					
+					// delete reset token
+					$query = $pdo->prepare("DELETE FROM tokens WHERE user = ?");
+					$query->execute([$username]);
+
+					$_SESSION['message'] = "updated";
 				
-				// Insert new user
-				$sql = "UPDATE users SET password_hash = ? WHERE username = ?";
-				$params = [$hash, $username];
-				$query = $pdo->prepare($sql);
-				$query->execute($params);
-				
-				logger('/log/users.log', queryMaker($sql, $params).PHP_EOL."New password for $username.", 'Reset password');
-				
-				// delete reset token
-				$query = $pdo->prepare("DELETE FROM tokens WHERE username = ?");
-				$query->execute([$username]);
+				} else {
+					$_SESSION['error'] = ['code' => 'failed-update'];
+				}
 
 				$dest = "/auth/login";
-				break;
+			
+			} else {
+				$resetstatus = 'triggered';
 			}
+			break;
 		
 		default:
 			$connected = false;
@@ -403,21 +459,20 @@ if ($status === 'pending-check') {
 	
 	if ($dest) {
 		header("Location: $dest");
-		echo json_encode($resetstatus);
+		echo json_encode($response);
 		exit;
 	}
 }
 
 // 
-$error = $_SESSION['error'] ?? ['code' => null];
+$error = $_SESSION['error'] ?? null;
 unset($_SESSION['error']);
 
 $resetstatus ??= null;
 
 $tmpdata = $_SESSION['tmp-data'] ?? null;
-$_SESSION['tmp-data'] = [];
 
-$message = $_GET['msg'] ?? null;
+$message = $_GET['msg'] ?? '';
 unset($_SESSION['message']);
 ?>
 
@@ -453,7 +508,7 @@ unset($_SESSION['message']);
 		
 		<div id="main">
 			<div class="auth-form-wrap">
-				<form id='auth-form' class='wrap' method='post' action='/auth/<?= $action ?>'>
+				<form id='auth-form' class='wrap' method='post' action='/auth/<?= $action ?><?= $url_parameters['token'] ? "?token={$url_parameters['token']}": '' ?>'>
 					<h1 class="title">
 						<?php if ($action === 'login'): ?>
 							Se connecter
@@ -516,7 +571,7 @@ unset($_SESSION['message']);
 							</div>
 							<div class='input-container'>
 								<div class='icon mail left'></div>
-								<input class='lineentry decorated' type='email' name='email' id='email' autocomplete=on pattern="[a-z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$" required placeholder='john.doe@example.com' title="Veuilez entrer votre adresse mail"
+								<input class='lineentry decorated' type='email' name='email' id='email' autocomplete=on pattern="[a-z0-9._%\+\-]+@[a-zA-Z0-9\.\-]+\.[a-zA-Z]{2,}" required placeholder='john.doe@example.com' title="Veuilez entrer votre adresse mail"
 									<?php if ($error['code'] === 'used-mail'): ?>
 										value=<?= $error['email'] ?>
 									<?php endif; ?>
@@ -627,14 +682,19 @@ unset($_SESSION['message']);
 									if (body.dataset.error === 'invalid-credentials') {
 										Error('password').show()
 									}
+									if (body.dataset.error === 'failed-update') {
+										notify("Erreur", "Le mot de passe n'a pas été mis à jour.", 'red')
+									}
 									if (body.dataset.message === 'registered') {
 										notify('Bienvenue !', 'Compte créé avec succès.', 'green')
+									}
+									if (body.dataset.message === 'updated') {
+										notify("Succès", "Mot de passe mis à jour.", 'green')
 									}
 								}
 		
 		
-	<?php if ($action === 'register' || ($action === 'reset-credential' && ($resetToken && !$resetstatus))): ?>
-	// Regsiter section logic //
+	<?php if ($action === 'register' || ($action === 'reset-credentials' && ($resetToken && !$resetstatus))): ?>
 		// Password checks
 		Input('pswd-confirm').oninput = pswdCheck
 		Input('pswd').oninput = pswdRequirementsCheck
